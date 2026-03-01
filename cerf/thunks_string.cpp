@@ -167,6 +167,30 @@ void Win32Thunks::RegisterStringHandlers() {
     thunk_handlers["wvsprintfW"] = thunk_handlers["_snwprintf"];
     Thunk("sprintf", 1058, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
 
+    Thunk("StringCchCopyW", 1689, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t dst = regs[0], cch = regs[1], src_ptr = regs[2];
+        if (!dst || cch == 0) { regs[0] = 0x80070057; return true; } /* E_INVALIDARG */
+        std::wstring src = ReadWStringFromEmu(mem, src_ptr);
+        uint32_t copy_len = std::min((uint32_t)src.size(), cch - 1);
+        for (uint32_t i = 0; i < copy_len; i++) mem.Write16(dst + i * 2, src[i]);
+        mem.Write16(dst + copy_len * 2, 0);
+        regs[0] = (src.size() >= cch) ? 0x8007007A : 0; /* STRSAFE_E_INSUFFICIENT_BUFFER or S_OK */
+        return true;
+    });
+    Thunk("StringCchCatW", 1693, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t dst = regs[0], cch = regs[1], src_ptr = regs[2];
+        if (!dst || cch == 0) { regs[0] = 0x80070057; return true; }
+        std::wstring existing = ReadWStringFromEmu(mem, dst);
+        std::wstring src = ReadWStringFromEmu(mem, src_ptr);
+        uint32_t cur_len = (uint32_t)existing.size();
+        uint32_t avail = (cur_len < cch) ? cch - cur_len - 1 : 0;
+        uint32_t copy_len = std::min((uint32_t)src.size(), avail);
+        for (uint32_t i = 0; i < copy_len; i++) mem.Write16(dst + (cur_len + i) * 2, src[i]);
+        mem.Write16(dst + (cur_len + copy_len) * 2, 0);
+        regs[0] = (src.size() > avail) ? 0x8007007A : 0;
+        return true;
+    });
+
     /* Ordinal-only entries (name mapping, no handler) */
     ThunkOrdinal("wvsprintfW", 57);
     ThunkOrdinal("wcsncat", 64);

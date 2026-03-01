@@ -105,6 +105,9 @@ void Win32Thunks::RegisterWindowPropsHandlers() {
     Thunk("GetWindowTextLengthW", 276, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0]=GetWindowTextLengthW((HWND)(intptr_t)(int32_t)regs[0]); return true;
     });
+    Thunk("IsChild", 277, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0]=IsChild((HWND)(intptr_t)(int32_t)regs[0],(HWND)(intptr_t)(int32_t)regs[1]); return true;
+    });
     Thunk("AdjustWindowRectEx", 887, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         RECT rc; rc.left=mem.Read32(regs[0]); rc.top=mem.Read32(regs[0]+4);
         rc.right=mem.Read32(regs[0]+8); rc.bottom=mem.Read32(regs[0]+12);
