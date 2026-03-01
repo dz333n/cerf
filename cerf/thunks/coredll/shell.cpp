@@ -7,8 +7,6 @@
 #include "../../log.h"
 #include <cstdio>
 #include <shellapi.h>
-#include <commdlg.h>
-#include <vector>
 
 void Win32Thunks::RegisterShellHandlers() {
     auto stub0 = [](const char* name) -> ThunkHandler {
@@ -16,9 +14,33 @@ void Win32Thunks::RegisterShellHandlers() {
             LOG(THUNK, "[THUNK] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
         };
     };
+    /* Helper: forward a coredll re-export to the real ARM DLL.
+       This mirrors what real coredll does: LoadLibrary + GetProcAddress + call. */
+    auto forwardToArm = [this](const char* dll, const char* func, int nargs) -> ThunkHandler {
+        return [this, dll, func, nargs](uint32_t* regs, EmulatedMemory& mem) -> bool {
+            LoadedDll* mod = LoadArmDll(dll);
+            if (mod && callback_executor) {
+                uint32_t addr = PELoader::ResolveExportName(mem, mod->pe_info, func);
+                if (addr) {
+                    LOG(THUNK, "[THUNK] %s -> forwarding to ARM %s!%s @ 0x%08X\n", func, dll, func, addr);
+                    uint32_t args[8] = {};
+                    for (int i = 0; i < nargs && i < 4; i++) args[i] = regs[i];
+                    for (int i = 4; i < nargs; i++) args[i] = ReadStackArg(regs, mem, i - 4);
+                    regs[0] = callback_executor(addr, args, nargs);
+                    return true;
+                }
+            }
+            LOG(THUNK, "[THUNK] %s -> %s not available, stub returning 0\n", func, dll);
+            regs[0] = 0;
+            return true;
+        };
+    };
     Thunk("SHGetSpecialFolderPath", 295, stub0("SHGetSpecialFolderPath"));
     Thunk("SHLoadDIBitmap", 487, stub0("SHLoadDIBitmap"));
-    ThunkOrdinal("SHCreateShortcut", 484);
+    /* SHCreateShortcut(lpszShortcut, lpszTarget) — forward to ceshell.dll */
+    Thunk("SHCreateShortcut", 484, forwardToArm("ceshell.dll", "SHCreateShortcut", 2));
+    /* SHCreateShortcutEx(lpszShortcut, lpszTarget, lpszParams) — forward to ceshell.dll */
+    Thunk("SHCreateShortcutEx", forwardToArm("ceshell.dll", "SHCreateShortcutEx", 3));
     Thunk("ShellExecuteEx", 480, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t sei_addr = regs[0];
         if (!sei_addr) { regs[0] = 0; SetLastError(ERROR_INVALID_PARAMETER); return true; }
@@ -82,90 +104,16 @@ void Win32Thunks::RegisterShellHandlers() {
         regs[0] = ret;
         return true;
     });
-    Thunk("SHGetFileInfo", 482, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] SHGetFileInfo(pszPath=0x%08X, attrs=0x%X, psfi=0x%08X, cbFileInfo=%d) -> 0 (stub)\n",
-               regs[0], regs[1], regs[2], regs[3]);
-        regs[0] = 0;
-        return true;
-    });
+    /* SHGetFileInfo(pszPath, dwFileAttributes, psfi, cbFileInfo, uFlags) — forward to ceshell.dll */
+    Thunk("SHGetFileInfo", 482, forwardToArm("ceshell.dll", "SHGetFileInfo", 5));
     /* GetOpenFileNameW / GetSaveFileNameW — coredll re-exports from commdlg */
-    auto getFileNameImpl = [this](uint32_t* regs, EmulatedMemory& mem, bool isSave) -> bool {
-        uint32_t ofn_addr = regs[0];
-        if (!ofn_addr) { regs[0] = 0; return true; }
-        uint32_t hwnd_val      = mem.Read32(ofn_addr + 0x04);
-        uint32_t filter_ptr    = mem.Read32(ofn_addr + 0x0C);
-        uint32_t filter_idx    = mem.Read32(ofn_addr + 0x18);
-        uint32_t file_ptr      = mem.Read32(ofn_addr + 0x1C);
-        uint32_t max_file      = mem.Read32(ofn_addr + 0x20);
-        uint32_t init_dir_ptr  = mem.Read32(ofn_addr + 0x2C);
-        uint32_t title_ptr     = mem.Read32(ofn_addr + 0x30);
-        uint32_t flags         = mem.Read32(ofn_addr + 0x34);
-        uint32_t def_ext_ptr   = mem.Read32(ofn_addr + 0x3C);
-        std::wstring filter, file_buf, init_dir, title, def_ext;
-        if (filter_ptr) {
-            for (uint32_t i = 0; i < 4096; i++) {
-                wchar_t c = (wchar_t)mem.Read16(filter_ptr + i * 2);
-                filter += c;
-                if (c == 0 && i > 0 && filter[filter.size() - 2] == 0) break;
-            }
-        }
-        if (file_ptr && max_file > 0) {
-            for (uint32_t i = 0; i < max_file; i++) {
-                wchar_t c = (wchar_t)mem.Read16(file_ptr + i * 2);
-                file_buf += c;
-                if (c == 0) break;
-            }
-        }
-        if (init_dir_ptr) init_dir = ReadWStringFromEmu(mem, init_dir_ptr);
-        if (title_ptr) title = ReadWStringFromEmu(mem, title_ptr);
-        if (def_ext_ptr) def_ext = ReadWStringFromEmu(mem, def_ext_ptr);
-        LOG(THUNK, "[THUNK] %s(filter='%ls', file='%ls', dir='%ls', flags=0x%X)\n",
-               isSave ? "GetSaveFileNameW" : "GetOpenFileNameW",
-               filter.empty() ? L"" : filter.c_str(), file_buf.c_str(),
-               init_dir.empty() ? L"" : init_dir.c_str(), flags);
-        if (max_file < 260) max_file = 260;
-        std::vector<wchar_t> native_file(max_file, 0);
-        if (!file_buf.empty()) wcscpy_s(native_file.data(), max_file, file_buf.c_str());
-        OPENFILENAMEW ofn = {};
-        ofn.lStructSize = sizeof(OPENFILENAMEW);
-        ofn.hwndOwner = (HWND)(intptr_t)(int32_t)hwnd_val;
-        ofn.lpstrFilter = filter.empty() ? L"All Files\0*.*\0" : filter.c_str();
-        ofn.nFilterIndex = filter_idx;
-        ofn.lpstrFile = native_file.data();
-        ofn.nMaxFile = max_file;
-        ofn.lpstrInitialDir = init_dir.empty() ? NULL : init_dir.c_str();
-        ofn.lpstrTitle = title.empty() ? NULL : title.c_str();
-        ofn.lpstrDefExt = def_ext.empty() ? NULL : def_ext.c_str();
-        ofn.Flags = flags & (OFN_READONLY | OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY |
-                    OFN_NOCHANGEDIR | OFN_NOVALIDATE | OFN_ALLOWMULTISELECT |
-                    OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_CREATEPROMPT |
-                    OFN_NOREADONLYRETURN | OFN_EXPLORER);
-        ofn.Flags |= OFN_EXPLORER;
-        BOOL result = isSave ? GetSaveFileNameW(&ofn) : GetOpenFileNameW(&ofn);
-        if (result) {
-            uint32_t orig_max = mem.Read32(ofn_addr + 0x20);
-            for (uint32_t i = 0; i < orig_max && i < max_file; i++) {
-                mem.Write16(file_ptr + i * 2, native_file[i]);
-                if (native_file[i] == 0) break;
-            }
-            mem.Write16(ofn_addr + 0x38, ofn.nFileOffset);
-            mem.Write16(ofn_addr + 0x3A, ofn.nFileExtension);
-            mem.Write32(ofn_addr + 0x18, ofn.nFilterIndex);
-            LOG(THUNK, "[THUNK]   -> selected: '%ls'\n", native_file.data());
-        } else {
-            LOG(THUNK, "[THUNK]   -> cancelled\n");
-        }
-        regs[0] = result;
-        return true;
-    };
-    Thunk("GetOpenFileNameW", 488, [this, getFileNameImpl](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        return getFileNameImpl(regs, mem, false);
-    });
-    Thunk("GetSaveFileNameW", 489, [this, getFileNameImpl](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        return getFileNameImpl(regs, mem, true);
-    });
+    Thunk("GetOpenFileNameW", 488, forwardToArm("commdlg.dll", "GetOpenFileNameW", 1));
+    Thunk("GetSaveFileNameW", 489, forwardToArm("commdlg.dll", "GetSaveFileNameW", 1));
     /* ceshell re-exports via coredll */
-    Thunk("SHGetShortcutTarget", 485, stub0("SHGetShortcutTarget"));
+    /* SHGetShortcutTarget(lpszShortcut, lpszTarget, cbMax) — forward to ceshell.dll */
+    Thunk("SHGetShortcutTarget", 485, forwardToArm("ceshell.dll", "SHGetShortcutTarget", 3));
+    /* SHShowOutOfMemory(hwndOwner, grfFlags) — forward to ceshell.dll */
+    Thunk("SHShowOutOfMemory", forwardToArm("ceshell.dll", "SHShowOutOfMemory", 2));
     Thunk("SHAddToRecentDocs", 483, [](uint32_t* regs, EmulatedMemory&) -> bool {
         LOG(THUNK, "[THUNK] SHAddToRecentDocs(uFlags=%d, pv=0x%08X) -> stub\n", regs[0], regs[1]);
         return true;
