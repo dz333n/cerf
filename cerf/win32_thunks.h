@@ -118,7 +118,7 @@ private:
 
     /* Ordinal to function name mapping */
     static std::map<uint16_t, std::string> ordinal_map;
-    static void InitOrdinalMap();
+    /* ordinals registered inline via Thunk()/ThunkOrdinal() in Register*Handlers() */
     std::string ResolveOrdinal(uint16_t ordinal);
 
     /* Allocate a thunk address for a function */
@@ -166,19 +166,33 @@ private:
     /* Write WIN32_FIND_DATAW to emulated memory (WinCE layout) */
     void WriteFindDataToEmu(EmulatedMemory& mem, uint32_t addr, const WIN32_FIND_DATAW& fd);
 
-    /* Category dispatch methods (each in its own .cpp file) */
-    bool ExecuteMemoryThunk(const std::string& func, uint32_t* regs, EmulatedMemory& mem);
-    bool ExecuteStringThunk(const std::string& func, uint32_t* regs, EmulatedMemory& mem);
-    bool ExecuteGdiThunk(const std::string& func, uint32_t* regs, EmulatedMemory& mem);
-    bool ExecuteWindowThunk(const std::string& func, uint32_t* regs, EmulatedMemory& mem);
-    bool ExecuteSystemThunk(const std::string& func, uint32_t* regs, EmulatedMemory& mem);
+    /* Map-based thunk dispatch */
+    typedef std::function<bool(uint32_t* regs, EmulatedMemory& mem)> ThunkHandler;
+    std::map<std::string, ThunkHandler> thunk_handlers;
 
-    /* Individual API thunk implementations */
-    bool Thunk_GetModuleHandleW(uint32_t* regs, EmulatedMemory& mem);
-    bool Thunk_GetModuleFileNameW(uint32_t* regs, EmulatedMemory& mem);
-    bool Thunk_LoadLibraryW(uint32_t* regs, EmulatedMemory& mem);
-    bool Thunk_GetProcAddressW(uint32_t* regs, EmulatedMemory& mem);
-    bool Thunk_GetCommandLineW(uint32_t* regs, EmulatedMemory& mem);
-    bool Thunk_ExitProcess(uint32_t* regs, EmulatedMemory& mem);
-    bool Thunk_ExitThread(uint32_t* regs, EmulatedMemory& mem);
+    /* Register a handler with ordinal, without ordinal, or ordinal-only (name mapping) */
+    void Thunk(const std::string& name, uint16_t ordinal, ThunkHandler handler);
+    void Thunk(const std::string& name, ThunkHandler handler);
+    void ThunkOrdinal(const std::string& name, uint16_t ordinal);
+
+    /* Handler registration (each in its own .cpp file) */
+    void RegisterArmRuntimeHandlers();
+    void RegisterMemoryHandlers();
+    void RegisterCrtHandlers();
+    void RegisterStringHandlers();
+    void RegisterGdiDcHandlers();
+    void RegisterGdiDrawHandlers();
+    void RegisterGdiTextHandlers();
+    void RegisterGdiRegionHandlers();
+    void RegisterWindowHandlers();
+    void RegisterWindowPropsHandlers();
+    void RegisterDialogHandlers();
+    void RegisterMessageHandlers();
+    void RegisterMenuHandlers();
+    void RegisterInputHandlers();
+    void RegisterRegistryHandlers();
+    void RegisterFileHandlers();
+    void RegisterSystemHandlers();
+    void RegisterMiscHandlers();
+    void RegisterModuleHandlers();
 };

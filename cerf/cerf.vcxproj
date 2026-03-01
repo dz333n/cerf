@@ -151,10 +151,25 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pe_loader.cpp" />
     <ClCompile Include="win32_thunks.cpp" />
+    <ClCompile Include="thunks_arm_runtime.cpp" />
     <ClCompile Include="thunks_memory.cpp" />
-    <ClCompile Include="thunks_gdi.cpp" />
-    <ClCompile Include="thunks_windowing.cpp" />
+    <ClCompile Include="thunks_crt.cpp" />
+    <ClCompile Include="thunks_string.cpp" />
+    <ClCompile Include="thunks_gdi_dc.cpp" />
+    <ClCompile Include="thunks_gdi_draw.cpp" />
+    <ClCompile Include="thunks_gdi_text.cpp" />
+    <ClCompile Include="thunks_gdi_region.cpp" />
+    <ClCompile Include="thunks_window.cpp" />
+    <ClCompile Include="thunks_window_props.cpp" />
+    <ClCompile Include="thunks_dialog.cpp" />
+    <ClCompile Include="thunks_message.cpp" />
+    <ClCompile Include="thunks_menu.cpp" />
+    <ClCompile Include="thunks_input.cpp" />
+    <ClCompile Include="thunks_registry.cpp" />
+    <ClCompile Include="thunks_file.cpp" />
     <ClCompile Include="thunks_system.cpp" />
+    <ClCompile Include="thunks_misc.cpp" />
+    <ClCompile Include="thunks_module.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
