@@ -166,30 +166,256 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
 
-    /* Registry stubs */
-    if (func == "RegOpenKeyExW" || func == "RegCreateKeyExW") {
-        uint32_t phkResult = (func == "RegOpenKeyExW") ?
-            ReadStackArg(regs, mem, 0) : ReadStackArg(regs, mem, 2);
+    /* ---- Emulated Registry ---- */
+    if (func == "RegOpenKeyExW") {
+        LoadRegistry();
+        /* R0=hKey, R1=lpSubKey, R2=ulOptions, R3=samDesired, stack[0]=phkResult */
+        uint32_t parent_hkey = regs[0];
         std::wstring subkey;
         if (regs[1]) subkey = ReadWStringFromEmu(mem, regs[1]);
-        static uint32_t next_fake_hkey = 0xAE000000;
-        uint32_t fake_hkey = next_fake_hkey++;
-        if (phkResult) mem.Write32(phkResult, fake_hkey);
-        printf("[THUNK] %s('%ls') -> fake HKEY 0x%08X\n", func.c_str(),
-               subkey.c_str(), fake_hkey);
+        uint32_t phkResult = ReadStackArg(regs, mem, 0);
+
+        std::wstring full_path = ResolveHKey(parent_hkey, subkey);
+        auto it = registry.find(full_path);
+        if (it == registry.end()) {
+            printf("[REG] RegOpenKeyExW('%ls') -> NOT FOUND\n", full_path.c_str());
+            regs[0] = ERROR_FILE_NOT_FOUND;
+            return true;
+        }
+
+        uint32_t fake = next_fake_hkey++;
+        hkey_map[fake] = full_path;
+        if (phkResult) mem.Write32(phkResult, fake);
+        printf("[REG] RegOpenKeyExW('%ls') -> 0x%08X\n", full_path.c_str(), fake);
+        regs[0] = ERROR_SUCCESS;
+        return true;
+    }
+    if (func == "RegCreateKeyExW") {
+        LoadRegistry();
+        /* R0=hKey, R1=lpSubKey, R2=reserved, R3=lpClass,
+           stack[0]=dwOptions, stack[1]=samDesired, stack[2]=lpSecurityAttribs,
+           stack[3]=phkResult, stack[4]=lpdwDisposition */
+        uint32_t parent_hkey = regs[0];
+        std::wstring subkey;
+        if (regs[1]) subkey = ReadWStringFromEmu(mem, regs[1]);
+        uint32_t phkResult = ReadStackArg(regs, mem, 3);
+        uint32_t pDisposition = ReadStackArg(regs, mem, 4);
+
+        std::wstring full_path = ResolveHKey(parent_hkey, subkey);
+        bool existed = registry.find(full_path) != registry.end();
+        registry[full_path]; /* create if not exists */
+        EnsureParentKeys(full_path);
+
+        uint32_t fake = next_fake_hkey++;
+        hkey_map[fake] = full_path;
+        if (phkResult) mem.Write32(phkResult, fake);
+        if (pDisposition) mem.Write32(pDisposition, existed ? 2 : 1); /* REG_OPENED_EXISTING_KEY / REG_CREATED_NEW_KEY */
+        printf("[REG] RegCreateKeyExW('%ls') -> 0x%08X (%s)\n",
+               full_path.c_str(), fake, existed ? "opened" : "created");
         regs[0] = ERROR_SUCCESS;
         return true;
     }
     if (func == "RegCloseKey") {
-        printf("[STUB] RegCloseKey -> SUCCESS\n");
+        /* R0=hKey */
+        hkey_map.erase(regs[0]);
+        SaveRegistry();
         regs[0] = ERROR_SUCCESS;
         return true;
     }
-    if (func == "RegQueryValueExW" || func == "RegSetValueExW" ||
-        func == "RegDeleteKeyW" || func == "RegDeleteValueW" ||
-        func == "RegEnumValueW" || func == "RegEnumKeyExW" || func == "RegQueryInfoKeyW") {
-        printf("[STUB] %s -> ERROR_FILE_NOT_FOUND\n", func.c_str());
-        regs[0] = ERROR_FILE_NOT_FOUND;
+    if (func == "RegQueryValueExW") {
+        LoadRegistry();
+        /* R0=hKey, R1=lpValueName, R2=lpReserved, R3=lpType,
+           stack[0]=lpData, stack[1]=lpcbData */
+        uint32_t hkey = regs[0];
+        std::wstring value_name;
+        if (regs[1]) value_name = ReadWStringFromEmu(mem, regs[1]);
+        uint32_t pType = regs[3];
+        uint32_t pData = ReadStackArg(regs, mem, 0);
+        uint32_t pcbData = ReadStackArg(regs, mem, 1);
+
+        auto kit = hkey_map.find(hkey);
+        if (kit == hkey_map.end()) {
+            regs[0] = ERROR_INVALID_HANDLE;
+            return true;
+        }
+        auto rit = registry.find(kit->second);
+        if (rit == registry.end()) {
+            regs[0] = ERROR_FILE_NOT_FOUND;
+            return true;
+        }
+        auto vit = rit->second.values.find(value_name);
+        if (vit == rit->second.values.end()) {
+            regs[0] = ERROR_FILE_NOT_FOUND;
+            return true;
+        }
+
+        const RegValue& val = vit->second;
+        if (pType) mem.Write32(pType, val.type);
+
+        uint32_t data_size = (uint32_t)val.data.size();
+        if (pcbData) {
+            uint32_t buf_size = mem.Read32(pcbData);
+            mem.Write32(pcbData, data_size);
+            if (pData && buf_size >= data_size) {
+                for (uint32_t i = 0; i < data_size; i++)
+                    mem.Write8(pData + i, val.data[i]);
+            } else if (pData) {
+                regs[0] = ERROR_MORE_DATA;
+                return true;
+            }
+        }
+        printf("[REG] RegQueryValueExW('%ls', '%ls') -> %u bytes\n",
+               kit->second.c_str(), value_name.c_str(), data_size);
+        regs[0] = ERROR_SUCCESS;
+        return true;
+    }
+    if (func == "RegSetValueExW") {
+        LoadRegistry();
+        /* R0=hKey, R1=lpValueName, R2=reserved, R3=dwType,
+           stack[0]=lpData, stack[1]=cbData */
+        uint32_t hkey = regs[0];
+        std::wstring value_name;
+        if (regs[1]) value_name = ReadWStringFromEmu(mem, regs[1]);
+        uint32_t type = regs[3];
+        uint32_t pData = ReadStackArg(regs, mem, 0);
+        uint32_t cbData = ReadStackArg(regs, mem, 1);
+
+        auto kit = hkey_map.find(hkey);
+        if (kit == hkey_map.end()) {
+            regs[0] = ERROR_INVALID_HANDLE;
+            return true;
+        }
+
+        RegValue val;
+        val.type = type;
+        if (cbData > 0 && cbData < 0x10000) {
+            val.data.resize(cbData);
+            for (uint32_t i = 0; i < cbData; i++)
+                val.data[i] = mem.Read8(pData + i);
+        }
+
+        registry[kit->second].values[value_name] = val;
+        printf("[REG] RegSetValueExW('%ls', '%ls') type=%u size=%u\n",
+               kit->second.c_str(), value_name.c_str(), type, cbData);
+        regs[0] = ERROR_SUCCESS;
+        return true;
+    }
+    if (func == "RegDeleteKeyW") {
+        /* R0=hKey, R1=lpSubKey */
+        uint32_t hkey = regs[0];
+        std::wstring subkey;
+        if (regs[1]) subkey = ReadWStringFromEmu(mem, regs[1]);
+        auto kit = hkey_map.find(hkey);
+        std::wstring path = (kit != hkey_map.end()) ? kit->second + L"\\" + subkey : subkey;
+        registry.erase(path);
+        printf("[REG] RegDeleteKeyW('%ls')\n", path.c_str());
+        regs[0] = ERROR_SUCCESS;
+        return true;
+    }
+    if (func == "RegDeleteValueW") {
+        /* R0=hKey, R1=lpValueName */
+        uint32_t hkey = regs[0];
+        std::wstring value_name;
+        if (regs[1]) value_name = ReadWStringFromEmu(mem, regs[1]);
+        auto kit = hkey_map.find(hkey);
+        if (kit != hkey_map.end()) {
+            auto rit = registry.find(kit->second);
+            if (rit != registry.end()) rit->second.values.erase(value_name);
+        }
+        regs[0] = ERROR_SUCCESS;
+        return true;
+    }
+    if (func == "RegEnumValueW") {
+        LoadRegistry();
+        /* R0=hKey, R1=dwIndex, R2=lpValueName, R3=lpcchValueName,
+           stack[0]=lpReserved, stack[1]=lpType, stack[2]=lpData, stack[3]=lpcbData */
+        uint32_t hkey = regs[0];
+        uint32_t index = regs[1];
+        uint32_t pName = regs[2];
+        uint32_t pcchName = regs[3];
+        uint32_t pType = ReadStackArg(regs, mem, 1);
+        uint32_t pData = ReadStackArg(regs, mem, 2);
+        uint32_t pcbData = ReadStackArg(regs, mem, 3);
+
+        auto kit = hkey_map.find(hkey);
+        if (kit == hkey_map.end()) { regs[0] = ERROR_INVALID_HANDLE; return true; }
+        auto rit = registry.find(kit->second);
+        if (rit == registry.end() || index >= rit->second.values.size()) {
+            regs[0] = ERROR_NO_MORE_ITEMS;
+            return true;
+        }
+        auto vit = rit->second.values.begin();
+        std::advance(vit, index);
+
+        /* Write value name */
+        if (pName && pcchName) {
+            uint32_t maxch = mem.Read32(pcchName);
+            for (uint32_t i = 0; i < vit->first.size() && i < maxch; i++)
+                mem.Write16(pName + i * 2, vit->first[i]);
+            mem.Write16(pName + (uint32_t)vit->first.size() * 2, 0);
+            mem.Write32(pcchName, (uint32_t)vit->first.size());
+        }
+        if (pType) mem.Write32(pType, vit->second.type);
+        if (pData && pcbData) {
+            uint32_t buf_size = mem.Read32(pcbData);
+            uint32_t data_size = (uint32_t)vit->second.data.size();
+            mem.Write32(pcbData, data_size);
+            for (uint32_t i = 0; i < data_size && i < buf_size; i++)
+                mem.Write8(pData + i, vit->second.data[i]);
+        }
+        regs[0] = ERROR_SUCCESS;
+        return true;
+    }
+    if (func == "RegEnumKeyExW") {
+        LoadRegistry();
+        /* R0=hKey, R1=dwIndex, R2=lpName, R3=lpcchName,
+           stack[0]=lpReserved, stack[1]=lpClass, stack[2]=lpcchClass, stack[3]=lpftLastWriteTime */
+        uint32_t hkey = regs[0];
+        uint32_t index = regs[1];
+        uint32_t pName = regs[2];
+        uint32_t pcchName = regs[3];
+
+        auto kit = hkey_map.find(hkey);
+        if (kit == hkey_map.end()) { regs[0] = ERROR_INVALID_HANDLE; return true; }
+        auto rit = registry.find(kit->second);
+        if (rit == registry.end() || index >= rit->second.subkeys.size()) {
+            regs[0] = ERROR_NO_MORE_ITEMS;
+            return true;
+        }
+        auto sit = rit->second.subkeys.begin();
+        std::advance(sit, index);
+
+        if (pName && pcchName) {
+            uint32_t maxch = mem.Read32(pcchName);
+            for (uint32_t i = 0; i < sit->size() && i < maxch; i++)
+                mem.Write16(pName + i * 2, (*sit)[i]);
+            mem.Write16(pName + (uint32_t)sit->size() * 2, 0);
+            mem.Write32(pcchName, (uint32_t)sit->size());
+        }
+        regs[0] = ERROR_SUCCESS;
+        return true;
+    }
+    if (func == "RegQueryInfoKeyW") {
+        LoadRegistry();
+        /* R0=hKey, R1=lpClass, R2=lpcchClass, R3=lpReserved,
+           stack[0]=lpcSubKeys, stack[1]=lpcbMaxSubKeyLen, stack[2]=lpcbMaxClassLen,
+           stack[3]=lpcValues, stack[4]=lpcbMaxValueNameLen, stack[5]=lpcbMaxValueLen,
+           stack[6]=lpcbSecurityDescriptor, stack[7]=lpftLastWriteTime */
+        uint32_t hkey = regs[0];
+        uint32_t pcSubKeys = ReadStackArg(regs, mem, 0);
+        uint32_t pcValues = ReadStackArg(regs, mem, 3);
+
+        auto kit = hkey_map.find(hkey);
+        if (kit == hkey_map.end()) { regs[0] = ERROR_INVALID_HANDLE; return true; }
+        auto rit = registry.find(kit->second);
+        uint32_t num_subkeys = 0, num_values = 0;
+        if (rit != registry.end()) {
+            num_subkeys = (uint32_t)rit->second.subkeys.size();
+            num_values = (uint32_t)rit->second.values.size();
+        }
+        if (pcSubKeys) mem.Write32(pcSubKeys, num_subkeys);
+        if (pcValues) mem.Write32(pcValues, num_values);
+        regs[0] = ERROR_SUCCESS;
         return true;
     }
 
@@ -790,6 +1016,10 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
     if (func == "sndPlaySoundW") {
         printf("[STUB] sndPlaySoundW -> 1\n");
         regs[0] = 1;
+        return true;
+    }
+    if (func == "waveOutSetVolume") {
+        regs[0] = 0; /* MMSYSERR_NOERROR */
         return true;
     }
 

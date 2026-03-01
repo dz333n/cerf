@@ -2,7 +2,12 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "win32_thunks.h"
 #include <cstdio>
+#include <cstring>
 #include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <locale>
+#include <codecvt>
 #include <commctrl.h>
 
 /* On x64, Windows handles are 32-bit values sign-extended to 64-bit.
@@ -117,6 +122,171 @@ void Win32Thunks::WriteFindDataToEmu(EmulatedMemory& mem, uint32_t addr, const W
     /* Null terminator */
     int len = (int)wcslen(fd.cFileName);
     if (len < MAX_PATH) mem.Write16(addr + 36 + len * 2, 0);
+}
+
+/* ---- Emulated Registry (file-backed, text format) ---- */
+
+static std::wstring NarrowToWide(const std::string& s) {
+    std::wstring w;
+    for (char c : s) w += (wchar_t)(unsigned char)c;
+    return w;
+}
+
+static std::string WideToNarrow(const std::wstring& w) {
+    std::string s;
+    for (wchar_t c : w) s += (c < 128) ? (char)c : '?';
+    return s;
+}
+
+static std::wstring ToLowerW(const std::wstring& s) {
+    std::wstring r = s;
+    for (auto& c : r) if (c >= L'A' && c <= L'Z') c += 32;
+    return r;
+}
+
+void Win32Thunks::LoadRegistry() {
+    if (registry_loaded) return;
+    registry_loaded = true;
+
+    /* Store registry next to cerf.exe, not the WinCE app */
+    char cerf_path[MAX_PATH];
+    ::GetModuleFileNameA(NULL, cerf_path, MAX_PATH);
+    std::string cerf_dir(cerf_path);
+    size_t last_sep = cerf_dir.find_last_of("\\/");
+    if (last_sep != std::string::npos) cerf_dir = cerf_dir.substr(0, last_sep + 1);
+    else cerf_dir = "";
+    registry_path = cerf_dir + "cerf_registry.txt";
+    printf("[REG] Loading registry from %s\n", registry_path.c_str());
+
+    std::ifstream f(registry_path);
+    if (!f.is_open()) {
+        printf("[REG] No registry file found, starting empty\n");
+        return;
+    }
+
+    std::wstring current_key;
+    std::string line;
+    while (std::getline(f, line)) {
+        /* Trim trailing \r */
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.empty()) continue;
+
+        /* Key header: [HKCU\Software\...] */
+        if (line[0] == '[' && line.back() == ']') {
+            current_key = NarrowToWide(line.substr(1, line.size() - 2));
+            registry[current_key]; /* ensure key exists */
+            EnsureParentKeys(current_key);
+            continue;
+        }
+
+        /* Value: "name"=type:data */
+        if (current_key.empty() || line[0] != '"') continue;
+        size_t eq = line.find("\"=");
+        if (eq == std::string::npos || eq < 1) continue;
+        std::wstring name = NarrowToWide(line.substr(1, eq - 1));
+        std::string rest = line.substr(eq + 2);
+
+        RegValue val = {};
+        if (rest.substr(0, 6) == "dword:") {
+            val.type = REG_DWORD;
+            uint32_t dw = (uint32_t)strtoul(rest.substr(6).c_str(), nullptr, 16);
+            val.data.resize(4);
+            memcpy(val.data.data(), &dw, 4);
+        } else if (rest.substr(0, 3) == "sz:") {
+            val.type = REG_SZ;
+            std::wstring ws = NarrowToWide(rest.substr(3));
+            val.data.resize((ws.size() + 1) * 2);
+            memcpy(val.data.data(), ws.c_str(), val.data.size());
+        } else if (rest.substr(0, 4) == "hex:") {
+            val.type = REG_BINARY;
+            std::string hex = rest.substr(4);
+            for (size_t i = 0; i < hex.size(); i += 3) {
+                val.data.push_back((uint8_t)strtoul(hex.substr(i, 2).c_str(), nullptr, 16));
+            }
+        }
+        registry[current_key].values[name] = val;
+    }
+    printf("[REG] Loaded %zu keys\n", registry.size());
+}
+
+void Win32Thunks::SaveRegistry() {
+    if (registry_path.empty()) return;
+
+    std::ofstream f(registry_path);
+    if (!f.is_open()) {
+        printf("[REG] Failed to save registry to %s\n", registry_path.c_str());
+        return;
+    }
+
+    for (auto& [path, key] : registry) {
+        if (key.values.empty()) continue;
+        f << "[" << WideToNarrow(path) << "]\n";
+        for (auto& [name, val] : key.values) {
+            f << "\"" << WideToNarrow(name) << "\"=";
+            if (val.type == REG_DWORD && val.data.size() >= 4) {
+                uint32_t dw;
+                memcpy(&dw, val.data.data(), 4);
+                char buf[16];
+                sprintf(buf, "dword:%08X", dw);
+                f << buf << "\n";
+            } else if (val.type == REG_SZ || val.type == REG_EXPAND_SZ) {
+                std::wstring ws((const wchar_t*)val.data.data(), val.data.size() / 2);
+                if (!ws.empty() && ws.back() == L'\0') ws.pop_back();
+                f << "sz:" << WideToNarrow(ws) << "\n";
+            } else {
+                f << "hex:";
+                for (size_t i = 0; i < val.data.size(); i++) {
+                    char buf[4];
+                    sprintf(buf, "%s%02X", i > 0 ? "," : "", val.data[i]);
+                    f << buf;
+                }
+                f << "\n";
+            }
+        }
+        f << "\n";
+    }
+    printf("[REG] Saved %zu keys to %s\n", registry.size(), registry_path.c_str());
+}
+
+std::wstring Win32Thunks::ResolveHKey(uint32_t hkey, const std::wstring& subkey) {
+    std::wstring root;
+
+    /* Predefined HKEY constants (WinCE uses the same values) */
+    if (hkey == 0x80000000) root = L"HKCR";
+    else if (hkey == 0x80000001) root = L"HKCU";
+    else if (hkey == 0x80000002) root = L"HKLM";
+    else if (hkey == 0x80000003) root = L"HKU";
+    else {
+        /* Look up fake HKEY */
+        auto it = hkey_map.find(hkey);
+        if (it != hkey_map.end()) root = it->second;
+        else root = L"HKCU"; /* fallback */
+    }
+
+    if (subkey.empty()) return root;
+
+    /* Strip leading backslash from subkey */
+    std::wstring sk = subkey;
+    while (!sk.empty() && (sk[0] == L'\\' || sk[0] == L'/')) sk.erase(sk.begin());
+    if (sk.empty()) return root;
+
+    /* Normalize separators */
+    std::wstring full = root + L"\\" + sk;
+    /* Remove trailing backslash */
+    while (!full.empty() && full.back() == L'\\') full.pop_back();
+    return full;
+}
+
+void Win32Thunks::EnsureParentKeys(const std::wstring& path) {
+    /* Make sure all parent keys exist and have subkey references */
+    size_t pos = 0;
+    while ((pos = path.find(L'\\', pos + 1)) != std::wstring::npos) {
+        std::wstring parent = path.substr(0, pos);
+        std::wstring child_name = path.substr(pos + 1);
+        size_t next = child_name.find(L'\\');
+        if (next != std::wstring::npos) child_name = child_name.substr(0, next);
+        registry[parent].subkeys.insert(child_name);
+    }
 }
 
 std::map<uint16_t, std::string> Win32Thunks::ordinal_map;
@@ -279,6 +449,7 @@ void Win32Thunks::InitOrdinalMap() {
     ordinal_map[295] = "SHGetSpecialFolderPath";
     ordinal_map[342] = "RasDial";
     ordinal_map[377] = "sndPlaySoundW";
+    ordinal_map[382] = "waveOutSetVolume";
     ordinal_map[455] = "RegCloseKey";
     ordinal_map[456] = "RegCreateKeyExW";
     ordinal_map[457] = "RegDeleteKeyW";
@@ -481,6 +652,9 @@ void Win32Thunks::InitOrdinalMap() {
     ordinal_map[1052] = "qsort";
     ordinal_map[1053] = "rand";
     ordinal_map[1054] = "realloc";
+    ordinal_map[1058] = "sprintf";
+    ordinal_map[1060] = "sqrt";
+    ordinal_map[1061] = "srand";
     ordinal_map[1082] = "wcstol";
     ordinal_map[1092] = "_purecall";
     ordinal_map[1094] = "delete";
@@ -501,6 +675,7 @@ void Win32Thunks::InitOrdinalMap() {
     ordinal_map[1654] = "SetTextAlign";
     ordinal_map[1655] = "GetTextAlign";
     ordinal_map[1667] = "StretchDIBits";
+    ordinal_map[1726] = "SetDIBitsToDevice";
     ordinal_map[1763] = "GradientFill";
     ordinal_map[1770] = "InvertRect";
     ordinal_map[1875] = "__security_gen_cookie";
@@ -517,6 +692,49 @@ void Win32Thunks::InitOrdinalMap() {
     ordinal_map[2009] = "__rt_udiv10";
     ordinal_map[2010] = "__rt_srsh";
     ordinal_map[2011] = "__rt_ursh";
+    ordinal_map[2012] = "__utod";
+    ordinal_map[2013] = "__u64tos";
+    ordinal_map[2014] = "__u64tod";
+    ordinal_map[2015] = "__subs";
+    ordinal_map[2016] = "__subd";
+    ordinal_map[2017] = "__stou64";
+    ordinal_map[2018] = "__stou";
+    ordinal_map[2019] = "__stoi64";
+    ordinal_map[2020] = "__stoi";
+    ordinal_map[2021] = "__stod";
+    ordinal_map[2022] = "__nes";
+    ordinal_map[2023] = "__negs";
+    ordinal_map[2024] = "__negd";
+    ordinal_map[2025] = "__ned";
+    ordinal_map[2026] = "__muls";
+    ordinal_map[2027] = "__muld";
+    ordinal_map[2028] = "__lts";
+    ordinal_map[2029] = "__ltd";
+    ordinal_map[2030] = "__les";
+    ordinal_map[2031] = "__led";
+    ordinal_map[2032] = "__itos";
+    ordinal_map[2033] = "__itod";
+    ordinal_map[2034] = "__i64tos";
+    ordinal_map[2035] = "__i64tod";
+    ordinal_map[2036] = "__gts";
+    ordinal_map[2037] = "__gtd";
+    ordinal_map[2038] = "__ges";
+    ordinal_map[2039] = "__ged";
+    ordinal_map[2040] = "__eqs";
+    ordinal_map[2041] = "__eqd";
+    ordinal_map[2042] = "__dtou64";
+    ordinal_map[2043] = "__dtou";
+    ordinal_map[2044] = "__dtos";
+    ordinal_map[2045] = "__dtoi64";
+    ordinal_map[2046] = "__dtoi";
+    ordinal_map[2047] = "__divs";
+    ordinal_map[2048] = "__divd";
+    ordinal_map[2049] = "__cmps";
+    ordinal_map[2050] = "__cmpd";
+    ordinal_map[2051] = "__adds";
+    ordinal_map[2052] = "__utos";
+    ordinal_map[2053] = "__addd";
+    ordinal_map[2054] = "setjmp";
     ordinal_map[2528] = "__GetUserKData";
     ordinal_map[2562] = "WaitForAPIReady";
     ordinal_map[2696] = "__security_gen_cookie2";
@@ -1240,6 +1458,293 @@ bool Win32Thunks::ExecuteThunk(const ThunkEntry& entry, uint32_t* regs, Emulated
         val >>= (regs[2] & 63);
         regs[0] = (uint32_t)val;
         regs[1] = (uint32_t)(val >> 32);
+        return true;
+    }
+
+    /* ---- ARM soft-float runtime helpers ----
+       In the ARM soft-float ABI:
+       - double is passed/returned in R0 (low 32 bits) and R1 (high 32 bits)
+       - float is passed/returned in R0 (as uint32_t bit pattern)
+       - For binary ops: first arg in R0:R1, second arg in R2:R3
+       - Comparison functions return result in flags-style: 0=equal, <0=less, >0=greater */
+
+    /* Helper lambdas for double <-> register conversion */
+    auto regs_to_double = [](uint32_t lo, uint32_t hi) -> double {
+        uint64_t bits = ((uint64_t)hi << 32) | lo;
+        double d;
+        memcpy(&d, &bits, sizeof(d));
+        return d;
+    };
+    auto double_to_regs = [](double d, uint32_t* r) {
+        uint64_t bits;
+        memcpy(&bits, &d, sizeof(bits));
+        r[0] = (uint32_t)bits;
+        r[1] = (uint32_t)(bits >> 32);
+    };
+    auto regs_to_float = [](uint32_t r) -> float {
+        float f;
+        memcpy(&f, &r, sizeof(f));
+        return f;
+    };
+    auto float_to_reg = [](float f) -> uint32_t {
+        uint32_t r;
+        memcpy(&r, &f, sizeof(r));
+        return r;
+    };
+
+    /* Double arithmetic: R0:R1 op R2:R3 -> R0:R1 */
+    if (func == "__addd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        double_to_regs(a + b, regs);
+        return true;
+    }
+    if (func == "__subd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        double_to_regs(a - b, regs);
+        return true;
+    }
+    if (func == "__muld") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        double_to_regs(a * b, regs);
+        return true;
+    }
+    if (func == "__divd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        double_to_regs(b != 0.0 ? a / b : 0.0, regs);
+        return true;
+    }
+    if (func == "__negd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double_to_regs(-a, regs);
+        return true;
+    }
+
+    /* Float arithmetic: R0 op R1 -> R0 */
+    if (func == "__adds") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = float_to_reg(a + b);
+        return true;
+    }
+    if (func == "__subs") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = float_to_reg(a - b);
+        return true;
+    }
+    if (func == "__muls") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = float_to_reg(a * b);
+        return true;
+    }
+    if (func == "__divs") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = float_to_reg(b != 0.0f ? a / b : 0.0f);
+        return true;
+    }
+    if (func == "__negs") {
+        float a = regs_to_float(regs[0]);
+        regs[0] = float_to_reg(-a);
+        return true;
+    }
+
+    /* Int/uint to double conversion */
+    if (func == "__itod") {
+        double d = (double)(int32_t)regs[0];
+        double_to_regs(d, regs);
+        return true;
+    }
+    if (func == "__utod") {
+        double d = (double)(uint32_t)regs[0];
+        double_to_regs(d, regs);
+        return true;
+    }
+    if (func == "__i64tod") {
+        int64_t val = (int64_t)(((uint64_t)regs[1] << 32) | regs[0]);
+        double_to_regs((double)val, regs);
+        return true;
+    }
+    if (func == "__u64tod") {
+        uint64_t val = ((uint64_t)regs[1] << 32) | regs[0];
+        double_to_regs((double)val, regs);
+        return true;
+    }
+
+    /* Int/uint to float conversion */
+    if (func == "__itos") {
+        regs[0] = float_to_reg((float)(int32_t)regs[0]);
+        return true;
+    }
+    if (func == "__utos") {
+        regs[0] = float_to_reg((float)(uint32_t)regs[0]);
+        return true;
+    }
+    if (func == "__i64tos") {
+        int64_t val = (int64_t)(((uint64_t)regs[1] << 32) | regs[0]);
+        regs[0] = float_to_reg((float)val);
+        return true;
+    }
+    if (func == "__u64tos") {
+        uint64_t val = ((uint64_t)regs[1] << 32) | regs[0];
+        regs[0] = float_to_reg((float)val);
+        return true;
+    }
+
+    /* Double to int/uint conversion */
+    if (func == "__dtoi") {
+        double d = regs_to_double(regs[0], regs[1]);
+        regs[0] = (uint32_t)(int32_t)d;
+        return true;
+    }
+    if (func == "__dtou") {
+        double d = regs_to_double(regs[0], regs[1]);
+        regs[0] = (uint32_t)d;
+        return true;
+    }
+    if (func == "__dtoi64") {
+        double d = regs_to_double(regs[0], regs[1]);
+        int64_t val = (int64_t)d;
+        regs[0] = (uint32_t)val;
+        regs[1] = (uint32_t)(val >> 32);
+        return true;
+    }
+    if (func == "__dtou64") {
+        double d = regs_to_double(regs[0], regs[1]);
+        uint64_t val = (uint64_t)d;
+        regs[0] = (uint32_t)val;
+        regs[1] = (uint32_t)(val >> 32);
+        return true;
+    }
+
+    /* Float to int/uint conversion */
+    if (func == "__stoi") {
+        float f = regs_to_float(regs[0]);
+        regs[0] = (uint32_t)(int32_t)f;
+        return true;
+    }
+    if (func == "__stou") {
+        float f = regs_to_float(regs[0]);
+        regs[0] = (uint32_t)f;
+        return true;
+    }
+    if (func == "__stoi64") {
+        float f = regs_to_float(regs[0]);
+        int64_t val = (int64_t)f;
+        regs[0] = (uint32_t)val;
+        regs[1] = (uint32_t)(val >> 32);
+        return true;
+    }
+    if (func == "__stou64") {
+        float f = regs_to_float(regs[0]);
+        uint64_t val = (uint64_t)f;
+        regs[0] = (uint32_t)val;
+        regs[1] = (uint32_t)(val >> 32);
+        return true;
+    }
+
+    /* Float <-> double conversion */
+    if (func == "__stod") {
+        float f = regs_to_float(regs[0]);
+        double_to_regs((double)f, regs);
+        return true;
+    }
+    if (func == "__dtos") {
+        double d = regs_to_double(regs[0], regs[1]);
+        regs[0] = float_to_reg((float)d);
+        return true;
+    }
+
+    /* Double comparisons: R0:R1 vs R2:R3 -> R0 (0=eq, <0=lt, >0=gt) */
+    if (func == "__cmpd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        regs[0] = (a < b) ? (uint32_t)-1 : (a > b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__eqd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        regs[0] = (a == b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__ned") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        regs[0] = (a != b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__ltd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        regs[0] = (a < b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__led") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        regs[0] = (a <= b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__gtd") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        regs[0] = (a > b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__ged") {
+        double a = regs_to_double(regs[0], regs[1]);
+        double b = regs_to_double(regs[2], regs[3]);
+        regs[0] = (a >= b) ? 1 : 0;
+        return true;
+    }
+
+    /* Float comparisons: R0 vs R1 -> R0 */
+    if (func == "__cmps") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = (a < b) ? (uint32_t)-1 : (a > b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__eqs") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = (a == b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__nes") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = (a != b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__lts") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = (a < b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__les") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = (a <= b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__gts") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = (a > b) ? 1 : 0;
+        return true;
+    }
+    if (func == "__ges") {
+        float a = regs_to_float(regs[0]);
+        float b = regs_to_float(regs[1]);
+        regs[0] = (a >= b) ? 1 : 0;
         return true;
     }
 

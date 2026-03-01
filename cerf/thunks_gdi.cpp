@@ -322,6 +322,42 @@ bool Win32Thunks::ExecuteGdiThunk(const std::string& func, uint32_t* regs, Emula
                                 bits_ptr, (BITMAPINFO*)bmi_buf.data(), usage, rop);
         return true;
     }
+    if (func == "SetDIBitsToDevice") {
+        HDC hdc = (HDC)(intptr_t)(int32_t)regs[0];
+        int xDest = (int)regs[1], yDest = (int)regs[2];
+        int w = (int)regs[3];
+        int h = (int)ReadStackArg(regs, mem, 0);
+        int xSrc = (int)ReadStackArg(regs, mem, 1);
+        int ySrc = (int)ReadStackArg(regs, mem, 2);
+        uint32_t startScan = ReadStackArg(regs, mem, 3);
+        uint32_t numScans = ReadStackArg(regs, mem, 4);
+        uint32_t bits_addr = ReadStackArg(regs, mem, 5);
+        uint32_t bmi_addr = ReadStackArg(regs, mem, 6);
+        uint32_t usage = ReadStackArg(regs, mem, 7);
+        /* Read BITMAPINFOHEADER */
+        BITMAPINFOHEADER bih = {};
+        bih.biSize = mem.Read32(bmi_addr);
+        bih.biWidth = (int32_t)mem.Read32(bmi_addr + 4);
+        bih.biHeight = (int32_t)mem.Read32(bmi_addr + 8);
+        bih.biPlanes = mem.Read16(bmi_addr + 12);
+        bih.biBitCount = mem.Read16(bmi_addr + 14);
+        bih.biCompression = mem.Read32(bmi_addr + 16);
+        bih.biSizeImage = mem.Read32(bmi_addr + 20);
+        bih.biClrUsed = mem.Read32(bmi_addr + 32);
+        int nColors = bih.biClrUsed;
+        if (nColors == 0 && bih.biBitCount <= 8) nColors = 1 << bih.biBitCount;
+        std::vector<uint8_t> bmi_buf(sizeof(BITMAPINFOHEADER) + nColors * 4);
+        memcpy(bmi_buf.data(), &bih, sizeof(bih));
+        for (int i = 0; i < nColors; i++) {
+            uint32_t clr = mem.Read32(bmi_addr + 40 + i * 4);
+            memcpy(bmi_buf.data() + sizeof(BITMAPINFOHEADER) + i * 4, &clr, 4);
+        }
+        uint8_t* bits_ptr = mem.Translate(bits_addr);
+        regs[0] = SetDIBitsToDevice(hdc, xDest, yDest, w, h, xSrc, ySrc,
+                                     startScan, numScans, bits_ptr,
+                                     (BITMAPINFO*)bmi_buf.data(), usage);
+        return true;
+    }
     if (func == "TransparentImage" || func == "TransparentBlt") {
         HDC hdcDest = (HDC)(intptr_t)(int32_t)regs[0];
         int xDest = (int)regs[1], yDest = (int)regs[2];
@@ -400,8 +436,28 @@ bool Win32Thunks::ExecuteGdiThunk(const std::string& func, uint32_t* regs, Emula
         regs[0] = ret;
         return true;
     }
-    if (func == "ExtTextOutW" || func == "DrawTextW") {
-        printf("[STUB] %s -> 1\n", func.c_str());
+    if (func == "DrawTextW") {
+        HDC hdc = (HDC)(intptr_t)(int32_t)regs[0];
+        std::wstring text = ReadWStringFromEmu(mem, regs[1]);
+        int count = (int32_t)regs[2];
+        uint32_t rect_addr = regs[3];
+        uint32_t format = ReadStackArg(regs, mem, 0);
+        RECT rc;
+        rc.left = (int32_t)mem.Read32(rect_addr);
+        rc.top = (int32_t)mem.Read32(rect_addr + 4);
+        rc.right = (int32_t)mem.Read32(rect_addr + 8);
+        rc.bottom = (int32_t)mem.Read32(rect_addr + 12);
+        int ret = ::DrawTextW(hdc, text.c_str(), count, &rc, format);
+        /* Write back rect (DT_CALCRECT may modify it) */
+        mem.Write32(rect_addr, (uint32_t)rc.left);
+        mem.Write32(rect_addr + 4, (uint32_t)rc.top);
+        mem.Write32(rect_addr + 8, (uint32_t)rc.right);
+        mem.Write32(rect_addr + 12, (uint32_t)rc.bottom);
+        regs[0] = (uint32_t)ret;
+        return true;
+    }
+    if (func == "ExtTextOutW") {
+        printf("[STUB] ExtTextOutW -> 1\n");
         regs[0] = 1;
         return true;
     }

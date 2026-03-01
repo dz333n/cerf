@@ -3,6 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "win32_thunks.h"
 #include <cstdio>
+#include <cmath>
 #include <algorithm>
 
 bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, EmulatedMemory& mem) {
@@ -44,9 +45,22 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
         }
         return true;
     }
-    if (func == "LocalFree" || func == "LocalReAlloc") {
-        printf("[STUB] %s(0x%08X) -> 0 (leak)\n", func.c_str(), regs[0]);
-        regs[0] = 0;
+    if (func == "LocalReAlloc") {
+        uint32_t old_ptr = regs[0];
+        uint32_t new_size = regs[1];
+        uint32_t flags = regs[2];
+        static uint32_t next_lrealloc = 0x31000000;
+        uint8_t* old_host = mem.Translate(old_ptr);
+        uint8_t* new_host = mem.Alloc(next_lrealloc, new_size);
+        if (old_host && new_host) memcpy(new_host, old_host, std::min(new_size, (uint32_t)0x1000));
+        if ((flags & 0x40) && new_host) memset(new_host, 0, new_size); /* LMEM_ZEROINIT */
+        regs[0] = next_lrealloc;
+        next_lrealloc += (new_size + 0xFFF) & ~0xFFF;
+        return true;
+    }
+    if (func == "LocalFree") {
+        /* Leak - we don't track allocations to free them */
+        regs[0] = 0; /* success = NULL */
         return true;
     }
     if (func == "LocalSize") {
@@ -108,7 +122,7 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "free" || func == "delete") {
-        printf("[STUB] %s(0x%08X) (leak)\n", func.c_str(), regs[0]);
+        /* Leak - emulated memory doesn't support freeing individual allocations */
         regs[0] = 0;
         return true;
     }
@@ -161,6 +175,45 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
     }
     if (func == "Random") {
         regs[0] = (uint32_t)(rand() % 0xFFFF);
+        return true;
+    }
+    if (func == "srand") {
+        srand(regs[0]);
+        return true;
+    }
+
+    /* Floating-point math (soft-float ABI: double in R0:R1, second arg in R2:R3) */
+    if (func == "pow") {
+        uint64_t bits_a = ((uint64_t)regs[1] << 32) | regs[0];
+        uint64_t bits_b = ((uint64_t)regs[3] << 32) | regs[2];
+        double a, b;
+        memcpy(&a, &bits_a, sizeof(a));
+        memcpy(&b, &bits_b, sizeof(b));
+        double result = pow(a, b);
+        uint64_t rbits;
+        memcpy(&rbits, &result, sizeof(rbits));
+        regs[0] = (uint32_t)rbits;
+        regs[1] = (uint32_t)(rbits >> 32);
+        return true;
+    }
+    if (func == "sqrt") {
+        uint64_t bits = ((uint64_t)regs[1] << 32) | regs[0];
+        double d;
+        memcpy(&d, &bits, sizeof(d));
+        d = sqrt(d);
+        memcpy(&bits, &d, sizeof(bits));
+        regs[0] = (uint32_t)bits;
+        regs[1] = (uint32_t)(bits >> 32);
+        return true;
+    }
+    if (func == "floor") {
+        uint64_t bits = ((uint64_t)regs[1] << 32) | regs[0];
+        double d;
+        memcpy(&d, &bits, sizeof(d));
+        d = floor(d);
+        memcpy(&bits, &d, sizeof(bits));
+        regs[0] = (uint32_t)bits;
+        regs[1] = (uint32_t)(bits >> 32);
         return true;
     }
 
