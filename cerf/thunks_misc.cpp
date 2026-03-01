@@ -3,6 +3,8 @@
 #include "win32_thunks.h"
 #include <cstdio>
 #include <commctrl.h>
+#include <commdlg.h>
+#include <shellapi.h>
 #include <algorithm>
 #include <vector>
 
@@ -183,25 +185,24 @@ void Win32Thunks::RegisterMiscHandlers() {
         printf("[NKDbg] %ls\n", ReadWStringFromEmu(mem, regs[0]).c_str()); return true;
     });
     /* Clipboard stubs */
-    Thunk("OpenClipboard", 668, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
-    Thunk("CloseClipboard", 669, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
-    Thunk("EmptyClipboard", 677, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
-    Thunk("GetClipboardData", 672, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
-    Thunk("SetClipboardData", 671, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
-    Thunk("IsClipboardFormatAvailable", 678, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
-    Thunk("EnumClipboardFormats", 675, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
+    Thunk("OpenClipboard", 668, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] OpenClipboard -> 1\n"); regs[0] = 1; return true; });
+    Thunk("CloseClipboard", 669, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] CloseClipboard -> 1\n"); regs[0] = 1; return true; });
+    Thunk("EmptyClipboard", 677, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] EmptyClipboard -> 1\n"); regs[0] = 1; return true; });
+    Thunk("GetClipboardData", 672, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] GetClipboardData -> 0\n"); regs[0] = 0; return true; });
+    Thunk("SetClipboardData", 671, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] SetClipboardData -> 0\n"); regs[0] = 0; return true; });
+    Thunk("IsClipboardFormatAvailable", 678, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] IsClipboardFormatAvailable -> 0\n"); regs[0] = 0; return true; });
+    Thunk("EnumClipboardFormats", 675, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] EnumClipboardFormats -> 0\n"); regs[0] = 0; return true; });
     /* Caret stubs */
-    Thunk("CreateCaret", 658, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
-    Thunk("HideCaret", 660, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
-    Thunk("ShowCaret", 661, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
+    Thunk("CreateCaret", 658, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] CreateCaret -> 1\n"); regs[0] = 1; return true; });
+    Thunk("HideCaret", 660, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] HideCaret -> 1\n"); regs[0] = 1; return true; });
+    Thunk("ShowCaret", 661, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] ShowCaret -> 1\n"); regs[0] = 1; return true; });
     /* Sound stubs */
-    Thunk("sndPlaySoundW", 377, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
-    Thunk("waveOutSetVolume", 382, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
+    Thunk("sndPlaySoundW", 377, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] sndPlaySoundW -> 1\n"); regs[0] = 1; return true; });
+    Thunk("waveOutSetVolume", 382, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] waveOutSetVolume -> 0\n"); regs[0] = 0; return true; });
     /* RAS stubs */
-    auto ras_stub = [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; };
-    Thunk("RasDial", 342, ras_stub);
-    Thunk("RasHangup", ras_stub);
-    thunk_handlers["RasHangUp"] = ras_stub;
+    Thunk("RasDial", 342, [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] RasDial -> 0\n"); regs[0] = 0; return true; });
+    Thunk("RasHangup", [](uint32_t* regs, EmulatedMemory&) -> bool { printf("[THUNK] [STUB] RasHangup -> 0\n"); regs[0] = 0; return true; });
+    thunk_handlers["RasHangUp"] = thunk_handlers["RasHangup"];
     /* C runtime stubs */
     Thunk("_purecall", 1092, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
     Thunk("terminate", 1556, [](uint32_t* regs, EmulatedMemory&) -> bool { ExitProcess(3); return true; });
@@ -217,25 +218,155 @@ void Win32Thunks::RegisterMiscHandlers() {
     Thunk("_except_handler4_common", 87, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
     Thunk("setjmp", 2054, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
     Thunk("_setjmp3", [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
-    /* Misc stubs */
-    auto stub0 = [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; };
-    auto stub1 = [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; };
-    Thunk("FlushInstructionCache", 508, stub1);
-    Thunk("GetProcessIndexFromID", stub1);
-    Thunk("EventModify", 494, stub1);
-    Thunk("GlobalAddAtomW", 1519, stub1);
-    Thunk("GetAPIAddress", 32, stub0);
-    Thunk("WaitForAPIReady", 2562, stub0);
-    Thunk("__GetUserKData", 2528, stub0);
+    /* Misc stubs - logging helpers */
+    auto stub0 = [](const char* name) -> ThunkHandler {
+        return [name](uint32_t* regs, EmulatedMemory&) -> bool {
+            printf("[THUNK] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
+        };
+    };
+    auto stub1 = [](const char* name) -> ThunkHandler {
+        return [name](uint32_t* regs, EmulatedMemory&) -> bool {
+            printf("[THUNK] [STUB] %s -> 1\n", name); regs[0] = 1; return true;
+        };
+    };
+    Thunk("FlushInstructionCache", 508, stub1("FlushInstructionCache"));
+    Thunk("GetProcessIndexFromID", stub1("GetProcessIndexFromID"));
+    Thunk("EventModify", 494, stub1("EventModify"));
+    Thunk("GlobalAddAtomW", 1519, stub1("GlobalAddAtomW"));
+    Thunk("GetAPIAddress", 32, stub0("GetAPIAddress"));
+    Thunk("WaitForAPIReady", 2562, stub0("WaitForAPIReady"));
+    Thunk("__GetUserKData", 2528, stub0("__GetUserKData"));
     /* Gesture stubs */
-    Thunk("RegisterDefaultGestureHandler", 2928, stub0);
-    Thunk("GetGestureInfo", 2925, stub0);
-    Thunk("GetGestureExtraArguments", stub0);
-    Thunk("CloseGestureInfoHandle", 2924, stub0);
+    Thunk("RegisterDefaultGestureHandler", 2928, stub0("RegisterDefaultGestureHandler"));
+    Thunk("GetGestureInfo", 2925, stub0("GetGestureInfo"));
+    Thunk("GetGestureExtraArguments", stub0("GetGestureExtraArguments"));
+    Thunk("CloseGestureInfoHandle", 2924, stub0("CloseGestureInfoHandle"));
     /* Shell stubs */
-    Thunk("SHGetSpecialFolderPath", 295, stub0);
-    Thunk("ShellExecuteEx", 480, stub0);
-    Thunk("SHLoadDIBitmap", 487, stub0);
+    Thunk("SHGetSpecialFolderPath", 295, stub0("SHGetSpecialFolderPath"));
+    Thunk("ShellExecuteEx", 480, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t sei_addr = regs[0];
+        if (!sei_addr) { regs[0] = 0; SetLastError(ERROR_INVALID_PARAMETER); return true; }
+        /* WinCE SHELLEXECUTEINFO layout (all 32-bit pointers):
+           0x00 cbSize, 0x04 fMask, 0x08 hwnd, 0x0C lpVerb, 0x10 lpFile,
+           0x14 lpParameters, 0x18 lpDirectory, 0x1C nShow, 0x20 hInstApp */
+        uint32_t fMask     = mem.Read32(sei_addr + 0x04);
+        uint32_t hwnd_val  = mem.Read32(sei_addr + 0x08);
+        uint32_t verb_ptr  = mem.Read32(sei_addr + 0x0C);
+        uint32_t file_ptr  = mem.Read32(sei_addr + 0x10);
+        uint32_t params_ptr= mem.Read32(sei_addr + 0x14);
+        uint32_t dir_ptr   = mem.Read32(sei_addr + 0x18);
+        int nShow          = (int)mem.Read32(sei_addr + 0x1C);
+        std::wstring verb, file, params, dir;
+        if (verb_ptr) verb = ReadWStringFromEmu(mem, verb_ptr);
+        if (file_ptr) file = ReadWStringFromEmu(mem, file_ptr);
+        if (params_ptr) params = ReadWStringFromEmu(mem, params_ptr);
+        if (dir_ptr) dir = ReadWStringFromEmu(mem, dir_ptr);
+        printf("[THUNK] ShellExecuteEx(verb='%ls', file='%ls', params='%ls', dir='%ls', nShow=%d)\n",
+               verb.c_str(), file.c_str(), params.c_str(), dir.c_str(), nShow);
+        SHELLEXECUTEINFOW native_sei = {};
+        native_sei.cbSize = sizeof(SHELLEXECUTEINFOW);
+        native_sei.fMask = fMask;
+        native_sei.hwnd = (HWND)(intptr_t)(int32_t)hwnd_val;
+        native_sei.lpVerb = verb.empty() ? NULL : verb.c_str();
+        native_sei.lpFile = file.empty() ? NULL : file.c_str();
+        native_sei.lpParameters = params.empty() ? NULL : params.c_str();
+        native_sei.lpDirectory = dir.empty() ? NULL : dir.c_str();
+        native_sei.nShow = nShow;
+        BOOL ret = ShellExecuteExW(&native_sei);
+        /* Write back hInstApp and hProcess */
+        mem.Write32(sei_addr + 0x20, (uint32_t)(uintptr_t)native_sei.hInstApp);
+        if (fMask & SEE_MASK_NOCLOSEPROCESS)
+            mem.Write32(sei_addr + 0x38, (uint32_t)(uintptr_t)native_sei.hProcess);
+        printf("[THUNK]   -> %s\n", ret ? "OK" : "FAILED");
+        regs[0] = ret;
+        return true;
+    });
+    Thunk("SHLoadDIBitmap", 487, stub0("SHLoadDIBitmap"));
+    /* Common dialogs - marshal WinCE 32-bit OPENFILENAMEW to native */
+    auto getFileNameImpl = [this](uint32_t* regs, EmulatedMemory& mem, bool isSave) -> bool {
+        uint32_t ofn_addr = regs[0];
+        if (!ofn_addr) { regs[0] = 0; return true; }
+        /* Read WinCE OPENFILENAMEW fields from emulated memory */
+        uint32_t hwnd_val      = mem.Read32(ofn_addr + 0x04);
+        uint32_t filter_ptr    = mem.Read32(ofn_addr + 0x0C);
+        uint32_t filter_idx    = mem.Read32(ofn_addr + 0x18);
+        uint32_t file_ptr      = mem.Read32(ofn_addr + 0x1C);
+        uint32_t max_file      = mem.Read32(ofn_addr + 0x20);
+        uint32_t init_dir_ptr  = mem.Read32(ofn_addr + 0x2C);
+        uint32_t title_ptr     = mem.Read32(ofn_addr + 0x30);
+        uint32_t flags         = mem.Read32(ofn_addr + 0x34);
+        uint32_t def_ext_ptr   = mem.Read32(ofn_addr + 0x3C);
+        /* Read strings from emulated memory */
+        std::wstring filter, file_buf, init_dir, title, def_ext;
+        if (filter_ptr) {
+            /* Filter is double-null-terminated list of pairs */
+            for (uint32_t i = 0; i < 4096; i++) {
+                wchar_t c = (wchar_t)mem.Read16(filter_ptr + i * 2);
+                filter += c;
+                if (c == 0 && i > 0 && filter[filter.size() - 2] == 0) break;
+            }
+        }
+        if (file_ptr && max_file > 0) {
+            for (uint32_t i = 0; i < max_file; i++) {
+                wchar_t c = (wchar_t)mem.Read16(file_ptr + i * 2);
+                file_buf += c;
+                if (c == 0) break;
+            }
+        }
+        if (init_dir_ptr) init_dir = ReadWStringFromEmu(mem, init_dir_ptr);
+        if (title_ptr) title = ReadWStringFromEmu(mem, title_ptr);
+        if (def_ext_ptr) def_ext = ReadWStringFromEmu(mem, def_ext_ptr);
+        printf("[THUNK] %s(filter='%ls', file='%ls', dir='%ls', flags=0x%X)\n",
+               isSave ? "GetSaveFileNameW" : "GetOpenFileNameW",
+               filter.empty() ? L"" : filter.c_str(), file_buf.c_str(),
+               init_dir.empty() ? L"" : init_dir.c_str(), flags);
+        /* Build native OPENFILENAMEW */
+        /* Ensure file buffer is large enough */
+        if (max_file < 260) max_file = 260;
+        std::vector<wchar_t> native_file(max_file, 0);
+        if (!file_buf.empty()) wcscpy_s(native_file.data(), max_file, file_buf.c_str());
+        OPENFILENAMEW ofn = {};
+        ofn.lStructSize = sizeof(OPENFILENAMEW);
+        ofn.hwndOwner = (HWND)(intptr_t)(int32_t)hwnd_val;
+        ofn.lpstrFilter = filter.empty() ? L"All Files\0*.*\0" : filter.c_str();
+        ofn.nFilterIndex = filter_idx;
+        ofn.lpstrFile = native_file.data();
+        ofn.nMaxFile = max_file;
+        ofn.lpstrInitialDir = init_dir.empty() ? NULL : init_dir.c_str();
+        ofn.lpstrTitle = title.empty() ? NULL : title.c_str();
+        ofn.lpstrDefExt = def_ext.empty() ? NULL : def_ext.c_str();
+        /* Map WinCE flags to native, strip unsupported ones */
+        ofn.Flags = flags & (OFN_READONLY | OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY |
+                    OFN_NOCHANGEDIR | OFN_NOVALIDATE | OFN_ALLOWMULTISELECT |
+                    OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_CREATEPROMPT |
+                    OFN_NOREADONLYRETURN | OFN_EXPLORER);
+        ofn.Flags |= OFN_EXPLORER; /* Always use explorer style */
+        BOOL result = isSave ? GetSaveFileNameW(&ofn) : GetOpenFileNameW(&ofn);
+        if (result) {
+            /* Write result back to emulated memory */
+            uint32_t orig_max = mem.Read32(ofn_addr + 0x20);
+            for (uint32_t i = 0; i < orig_max && i < max_file; i++) {
+                mem.Write16(file_ptr + i * 2, native_file[i]);
+                if (native_file[i] == 0) break;
+            }
+            /* Update nFileOffset and nFileExtension */
+            mem.Write16(ofn_addr + 0x38, ofn.nFileOffset);
+            mem.Write16(ofn_addr + 0x3A, ofn.nFileExtension);
+            /* Update nFilterIndex */
+            mem.Write32(ofn_addr + 0x18, ofn.nFilterIndex);
+            printf("[THUNK]   -> selected: '%ls'\n", native_file.data());
+        } else {
+            printf("[THUNK]   -> cancelled\n");
+        }
+        regs[0] = result;
+        return true;
+    };
+    Thunk("GetOpenFileNameW", 488, [this, getFileNameImpl](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        return getFileNameImpl(regs, mem, false);
+    });
+    Thunk("GetSaveFileNameW", [this, getFileNameImpl](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        return getFileNameImpl(regs, mem, true);
+    });
     /* Common controls */
     Thunk("ImageList_Create", 742, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         regs[0] = (uint32_t)(uintptr_t)ImageList_Create(regs[0], regs[1], regs[2], regs[3], ReadStackArg(regs, mem, 0));
@@ -270,20 +401,54 @@ void Win32Thunks::RegisterMiscHandlers() {
         regs[0] = ret; return true;
     });
     /* IMM stubs */
-    Thunk("ImmAssociateContext", 770, stub0);
-    Thunk("ImmGetContext", 783, stub0);
-    Thunk("ImmReleaseContext", 803, stub0);
+    Thunk("ImmAssociateContext", 770, stub0("ImmAssociateContext"));
+    Thunk("ImmGetContext", 783, stub0("ImmGetContext"));
+    Thunk("ImmReleaseContext", 803, stub0("ImmReleaseContext"));
     /* Process/thread stubs */
-    Thunk("CreateThread", 492, stub0);
-    Thunk("CreateProcessW", 493, stub0);
-    Thunk("TerminateThread", 491, stub0);
-    Thunk("SetThreadPriority", 514, stub0);
-    Thunk("GetExitCodeProcess", 519, stub0);
-    Thunk("OpenProcess", 509, stub0);
-    Thunk("WaitForMultipleObjects", 498, stub0);
-    Thunk("CreateFileMappingW", 548, stub0);
-    Thunk("MapViewOfFile", 549, stub0);
-    Thunk("UnmapViewOfFile", 550, stub0);
+    Thunk("CreateThread", 492, stub0("CreateThread"));
+    Thunk("CreateProcessW", 493, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        /* WinCE CreateProcessW(pszImageName, pszCmdLine, psaProcess, psaThread,
+           fInheritHandles, fdwCreate, pvEnvironment, pszCurDir, psiStartInfo, pProcInfo) */
+        uint32_t image_ptr = regs[0], cmdline_ptr = regs[1];
+        uint32_t fdwCreate = ReadStackArg(regs, mem, 1);
+        uint32_t curdir_ptr = ReadStackArg(regs, mem, 3);
+        uint32_t procinfo_ptr = ReadStackArg(regs, mem, 5);
+        std::wstring image, cmdline, curdir;
+        if (image_ptr) image = ReadWStringFromEmu(mem, image_ptr);
+        if (cmdline_ptr) cmdline = ReadWStringFromEmu(mem, cmdline_ptr);
+        if (curdir_ptr) curdir = ReadWStringFromEmu(mem, curdir_ptr);
+        printf("[THUNK] CreateProcessW(image='%ls', cmdline='%ls', curdir='%ls', flags=0x%X)\n",
+               image.c_str(), cmdline.c_str(), curdir.c_str(), fdwCreate);
+        STARTUPINFOW si = {}; si.cb = sizeof(si);
+        PROCESS_INFORMATION pi = {};
+        /* Need mutable copy of cmdline for CreateProcessW */
+        std::vector<wchar_t> cmdline_buf(cmdline.begin(), cmdline.end());
+        cmdline_buf.push_back(0);
+        BOOL ret = CreateProcessW(
+            image.empty() ? NULL : image.c_str(),
+            cmdline_buf.data(),
+            NULL, NULL, FALSE, fdwCreate, NULL,
+            curdir.empty() ? NULL : curdir.c_str(),
+            &si, &pi);
+        if (ret && procinfo_ptr) {
+            /* Write PROCESS_INFORMATION back: hProcess, hThread, dwProcessId, dwThreadId */
+            mem.Write32(procinfo_ptr + 0x00, (uint32_t)(uintptr_t)pi.hProcess);
+            mem.Write32(procinfo_ptr + 0x04, (uint32_t)(uintptr_t)pi.hThread);
+            mem.Write32(procinfo_ptr + 0x08, pi.dwProcessId);
+            mem.Write32(procinfo_ptr + 0x0C, pi.dwThreadId);
+        }
+        printf("[THUNK]   -> %s (pid=%d)\n", ret ? "OK" : "FAILED", ret ? pi.dwProcessId : 0);
+        regs[0] = ret;
+        return true;
+    });
+    Thunk("TerminateThread", 491, stub0("TerminateThread"));
+    Thunk("SetThreadPriority", 514, stub0("SetThreadPriority"));
+    Thunk("GetExitCodeProcess", 519, stub0("GetExitCodeProcess"));
+    Thunk("OpenProcess", 509, stub0("OpenProcess"));
+    Thunk("WaitForMultipleObjects", 498, stub0("WaitForMultipleObjects"));
+    Thunk("CreateFileMappingW", 548, stub0("CreateFileMappingW"));
+    Thunk("MapViewOfFile", 549, stub0("MapViewOfFile"));
+    Thunk("UnmapViewOfFile", 550, stub0("UnmapViewOfFile"));
     /* Ordinal-only entries (no handler, for logging) */
     ThunkOrdinal("Shell_NotifyIcon", 481);
     ThunkOrdinal("SHCreateShortcut", 484);
