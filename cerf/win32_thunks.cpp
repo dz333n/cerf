@@ -430,9 +430,16 @@ void Win32Thunks::InitOrdinalMap() {
     ordinal_map[1877] = "MulDiv";
     ordinal_map[1890] = "SetLayout";
     ordinal_map[1891] = "GetLayout";
-    ordinal_map[2000] = "_setjmp3";
-    ordinal_map[2005] = "__PlatformSpecific2005"; /* Platform-specific, silent no-op */
-    ordinal_map[2008] = "__PlatformSpecific2008"; /* Platform-specific, silent no-op */
+    ordinal_map[2000] = "__rt_sdiv64by64";
+    ordinal_map[2001] = "__rt_srem64by64";
+    ordinal_map[2002] = "__rt_udiv64by64";
+    ordinal_map[2003] = "__rt_urem64by64";
+    ordinal_map[2005] = "__rt_sdiv";
+    ordinal_map[2006] = "__rt_sdiv10";
+    ordinal_map[2008] = "__rt_udiv";
+    ordinal_map[2009] = "__rt_udiv10";
+    ordinal_map[2010] = "__rt_srsh";
+    ordinal_map[2011] = "__rt_ursh";
     ordinal_map[2528] = "__GetUserKData";
     ordinal_map[2562] = "WaitForAPIReady";
     ordinal_map[2696] = "__security_gen_cookie2";
@@ -949,9 +956,92 @@ bool Win32Thunks::ExecuteThunk(const ThunkEntry& entry, uint32_t* regs, Emulated
         return true;
     }
 
-    /* Platform-specific ordinals - silent no-ops */
-    if (func == "__PlatformSpecific2005" || func == "__PlatformSpecific2008") {
-        regs[0] = 0;
+    /* ARM compiler runtime: signed division. R0=divisor, R1=dividend -> R0=quotient, R1=remainder */
+    if (func == "__rt_sdiv") {
+        int32_t divisor = (int32_t)regs[0];
+        int32_t dividend = (int32_t)regs[1];
+        if (divisor == 0) { regs[0] = 0; regs[1] = 0; return true; }
+        regs[0] = (uint32_t)(dividend / divisor);
+        regs[1] = (uint32_t)(dividend % divisor);
+        return true;
+    }
+    /* ARM compiler runtime: unsigned division. R0=divisor, R1=dividend -> R0=quotient, R1=remainder */
+    if (func == "__rt_udiv") {
+        uint32_t divisor = regs[0];
+        uint32_t dividend = regs[1];
+        if (divisor == 0) { regs[0] = 0; regs[1] = 0; return true; }
+        regs[0] = dividend / divisor;
+        regs[1] = dividend % divisor;
+        return true;
+    }
+    /* ARM compiler runtime: signed divide by 10 */
+    if (func == "__rt_sdiv10") {
+        int32_t val = (int32_t)regs[0];
+        regs[0] = (uint32_t)(val / 10);
+        regs[1] = (uint32_t)(val % 10);
+        return true;
+    }
+    /* ARM compiler runtime: unsigned divide by 10 */
+    if (func == "__rt_udiv10") {
+        uint32_t val = regs[0];
+        regs[0] = val / 10;
+        regs[1] = val % 10;
+        return true;
+    }
+    /* ARM compiler runtime: 64-bit signed division. R0:R1=dividend, R2:R3=divisor -> R0:R1=quotient */
+    if (func == "__rt_sdiv64by64") {
+        int64_t dividend = (int64_t)(((uint64_t)regs[1] << 32) | regs[0]);
+        int64_t divisor = (int64_t)(((uint64_t)regs[3] << 32) | regs[2]);
+        if (divisor == 0) { regs[0] = 0; regs[1] = 0; return true; }
+        int64_t quotient = dividend / divisor;
+        regs[0] = (uint32_t)quotient;
+        regs[1] = (uint32_t)(quotient >> 32);
+        return true;
+    }
+    /* ARM compiler runtime: 64-bit signed remainder */
+    if (func == "__rt_srem64by64") {
+        int64_t dividend = (int64_t)(((uint64_t)regs[1] << 32) | regs[0]);
+        int64_t divisor = (int64_t)(((uint64_t)regs[3] << 32) | regs[2]);
+        if (divisor == 0) { regs[0] = 0; regs[1] = 0; return true; }
+        int64_t rem = dividend % divisor;
+        regs[0] = (uint32_t)rem;
+        regs[1] = (uint32_t)(rem >> 32);
+        return true;
+    }
+    /* ARM compiler runtime: 64-bit unsigned division */
+    if (func == "__rt_udiv64by64") {
+        uint64_t dividend = ((uint64_t)regs[1] << 32) | regs[0];
+        uint64_t divisor = ((uint64_t)regs[3] << 32) | regs[2];
+        if (divisor == 0) { regs[0] = 0; regs[1] = 0; return true; }
+        uint64_t quotient = dividend / divisor;
+        regs[0] = (uint32_t)quotient;
+        regs[1] = (uint32_t)(quotient >> 32);
+        return true;
+    }
+    /* ARM compiler runtime: 64-bit unsigned remainder */
+    if (func == "__rt_urem64by64") {
+        uint64_t dividend = ((uint64_t)regs[1] << 32) | regs[0];
+        uint64_t divisor = ((uint64_t)regs[3] << 32) | regs[2];
+        if (divisor == 0) { regs[0] = 0; regs[1] = 0; return true; }
+        uint64_t rem = dividend % divisor;
+        regs[0] = (uint32_t)rem;
+        regs[1] = (uint32_t)(rem >> 32);
+        return true;
+    }
+    /* ARM compiler runtime: 64-bit signed right shift. R0:R1=value, R2=shift -> R0:R1=result */
+    if (func == "__rt_srsh") {
+        int64_t val = (int64_t)(((uint64_t)regs[1] << 32) | regs[0]);
+        val >>= (regs[2] & 63);
+        regs[0] = (uint32_t)val;
+        regs[1] = (uint32_t)(val >> 32);
+        return true;
+    }
+    /* ARM compiler runtime: 64-bit unsigned right shift */
+    if (func == "__rt_ursh") {
+        uint64_t val = ((uint64_t)regs[1] << 32) | regs[0];
+        val >>= (regs[2] & 63);
+        regs[0] = (uint32_t)val;
+        regs[1] = (uint32_t)(val >> 32);
         return true;
     }
 
