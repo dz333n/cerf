@@ -6,8 +6,46 @@
 #include <map>
 #include <set>
 #include <functional>
+#include <algorithm>
+#include <cstring>
 #include "../cpu/mem.h"
 #include "../loader/pe_loader.h"
+
+/* Thunked DLL registry — single source of truth for all system DLLs we emulate.
+   To add a new thunked DLL: add one entry here, then create Register*Handlers(). */
+struct ThunkedDllInfo {
+    const char* name;          /* lowercase key (e.g. "coredll") */
+    uint32_t    fake_handle;   /* returned by GetModuleHandle/LoadLibrary */
+};
+
+inline const ThunkedDllInfo thunked_dlls[] = {
+    { "coredll",   0xCE000000 },
+    { "commctrl",  0xCE010000 },
+    { "ole32",     0xCE020000 },
+    { "ceshell",   0xCE030000 },
+    { "commdlg",   0xCE040000 },
+    { "aygshell",  0xCE050000 },
+};
+
+/* Look up a thunked DLL by name (narrow, case-insensitive, substring match) */
+inline const ThunkedDllInfo* FindThunkedDll(const std::string& dll_name) {
+    std::string lower = dll_name;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    for (const auto& dll : thunked_dlls)
+        if (lower.find(dll.name) != std::string::npos) return &dll;
+    return nullptr;
+}
+
+/* Wide string version for LoadLibraryW / GetModuleHandleW */
+inline const ThunkedDllInfo* FindThunkedDllW(const std::wstring& dll_name) {
+    std::wstring lower = dll_name;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
+    for (const auto& dll : thunked_dlls) {
+        std::wstring wide_name(dll.name, dll.name + strlen(dll.name));
+        if (lower.find(wide_name) != std::wstring::npos) return &dll;
+    }
+    return nullptr;
+}
 
 /* Magic address range for thunk entries.
    When ARM code branches to an address in this range, we intercept it.
@@ -202,4 +240,5 @@ private:
     void RegisterModuleHandlers();
     void RegisterAygshellHandlers();
     void RegisterCeshellHandlers();
+    void RegisterOle32Handlers();
 };

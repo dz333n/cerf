@@ -573,6 +573,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterModuleHandlers();
     RegisterAygshellHandlers();
     RegisterCeshellHandlers();
+    RegisterOle32Handlers();
 }
 
 uint32_t Win32Thunks::AllocThunk(const std::string& dll, const std::string& func,
@@ -600,13 +601,7 @@ uint32_t Win32Thunks::AllocThunk(const std::string& dll, const std::string& func
 
 /* Check if a DLL name refers to a system DLL that we thunk (not an ARM DLL) */
 static bool IsThunkedDll(const std::string& dll_name) {
-    std::string lower = dll_name;
-    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-    return lower.find("coredll") != std::string::npos ||
-           lower.find("commctrl") != std::string::npos ||
-           lower.find("ceshell") != std::string::npos ||
-           lower.find("ole32") != std::string::npos ||
-           lower.find("aygshell") != std::string::npos;
+    return FindThunkedDll(dll_name) != nullptr;
 }
 
 void Win32Thunks::InstallThunks(PEInfo& info) {
@@ -911,39 +906,6 @@ bool Win32Thunks::ExecuteThunk(const ThunkEntry& entry, uint32_t* regs, Emulated
     /* Map-based dispatch: look up handler by function name */
     auto it = thunk_handlers.find(func);
     if (it != thunk_handlers.end()) return it->second(regs, mem);
-
-    /* CEShell.DLL generic fallback */
-    if (entry.dll_name == "CEShell.DLL" || entry.dll_name == "ceshell.dll") {
-        regs[0] = 0;
-        printf("[THUNK] ceshell.dll!%s (ordinal %d) -> 0 (stub)\n",
-               func.empty() ? "(unknown)" : func.c_str(), entry.ordinal);
-        return true;
-    }
-
-    /* commctrl.dll stubs */
-    if (entry.dll_name == "commctrl.dll" || entry.dll_name == "COMMCTRL.DLL") {
-        regs[0] = 1;
-        printf("[THUNK] commctrl.dll!%s (ordinal %d) -> 1 (stub)\n",
-               func.empty() ? "(unknown)" : func.c_str(), entry.ordinal);
-        return true;
-    }
-
-    /* ole32.dll stubs */
-    if (entry.dll_name == "ole32.dll" || entry.dll_name == "OLE32.DLL") {
-        regs[0] = 0; /* S_OK */
-        printf("[THUNK] ole32.dll!%s -> S_OK (stub)\n",
-               func.empty() ? "(unknown)" : func.c_str());
-        return true;
-    }
-
-    /* aygshell.dll stubs - WinCE Shell Helper Library */
-    if (entry.dll_name == "aygshell.dll" || entry.dll_name == "AYGSHELL.DLL" ||
-        entry.dll_name == "aygshell" || entry.dll_name == "AYGSHELL") {
-        regs[0] = 0;
-        printf("[THUNK] aygshell.dll!%s (ordinal %d) -> 0 (stub)\n",
-               func.empty() ? "(unknown)" : func.c_str(), entry.ordinal);
-        return true;
-    }
 
     /* Unhandled function */
     if (!func.empty()) {

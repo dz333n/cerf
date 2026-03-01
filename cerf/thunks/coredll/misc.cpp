@@ -74,7 +74,8 @@ void Win32Thunks::RegisterMiscHandlers() {
     Thunk("GetGestureInfo", 2925, stub0("GetGestureInfo"));
     Thunk("GetGestureExtraArguments", stub0("GetGestureExtraArguments"));
     Thunk("CloseGestureInfoHandle", 2924, stub0("CloseGestureInfoHandle"));
-    /* COM */
+    /* COM — WinCE coredll re-exports COM functions from ole32. Both DLLs resolve
+       to the same handler here since our dispatch is name-based (flat map). */
     Thunk("CoInitializeEx", [](uint32_t* regs, EmulatedMemory&) -> bool {
         HRESULT hr = CoInitializeEx(NULL, regs[1]);
         printf("[THUNK] CoInitializeEx(0x%X) -> 0x%08X\n", regs[1], (uint32_t)hr);
