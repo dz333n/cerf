@@ -294,7 +294,12 @@ std::map<uint16_t, std::string> Win32Thunks::ordinal_map;
 
 void Win32Thunks::Thunk(const std::string& name, uint16_t ordinal, ThunkHandler handler) {
     thunk_handlers[name] = std::move(handler);
-    if (ordinal > 0) ordinal_map[ordinal] = name;
+    if (ordinal > 0) {
+        if (current_dll_context.empty() || current_dll_context == "coredll.dll")
+            ordinal_map[ordinal] = name;
+        else
+            dll_ordinal_map[current_dll_context][ordinal] = name;
+    }
 }
 
 void Win32Thunks::Thunk(const std::string& name, ThunkHandler handler) {
@@ -302,10 +307,22 @@ void Win32Thunks::Thunk(const std::string& name, ThunkHandler handler) {
 }
 
 void Win32Thunks::ThunkOrdinal(const std::string& name, uint16_t ordinal) {
-    ordinal_map[ordinal] = name;
+    if (current_dll_context.empty() || current_dll_context == "coredll.dll")
+        ordinal_map[ordinal] = name;
+    else
+        dll_ordinal_map[current_dll_context][ordinal] = name;
 }
 
-std::string Win32Thunks::ResolveOrdinal(uint16_t ordinal) {
+std::map<std::string, std::map<uint16_t, std::string>> Win32Thunks::dll_ordinal_map;
+
+std::string Win32Thunks::ResolveOrdinal(uint16_t ordinal, const std::string& dll_name) {
+    /* Check DLL-specific ordinal map first (for DLLs with conflicting ordinals) */
+    auto dll_it = dll_ordinal_map.find(dll_name);
+    if (dll_it != dll_ordinal_map.end()) {
+        auto ord_it = dll_it->second.find(ordinal);
+        if (ord_it != dll_it->second.end()) return ord_it->second;
+    }
+    /* Fall back to global ordinal map (coredll) */
     auto it = ordinal_map.find(ordinal);
     if (it != ordinal_map.end()) return it->second;
     char buf[32];
@@ -547,7 +564,9 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     s_instance = this;
     /* Allocate a memory region for thunk return stubs */
     mem.Alloc(THUNK_BASE, 0x100000);
-    /* Register all thunk handlers (map-based dispatch) */
+    /* Register all thunk handlers (map-based dispatch).
+       current_dll_context routes ordinals to per-DLL ordinal maps. */
+    current_dll_context = "coredll.dll";
     RegisterArmRuntimeHandlers();
     RegisterMemoryHandlers();
     RegisterCrtHandlers();
@@ -566,15 +585,22 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterFileHandlers();
     RegisterSystemHandlers();
     RegisterResourceHandlers();
-    RegisterCommctrlHandlers();
-    RegisterCommdlgHandlers();
-    RegisterShellHandlers();
     RegisterProcessHandlers();
     RegisterMiscHandlers();
     RegisterModuleHandlers();
+    current_dll_context = "commctrl.dll";
+    RegisterCommctrlHandlers();
+    current_dll_context = "commdlg.dll";
+    RegisterCommdlgHandlers();
+    current_dll_context = "coredll.dll";
+    RegisterShellHandlers();
+    current_dll_context = "aygshell.dll";
     RegisterAygshellHandlers();
+    current_dll_context = "ceshell.dll";
     RegisterCeshellHandlers();
+    current_dll_context = "ole32.dll";
     RegisterOle32Handlers();
+    current_dll_context.clear();
 }
 
 uint32_t Win32Thunks::AllocThunk(const std::string& dll, const std::string& func,
@@ -898,7 +924,7 @@ bool Win32Thunks::HandleThunk(uint32_t addr, uint32_t* regs, EmulatedMemory& mem
 bool Win32Thunks::ExecuteThunk(const ThunkEntry& entry, uint32_t* regs, EmulatedMemory& mem) {
     std::string func = entry.func_name;
     if (func.empty() && entry.by_ordinal) {
-        func = ResolveOrdinal(entry.ordinal);
+        func = ResolveOrdinal(entry.ordinal, entry.dll_name);
         if (!func.empty()) {
             LOG(THUNK, "[THUNK] Resolved ordinal %d -> %s\n", entry.ordinal, func.c_str());
         }

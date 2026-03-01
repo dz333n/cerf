@@ -197,6 +197,22 @@ void Win32Thunks::RegisterStringHandlers() {
                regs[0], regs[1], regs[2], (int32_t)regs[3]);
         regs[0] = 0; return true;
     });
+    Thunk("CharLowerBuffW", 222, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t addr = regs[0], len = regs[1];
+        for (uint32_t i = 0; i < len; i++) {
+            uint16_t ch = mem.Read16(addr + i * 2);
+            mem.Write16(addr + i * 2, (uint16_t)towlower(ch));
+        }
+        regs[0] = len; return true;
+    });
+    Thunk("CharUpperBuffW", 223, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t addr = regs[0], len = regs[1];
+        for (uint32_t i = 0; i < len; i++) {
+            uint16_t ch = mem.Read16(addr + i * 2);
+            mem.Write16(addr + i * 2, (uint16_t)towupper(ch));
+        }
+        regs[0] = len; return true;
+    });
     Thunk("_itow", 1026, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         int value = (int32_t)regs[0];
         uint32_t buf_addr = regs[1];
@@ -232,6 +248,35 @@ void Win32Thunks::RegisterStringHandlers() {
         }
         regs[0] = (uint32_t)(int32_t)result;
         return true;
+    });
+    Thunk("strcmp", 1065, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t s1 = regs[0], s2 = regs[1];
+        int result = 0;
+        for (uint32_t i = 0; ; i++) {
+            uint8_t c1 = mem.Read8(s1 + i), c2 = mem.Read8(s2 + i);
+            if (c1 != c2) { result = (int)c1 - (int)c2; break; }
+            if (c1 == 0) break;
+        }
+        regs[0] = (uint32_t)(int32_t)result; return true;
+    });
+    Thunk("strstr", 1072, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::string s1 = ReadStringFromEmu(mem, regs[0]);
+        std::string s2 = ReadStringFromEmu(mem, regs[1]);
+        auto pos = s1.find(s2);
+        regs[0] = (pos != std::string::npos) ? regs[0] + (uint32_t)pos : 0; return true;
+    });
+    Thunk("atoi", 993, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::string s = ReadStringFromEmu(mem, regs[0]);
+        regs[0] = (uint32_t)atoi(s.c_str()); return true;
+    });
+    Thunk("IsValidCodePage", 185, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = IsValidCodePage(regs[0]); return true;
+    });
+    Thunk("IsDBCSLeadByte", 191, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = IsDBCSLeadByte((BYTE)regs[0]); return true;
+    });
+    Thunk("GetStringTypeExW", 217, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = 0; return true;
     });
     /* Ordinal-only entries (name mapping, no handler) */
     ThunkOrdinal("wvsprintfW", 57);

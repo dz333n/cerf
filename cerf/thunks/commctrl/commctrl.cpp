@@ -69,24 +69,30 @@ void Win32Thunks::RegisterCommctrlHandlers() {
         if (regs[1]) mem.Write32(regs[1], cx); if (regs[2]) mem.Write32(regs[2], cy);
         regs[0] = ret; return true;
     });
-    /* WinCE CommandBar/CommandBands — these are CE-specific controls with no desktop equivalent */
-    Thunk("CommandBar_GetMenu", [](uint32_t* regs, EmulatedMemory&) -> bool {
+    /* WinCE CommandBar/CommandBands — CE-specific controls.
+       Ordinals are routed to commctrl-specific map via current_dll_context. */
+    Thunk("CommandBands_Create", 36, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        LOG(THUNK, "[THUNK] CommandBands_Create(hInst=0x%08X, hwndParent=0x%08X, wID=%d, dwStyles=0x%X) -> NULL (stub)\n",
+               regs[0], regs[1], regs[2], regs[3]);
+        regs[0] = 0; return true;
+    });
+    Thunk("CommandBar_GetMenu", 9, [](uint32_t* regs, EmulatedMemory&) -> bool {
         LOG(THUNK, "[THUNK] CommandBar_GetMenu(hwndCB=0x%08X, iButton=%d) -> NULL (stub)\n", regs[0], regs[1]);
         regs[0] = 0; return true;
     });
-    Thunk("CommandBands_AddBands", [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("CommandBands_AddBands", 37, [](uint32_t* regs, EmulatedMemory&) -> bool {
         LOG(THUNK, "[THUNK] CommandBands_AddBands(...) -> FALSE (stub)\n");
         regs[0] = 0; return true;
     });
-    Thunk("CommandBands_GetCommandBar", [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("CommandBands_GetCommandBar", 38, [](uint32_t* regs, EmulatedMemory&) -> bool {
         LOG(THUNK, "[THUNK] CommandBands_GetCommandBar(hwndCmdBands=0x%08X, uBand=%d) -> NULL (stub)\n", regs[0], regs[1]);
         regs[0] = 0; return true;
     });
-    Thunk("CommandBands_AddAdornments", [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("CommandBands_AddAdornments", 39, [](uint32_t* regs, EmulatedMemory&) -> bool {
         LOG(THUNK, "[THUNK] CommandBands_AddAdornments(...) -> FALSE (stub)\n");
         regs[0] = 0; return true;
     });
-    Thunk("CommandBands_GetRestoreInformation", [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("CommandBands_GetRestoreInformation", 41, [](uint32_t* regs, EmulatedMemory&) -> bool {
         LOG(THUNK, "[THUNK] CommandBands_GetRestoreInformation(...) -> FALSE (stub)\n");
         regs[0] = 0; return true;
     });

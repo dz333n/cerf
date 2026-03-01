@@ -154,10 +154,12 @@ private:
     };
     std::vector<PendingDllInit> pending_dll_inits;
 
-    /* Ordinal to function name mapping */
+    /* Ordinal to function name mapping (coredll default + per-DLL overrides).
+       Thunk() routes ordinals to the correct map based on current_dll_context. */
     static std::map<uint16_t, std::string> ordinal_map;
-    /* ordinals registered inline via Thunk()/ThunkOrdinal() in Register*Handlers() */
-    std::string ResolveOrdinal(uint16_t ordinal);
+    static std::map<std::string, std::map<uint16_t, std::string>> dll_ordinal_map;
+    std::string current_dll_context;  /* set before Register*Handlers() calls */
+    std::string ResolveOrdinal(uint16_t ordinal, const std::string& dll_name = "coredll.dll");
 
     /* Allocate a thunk address for a function */
     uint32_t AllocThunk(const std::string& dll, const std::string& func, uint16_t ordinal, bool by_ordinal);

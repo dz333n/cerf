@@ -108,7 +108,7 @@ void Win32Thunks::RegisterModuleHandlers() {
         if ((regs[1] & 0xFFFF0000) == 0 && regs[1] != 0) {
             ordinal = (uint16_t)regs[1];
             by_ordinal = true;
-            func_name = ResolveOrdinal(ordinal);
+            func_name = ResolveOrdinal(ordinal, dll_name);
         } else {
             if (is_wide) {
                 std::wstring wname = ReadWStringFromEmu(mem, regs[1]);

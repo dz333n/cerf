@@ -132,6 +132,34 @@ void Win32Thunks::RegisterMiscHandlers() {
         regs[0] = 1;
         return true;
     });
+    /* Additional IMM stubs needed by RICHED20.DLL */
+    Thunk("ImmEscapeW", 775, stub0("ImmEscapeW"));
+    Thunk("ImmGetCandidateWindow", 779, stub0("ImmGetCandidateWindow"));
+    Thunk("ImmGetCompositionStringW", 781, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        LOG(THUNK, "[THUNK] ImmGetCompositionStringW(himc=0x%08X, dwIndex=0x%X) -> 0 (stub)\n", regs[0], regs[1]);
+        regs[0] = 0; return true;
+    });
+    Thunk("ImmGetConversionStatus", 785, stub0("ImmGetConversionStatus"));
+    Thunk("ImmGetProperty", 793, stub0("ImmGetProperty"));
+    Thunk("ImmSetCandidateWindow", 807, stub0("ImmSetCandidateWindow"));
+    Thunk("ImmSetCompositionFontW", 808, stub0("ImmSetCompositionFontW"));
+    Thunk("ImmSetCompositionStringW", 809, stub0("ImmSetCompositionStringW"));
+    Thunk("ImmSetCompositionWindow", 810, stub0("ImmSetCompositionWindow"));
+    Thunk("ImmGetVirtualKey", 1210, stub0("ImmGetVirtualKey"));
+    Thunk("PostKeybdMessage", 832, stub0("PostKeybdMessage"));
+    /* Memory validation */
+    Thunk("IsBadReadPtr", 522, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = 0; /* Always return FALSE - pointer is valid */
+        return true;
+    });
+    Thunk("IsBadWritePtr", 523, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = 0; return true;
+    });
+    /* Keyboard */
+    Thunk("GetKeyboardLayout", 1229, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = 0x04090409; /* US English */
+        return true;
+    });
     /* Ordinal-only entries */
     ThunkOrdinal("GetOwnerProcess", 606);
     ThunkOrdinal("Random", 80);

@@ -102,6 +102,9 @@ void Win32Thunks::RegisterWindowHandlers() {
     });
     Thunk("ScrollWindowEx", 289, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
     Thunk("SetScrollInfo", 279, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
+    ThunkOrdinal("SetScrollPos", 280);
+    ThunkOrdinal("SetScrollRange", 281);
+    ThunkOrdinal("GetScrollInfo", 282);
     thunk_handlers["SetScrollPos"] = thunk_handlers["SetScrollInfo"];
     thunk_handlers["SetScrollRange"] = thunk_handlers["SetScrollInfo"];
     thunk_handlers["GetScrollInfo"] = thunk_handlers["SetScrollInfo"];
@@ -137,5 +140,21 @@ void Win32Thunks::RegisterWindowHandlers() {
         POINT pt; pt.x = (int32_t)regs[1]; pt.y = (int32_t)regs[2];
         regs[0] = (uint32_t)(uintptr_t)ChildWindowFromPoint((HWND)(intptr_t)(int32_t)regs[0], pt);
         return true;
+    });
+    /* Caret functions (659, 662, 663 — 658/660/661 registered in misc.cpp) */
+    Thunk("DestroyCaret", 659, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = DestroyCaret(); return true;
+    });
+    Thunk("SetCaretPos", 662, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = SetCaretPos(regs[0], regs[1]); return true;
+    });
+    Thunk("GetCaretPos", 663, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        POINT pt;
+        BOOL ret = GetCaretPos(&pt);
+        if (regs[0]) { mem.Write32(regs[0], (uint32_t)pt.x); mem.Write32(regs[0]+4, (uint32_t)pt.y); }
+        regs[0] = ret; return true;
+    });
+    Thunk("IsWindowVisible", 886, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = IsWindowVisible((HWND)(intptr_t)(int32_t)regs[0]); return true;
     });
 }

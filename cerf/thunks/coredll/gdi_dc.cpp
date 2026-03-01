@@ -72,4 +72,13 @@ void Win32Thunks::RegisterGdiDcHandlers() {
         return true;
     });
     Thunk("SetStretchBltMode", 920, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = SetStretchBltMode((HDC)(intptr_t)(int32_t)regs[0], regs[1]); return true; });
+    Thunk("GetCurrentObject", 915, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = (uint32_t)(uintptr_t)GetCurrentObject((HDC)(intptr_t)(int32_t)regs[0], regs[1]); return true;
+    });
+    Thunk("SetROP2", 928, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = SetROP2((HDC)(intptr_t)(int32_t)regs[0], regs[1]); return true;
+    });
+    Thunk("SetViewportOrgEx", 983, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = SetViewportOrgEx((HDC)(intptr_t)(int32_t)regs[0], regs[1], regs[2], NULL); return true;
+    });
 }
