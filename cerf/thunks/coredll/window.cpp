@@ -11,14 +11,26 @@ void Win32Thunks::RegisterWindowHandlers() {
         wc.style = mem.Read32(regs[0]); wc.lpfnWndProc = EmuWndProc;
         wc.cbClsExtra = mem.Read32(regs[0]+8); wc.cbWndExtra = mem.Read32(regs[0]+12);
         wc.hInstance = GetModuleHandleW(NULL);
-        wc.hIcon = (HICON)(intptr_t)(int32_t)mem.Read32(regs[0]+20);
-        wc.hCursor = (HCURSOR)(intptr_t)(int32_t)mem.Read32(regs[0]+24);
-        wc.hbrBackground = (HBRUSH)(intptr_t)(int32_t)mem.Read32(regs[0]+28);
+        /* WinCE icon/cursor/brush handles are 32-bit values that don't map to
+           native x64 GDI handles. Use safe native equivalents instead.
+           The ARM WndProc handles all actual drawing via EmuWndProc dispatch. */
+        uint32_t emu_cursor = mem.Read32(regs[0]+24);
+        uint32_t emu_brush = mem.Read32(regs[0]+28);
+        wc.hIcon = NULL;
+        wc.hCursor = emu_cursor ? LoadCursorW(NULL, IDC_ARROW) : NULL;
+        /* Small brush values (1-20) are COLOR_xxx+1 constants — pass through.
+           Larger values are WinCE GDI handles — use NULL and let WndProc paint. */
+        if (emu_brush > 0 && emu_brush <= 30)
+            wc.hbrBackground = (HBRUSH)(uintptr_t)emu_brush;
+        else
+            wc.hbrBackground = NULL;
         std::wstring className = ReadWStringFromEmu(mem, mem.Read32(regs[0]+36));
         wc.lpszClassName = className.c_str();
         arm_wndprocs[className] = arm_wndproc;
         LOG(THUNK, "[THUNK] RegisterClassW: '%ls' (ARM WndProc=0x%08X)\n", className.c_str(), arm_wndproc);
-        regs[0] = (uint32_t)RegisterClassW(&wc); return true;
+        ATOM atom = RegisterClassW(&wc);
+        if (!atom) LOG(THUNK, "[THUNK]   RegisterClassW FAILED (error=%d)\n", GetLastError());
+        regs[0] = (uint32_t)atom; return true;
     });
     Thunk("CreateWindowExW", 246, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t exStyle = regs[0];
@@ -43,9 +55,19 @@ void Win32Thunks::RegisterWindowHandlers() {
         }
         LOG(THUNK, "[THUNK] CreateWindowExW: class='%ls' title='%ls' style=0x%08X size=(%dx%d)\n", className.c_str(), windowName.c_str(), style, w, h);
         HWND hwnd = CreateWindowExW(exStyle, className.c_str(), windowName.c_str(), style, x, y, w, h, parent, menu_h, GetModuleHandleW(NULL), NULL);
+        if (!hwnd) {
+            LOG(THUNK, "[THUNK]   CreateWindowExW FAILED (error=%d)\n", GetLastError());
+        }
         if (hwnd) {
-            auto it = arm_wndprocs.find(className);
-            if (it != arm_wndprocs.end()) hwnd_wndproc_map[hwnd] = it->second;
+            /* Case-insensitive lookup: window classes are case-insensitive */
+            uint32_t arm_wndproc = 0;
+            for (auto& [cls, proc] : arm_wndprocs) {
+                if (_wcsicmp(cls.c_str(), className.c_str()) == 0) {
+                    arm_wndproc = proc;
+                    break;
+                }
+            }
+            if (arm_wndproc) hwnd_wndproc_map[hwnd] = arm_wndproc;
             if (is_toplevel) {
                 if (!windowName.empty()) SetWindowTextW(hwnd, windowName.c_str());
                 HICON hIcon = LoadIconW(NULL, IDI_APPLICATION);

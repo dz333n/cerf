@@ -64,8 +64,17 @@ void Win32Thunks::RegisterModuleHandlers() {
         loaded.pe_info = dll_info;
         loaded.native_rsrc_handle = NULL;
         loaded_dlls[lower] = loaded;
+        LOG(THUNK, "[THUNK]   Loaded ARM DLL at 0x%08X\n", dll_info.image_base);
+        /* Install thunks for the DLL's imports (resolve system API calls) */
+        InstallThunks(dll_info);
+        /* Call DllMain(DLL_PROCESS_ATTACH) if the DLL has an entry point */
+        if (entry != 0 && dll_info.entry_point_rva != 0 && callback_executor) {
+            LOG(THUNK, "[THUNK]   Calling DllMain at 0x%08X\n", entry);
+            uint32_t args[3] = { dll_info.image_base, 1 /* DLL_PROCESS_ATTACH */, 0 };
+            uint32_t result = callback_executor(entry, args, 3);
+            LOG(THUNK, "[THUNK]   DllMain returned %d\n", result);
+        }
         regs[0] = dll_info.image_base;
-        LOG(THUNK, "[THUNK]   Loaded ARM DLL at 0x%08X\n", regs[0]);
         return true;
     });
     /* Shared logic for GetProcAddress variants. is_wide=true for GetProcAddressW
@@ -74,26 +83,63 @@ void Win32Thunks::RegisterModuleHandlers() {
         uint32_t hmod = regs[0];
         /* Resolve hmod to the correct DLL name via the thunked DLL table */
         std::string dll_name = "coredll.dll";
+        bool is_thunked_dll = false;
         for (const auto& dll : thunked_dlls) {
             if (hmod == dll.fake_handle) {
                 dll_name = std::string(dll.name) + ".dll";
+                is_thunked_dll = true;
                 break;
             }
         }
+        /* Check if hmod is a loaded ARM DLL (not a thunked system DLL) */
+        const LoadedDll* arm_dll = nullptr;
+        if (!is_thunked_dll) {
+            for (const auto& [name, dll] : loaded_dlls) {
+                if (dll.base_addr == hmod) {
+                    arm_dll = &dll;
+                    break;
+                }
+            }
+        }
+        /* Read function name or ordinal */
+        std::string func_name;
+        uint16_t ordinal = 0;
+        bool by_ordinal = false;
         if ((regs[1] & 0xFFFF0000) == 0 && regs[1] != 0) {
-            uint16_t ordinal = (uint16_t)regs[1];
-            std::string resolved = ResolveOrdinal(ordinal);
-            LOG(THUNK, "[THUNK] GetProcAddress(0x%08X [%s], ordinal %d -> %s)\n", hmod, dll_name.c_str(), ordinal,
-                   resolved.empty() ? "UNKNOWN" : resolved.c_str());
-            regs[0] = AllocThunk(dll_name, resolved, ordinal, resolved.empty());
+            ordinal = (uint16_t)regs[1];
+            by_ordinal = true;
+            func_name = ResolveOrdinal(ordinal);
+        } else {
+            if (is_wide) {
+                std::wstring wname = ReadWStringFromEmu(mem, regs[1]);
+                for (auto c : wname) func_name += (char)c;
+            } else {
+                func_name = ReadStringFromEmu(mem, regs[1]);
+            }
+        }
+        /* For loaded ARM DLLs, resolve export from the PE export table */
+        if (arm_dll) {
+            LOG(THUNK, "[THUNK] GetProcAddress%s(0x%08X [ARM DLL], '%s')\n",
+                   is_wide ? "W" : "", hmod, func_name.c_str());
+            uint32_t addr = 0;
+            if (by_ordinal) {
+                addr = PELoader::ResolveExportOrdinal(mem, arm_dll->pe_info, ordinal);
+            } else {
+                addr = PELoader::ResolveExportName(mem, arm_dll->pe_info, func_name);
+            }
+            if (addr) {
+                LOG(THUNK, "[THUNK]   -> ARM export at 0x%08X\n", addr);
+            } else {
+                LOG(THUNK, "[THUNK]   -> export not found\n");
+            }
+            regs[0] = addr;
             return true;
         }
-        std::string func_name;
-        if (is_wide) {
-            std::wstring wname = ReadWStringFromEmu(mem, regs[1]);
-            for (auto c : wname) func_name += (char)c;
-        } else {
-            func_name = ReadStringFromEmu(mem, regs[1]);
+        if (by_ordinal) {
+            LOG(THUNK, "[THUNK] GetProcAddress(0x%08X [%s], ordinal %d -> %s)\n", hmod, dll_name.c_str(), ordinal,
+                   func_name.empty() ? "UNKNOWN" : func_name.c_str());
+            regs[0] = AllocThunk(dll_name, func_name, ordinal, func_name.empty());
+            return true;
         }
         LOG(THUNK, "[THUNK] GetProcAddress%s(0x%08X [%s], '%s')\n",
                is_wide ? "W" : "", hmod, dll_name.c_str(), func_name.c_str());
