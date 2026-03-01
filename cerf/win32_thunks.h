@@ -195,4 +195,5 @@ private:
     void RegisterSystemHandlers();
     void RegisterMiscHandlers();
     void RegisterModuleHandlers();
+    void RegisterAygshellHandlers();
 };

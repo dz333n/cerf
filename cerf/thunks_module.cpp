@@ -22,6 +22,7 @@ void Win32Thunks::RegisterModuleHandlers() {
             else if (lower.find(L"ole32") != std::wstring::npos) { regs[0] = 0xCE020000; }
             else if (lower.find(L"ceshell") != std::wstring::npos) { regs[0] = 0xCE030000; }
             else if (lower.find(L"commdlg") != std::wstring::npos) { regs[0] = 0xCE040000; }
+            else if (lower.find(L"aygshell") != std::wstring::npos) { regs[0] = 0xCE050000; }
             else { regs[0] = emu_hinstance; }
         }
         return true;
@@ -46,6 +47,7 @@ void Win32Thunks::RegisterModuleHandlers() {
         if (lower.find(L"ole32") != std::wstring::npos) { regs[0] = 0xCE020000; printf("[THUNK]   -> thunked (ole32)\n"); return true; }
         if (lower.find(L"ceshell") != std::wstring::npos) { regs[0] = 0xCE030000; printf("[THUNK]   -> thunked (ceshell)\n"); return true; }
         if (lower.find(L"commdlg") != std::wstring::npos) { regs[0] = 0xCE040000; printf("[THUNK]   -> thunked (commdlg)\n"); return true; }
+        if (lower.find(L"aygshell") != std::wstring::npos) { regs[0] = 0xCE050000; printf("[THUNK]   -> thunked (aygshell)\n"); return true; }
         auto it = loaded_dlls.find(lower);
         if (it != loaded_dlls.end()) {
             regs[0] = it->second.base_addr;

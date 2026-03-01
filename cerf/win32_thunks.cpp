@@ -566,6 +566,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterSystemHandlers();
     RegisterMiscHandlers();
     RegisterModuleHandlers();
+    RegisterAygshellHandlers();
 }
 
 uint32_t Win32Thunks::AllocThunk(const std::string& dll, const std::string& func,
@@ -598,7 +599,8 @@ static bool IsThunkedDll(const std::string& dll_name) {
     return lower.find("coredll") != std::string::npos ||
            lower.find("commctrl") != std::string::npos ||
            lower.find("ceshell") != std::string::npos ||
-           lower.find("ole32") != std::string::npos;
+           lower.find("ole32") != std::string::npos ||
+           lower.find("aygshell") != std::string::npos;
 }
 
 void Win32Thunks::InstallThunks(PEInfo& info) {
@@ -933,6 +935,15 @@ bool Win32Thunks::ExecuteThunk(const ThunkEntry& entry, uint32_t* regs, Emulated
         regs[0] = 0; /* S_OK */
         printf("[THUNK] ole32.dll!%s -> S_OK (stub)\n",
                func.empty() ? "(unknown)" : func.c_str());
+        return true;
+    }
+
+    /* aygshell.dll stubs - WinCE Shell Helper Library */
+    if (entry.dll_name == "aygshell.dll" || entry.dll_name == "AYGSHELL.DLL" ||
+        entry.dll_name == "aygshell" || entry.dll_name == "AYGSHELL") {
+        regs[0] = 0;
+        printf("[THUNK] aygshell.dll!%s (ordinal %d) -> 0 (stub)\n",
+               func.empty() ? "(unknown)" : func.c_str(), entry.ordinal);
         return true;
     }
 
