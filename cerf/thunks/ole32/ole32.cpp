@@ -179,4 +179,20 @@ void Win32Thunks::RegisterOle32Handlers() {
         printf("[THUNK] ReleaseStgMedium(pmedium=0x%08X) -> stub\n", regs[0]);
         return true;
     });
+
+    /* Structured Storage */
+    Thunk("StgOpenStorage", [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::wstring path = ReadWStringFromEmu(mem, regs[0]);
+        printf("[THUNK] StgOpenStorage('%ls', pstgPriority=0x%08X, grfMode=0x%08X, ...) -> STG_E_FILENOTFOUND (stub)\n",
+               path.c_str(), regs[1], regs[2]);
+        regs[0] = 0x80030002; /* STG_E_FILENOTFOUND */
+        return true;
+    });
+    Thunk("StgCreateDocfile", [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::wstring path = regs[0] ? ReadWStringFromEmu(mem, regs[0]) : L"(null)";
+        printf("[THUNK] StgCreateDocfile('%ls', grfMode=0x%08X, ...) -> E_NOTIMPL (stub)\n",
+               path.c_str(), regs[1]);
+        regs[0] = 0x80004001; /* E_NOTIMPL */
+        return true;
+    });
 }

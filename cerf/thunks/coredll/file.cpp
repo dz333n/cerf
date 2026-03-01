@@ -120,4 +120,11 @@ void Win32Thunks::RegisterFileHandlers() {
     ThunkOrdinal("DeviceIoControl", 179);
     ThunkOrdinal("DeleteAndRenameFile", 183);
     ThunkOrdinal("GetDiskFreeSpaceExW", 184);
+    Thunk("SetFileAttributesW", 169, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::wstring path = ReadWStringFromEmu(mem, regs[0]);
+        std::wstring mapped = MapWinCEPath(path);
+        printf("[THUNK] SetFileAttributesW('%ls', 0x%X)\n", path.c_str(), regs[1]);
+        regs[0] = SetFileAttributesW(mapped.c_str(), regs[1]);
+        return true;
+    });
 }

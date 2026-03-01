@@ -97,7 +97,7 @@ void Win32Thunks::RegisterMessageHandlers() {
         regs[0] = MessageBoxW((HWND)(intptr_t)(int32_t)regs[0], text.c_str(), title.c_str(), regs[3]);
         return true;
     });
-    Thunk("MessageBeep", [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("MessageBeep", 857, [](uint32_t* regs, EmulatedMemory&) -> bool {
         MessageBeep(regs[0]); regs[0] = 1; return true;
     });
     Thunk("MsgWaitForMultipleObjectsEx", 871, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {

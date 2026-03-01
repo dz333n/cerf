@@ -43,4 +43,14 @@ void Win32Thunks::RegisterGdiTextHandlers() {
     Thunk("GetTextAlign", 1655, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = GetTextAlign((HDC)(intptr_t)(int32_t)regs[0]); return true; });
     Thunk("ExtTextOutW", 896, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
     Thunk("GetTextExtentExPointW", 897, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
+    Thunk("EnumFontFamiliesW", 965, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] EnumFontFamiliesW(hdc=0x%08X, family=0x%08X, proc=0x%08X, lParam=0x%08X) -> 1 (stub)\n",
+               regs[0], regs[1], regs[2], regs[3]);
+        regs[0] = 1; return true;
+    });
+    Thunk("GetTextFaceW", 967, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] GetTextFaceW(hdc=0x%08X, nCount=%d, lpFaceName=0x%08X) -> 0 (stub)\n",
+               regs[0], regs[1], regs[2]);
+        regs[0] = 0; return true;
+    });
 }

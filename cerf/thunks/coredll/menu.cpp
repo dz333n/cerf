@@ -43,4 +43,21 @@ void Win32Thunks::RegisterMenuHandlers() {
             (HWND)(intptr_t)(int32_t)ReadStackArg(regs, mem, 0), NULL);
         return true;
     });
+    Thunk("InsertMenuW", 841, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HMENU hMenu = (HMENU)(intptr_t)(int32_t)regs[0];
+        UINT uPosition = regs[1], uFlags = regs[2], uIDNewItem = regs[3];
+        uint32_t lpNewItem = ReadStackArg(regs, mem, 0);
+        LPCWSTR str = NULL;
+        std::wstring text;
+        if ((uFlags & MF_STRING) && lpNewItem) {
+            text = ReadWStringFromEmu(mem, lpNewItem);
+            str = text.c_str();
+        }
+        regs[0] = InsertMenuW(hMenu, uPosition, uFlags, uIDNewItem, str);
+        return true;
+    });
+    Thunk("DeleteMenu", 850, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = DeleteMenu((HMENU)(intptr_t)(int32_t)regs[0], regs[1], regs[2]);
+        return true;
+    });
 }

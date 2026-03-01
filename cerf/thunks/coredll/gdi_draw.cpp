@@ -142,4 +142,18 @@ void Win32Thunks::RegisterGdiDrawHandlers() {
     Thunk("CreateSolidBrush", 931, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = (uint32_t)(uintptr_t)CreateSolidBrush(regs[0]); return true;
     });
+    Thunk("DrawEdge", 932, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        RECT rc;
+        rc.left = mem.Read32(regs[1]); rc.top = mem.Read32(regs[1]+4);
+        rc.right = mem.Read32(regs[1]+8); rc.bottom = mem.Read32(regs[1]+12);
+        regs[0] = DrawEdge((HDC)(intptr_t)(int32_t)regs[0], &rc, regs[2], regs[3]);
+        return true;
+    });
+    Thunk("DrawFrameControl", 987, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        RECT rc;
+        rc.left = mem.Read32(regs[1]); rc.top = mem.Read32(regs[1]+4);
+        rc.right = mem.Read32(regs[1]+8); rc.bottom = mem.Read32(regs[1]+12);
+        regs[0] = DrawFrameControl((HDC)(intptr_t)(int32_t)regs[0], &rc, regs[2], regs[3]);
+        return true;
+    });
 }

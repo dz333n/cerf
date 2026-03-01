@@ -68,4 +68,25 @@ void Win32Thunks::RegisterCommctrlHandlers() {
         if (regs[1]) mem.Write32(regs[1], cx); if (regs[2]) mem.Write32(regs[2], cy);
         regs[0] = ret; return true;
     });
+    /* WinCE CommandBar/CommandBands — these are CE-specific controls with no desktop equivalent */
+    Thunk("CommandBar_GetMenu", [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] CommandBar_GetMenu(hwndCB=0x%08X, iButton=%d) -> NULL (stub)\n", regs[0], regs[1]);
+        regs[0] = 0; return true;
+    });
+    Thunk("CommandBands_AddBands", [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] CommandBands_AddBands(...) -> FALSE (stub)\n");
+        regs[0] = 0; return true;
+    });
+    Thunk("CommandBands_GetCommandBar", [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] CommandBands_GetCommandBar(hwndCmdBands=0x%08X, uBand=%d) -> NULL (stub)\n", regs[0], regs[1]);
+        regs[0] = 0; return true;
+    });
+    Thunk("CommandBands_AddAdornments", [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] CommandBands_AddAdornments(...) -> FALSE (stub)\n");
+        regs[0] = 0; return true;
+    });
+    Thunk("CommandBands_GetRestoreInformation", [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] CommandBands_GetRestoreInformation(...) -> FALSE (stub)\n");
+        regs[0] = 0; return true;
+    });
 }

@@ -78,4 +78,11 @@ void Win32Thunks::RegisterShellHandlers() {
         regs[0] = ret;
         return true;
     });
+    Thunk("SHGetFileInfo", 482, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] SHGetFileInfo(pszPath=0x%08X, attrs=0x%X, psfi=0x%08X, cbFileInfo=%d) -> 0 (stub)\n",
+               regs[0], regs[1], regs[2], regs[3]);
+        regs[0] = 0;
+        return true;
+    });
+    ThunkOrdinal("GetSaveFileNameW", 489);
 }

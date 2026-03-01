@@ -110,4 +110,9 @@ void Win32Thunks::RegisterWindowHandlers() {
         mem.Write32(regs[1], pt.x); mem.Write32(regs[1]+4, pt.y);
         regs[0] = ret; return true;
     });
+    Thunk("ChildWindowFromPoint", 253, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        POINT pt; pt.x = (int32_t)regs[1]; pt.y = (int32_t)regs[2];
+        regs[0] = (uint32_t)(uintptr_t)ChildWindowFromPoint((HWND)(intptr_t)(int32_t)regs[0], pt);
+        return true;
+    });
 }

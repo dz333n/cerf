@@ -67,29 +67,52 @@ void Win32Thunks::RegisterModuleHandlers() {
         printf("[THUNK]   Loaded ARM DLL at 0x%08X\n", regs[0]);
         return true;
     });
-    auto getProcAddr = [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+    /* Shared logic for GetProcAddress variants. is_wide=true for GetProcAddressW
+       (WinCE-specific: takes wide string for function name) */
+    auto getProcAddrImpl = [this](uint32_t* regs, EmulatedMemory& mem, bool is_wide) -> bool {
         uint32_t hmod = regs[0];
+        /* Resolve hmod to the correct DLL name via the thunked DLL table */
+        std::string dll_name = "coredll.dll";
+        for (const auto& dll : thunked_dlls) {
+            if (hmod == dll.fake_handle) {
+                dll_name = std::string(dll.name) + ".dll";
+                break;
+            }
+        }
         if ((regs[1] & 0xFFFF0000) == 0 && regs[1] != 0) {
             uint16_t ordinal = (uint16_t)regs[1];
             std::string resolved = ResolveOrdinal(ordinal);
-            printf("[THUNK] GetProcAddress(0x%08X, ordinal %d -> %s)\n", hmod, ordinal,
+            printf("[THUNK] GetProcAddress(0x%08X [%s], ordinal %d -> %s)\n", hmod, dll_name.c_str(), ordinal,
                    resolved.empty() ? "UNKNOWN" : resolved.c_str());
-            regs[0] = AllocThunk("coredll.dll", resolved, ordinal, resolved.empty());
+            regs[0] = AllocThunk(dll_name, resolved, ordinal, resolved.empty());
             return true;
         }
-        std::string func_name = ReadStringFromEmu(mem, regs[1]);
-        printf("[THUNK] GetProcAddress(0x%08X, '%s')\n", hmod, func_name.c_str());
-        if (hmod == 0xCE000000 || func_name.size() > 0) {
-            regs[0] = AllocThunk("coredll.dll", func_name, 0, false);
+        std::string func_name;
+        if (is_wide) {
+            std::wstring wname = ReadWStringFromEmu(mem, regs[1]);
+            for (auto c : wname) func_name += (char)c;
+        } else {
+            func_name = ReadStringFromEmu(mem, regs[1]);
+        }
+        printf("[THUNK] GetProcAddress%s(0x%08X [%s], '%s')\n",
+               is_wide ? "W" : "", hmod, dll_name.c_str(), func_name.c_str());
+        if (FindThunkedDll(dll_name) != nullptr || func_name.size() > 0) {
+            regs[0] = AllocThunk(dll_name, func_name, 0, false);
             printf("[THUNK]   -> thunk at 0x%08X\n", regs[0]);
         } else {
             regs[0] = 0;
         }
         return true;
     };
-    Thunk("GetProcAddressW", 530, getProcAddr);
-    Thunk("GetProcAddressA", getProcAddr);
-    Thunk("GetProcAddress", getProcAddr);
+    Thunk("GetProcAddressW", 530, [getProcAddrImpl](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        return getProcAddrImpl(regs, mem, true);
+    });
+    Thunk("GetProcAddressA", [getProcAddrImpl](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        return getProcAddrImpl(regs, mem, false);
+    });
+    Thunk("GetProcAddress", [getProcAddrImpl](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        return getProcAddrImpl(regs, mem, false);
+    });
     Thunk("GetCommandLineW", 1231, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         static uint32_t cmdline_addr = 0;
         if (cmdline_addr == 0) {
@@ -112,5 +135,16 @@ void Win32Thunks::RegisterModuleHandlers() {
     });
     Thunk("ExitThread", 6, [](uint32_t* regs, EmulatedMemory&) -> bool {
         printf("[THUNK] ExitThread(%d)\n", regs[0]); ExitThread(regs[0]); return true;
+    });
+    Thunk("FreeLibrary", 529, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        printf("[THUNK] FreeLibrary(hModule=0x%08X) -> TRUE (stub)\n", regs[0]);
+        regs[0] = 1; /* TRUE */
+        return true;
+    });
+    Thunk("GetExitCodeThread", 518, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        printf("[THUNK] GetExitCodeThread(hThread=0x%08X, lpExitCode=0x%08X) -> stub\n", regs[0], regs[1]);
+        if (regs[1]) mem.Write32(regs[1], 0);
+        regs[0] = 1;
+        return true;
     });
 }

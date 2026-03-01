@@ -90,6 +90,47 @@ void Win32Thunks::RegisterMiscHandlers() {
     Thunk("ImmAssociateContext", 770, stub0("ImmAssociateContext"));
     Thunk("ImmGetContext", 783, stub0("ImmGetContext"));
     Thunk("ImmReleaseContext", 803, stub0("ImmReleaseContext"));
+    Thunk("ImmGetOpenStatus", 792, stub0("ImmGetOpenStatus"));
+    Thunk("ImmNotifyIME", 800, stub0("ImmNotifyIME"));
+    Thunk("ImmSetOpenStatus", 814, stub0("ImmSetOpenStatus"));
+    /* Clipboard */
+    Thunk("RegisterClipboardFormatW", 673, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::wstring fmt = ReadWStringFromEmu(mem, regs[0]);
+        printf("[THUNK] RegisterClipboardFormatW('%ls')\n", fmt.c_str());
+        UINT id = RegisterClipboardFormatW(fmt.c_str());
+        regs[0] = id;
+        return true;
+    });
+    Thunk("GetClipboardOwner", 670, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] GetClipboardOwner() -> NULL (stub)\n");
+        regs[0] = 0;
+        return true;
+    });
+    /* Monitor */
+    Thunk("MonitorFromWindow", 1524, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] MonitorFromWindow(hwnd=0x%08X, flags=0x%X) -> stub\n", regs[0], regs[1]);
+        regs[0] = 1; /* fake monitor handle */
+        return true;
+    });
+    Thunk("GetMonitorInfo", 1525, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        printf("[THUNK] GetMonitorInfo(hMonitor=0x%08X, lpmi=0x%08X) -> stub\n", regs[0], regs[1]);
+        if (regs[1]) {
+            /* Fill MONITORINFO with desktop work area */
+            RECT wa;
+            SystemParametersInfo(SPI_GETWORKAREA, 0, &wa, 0);
+            uint32_t addr = regs[1];
+            /* cbSize already set by caller; rcMonitor */
+            mem.Write32(addr + 4, 0); mem.Write32(addr + 8, 0);
+            mem.Write32(addr + 12, wa.right); mem.Write32(addr + 16, wa.bottom);
+            /* rcWork */
+            mem.Write32(addr + 20, wa.left); mem.Write32(addr + 24, wa.top);
+            mem.Write32(addr + 28, wa.right); mem.Write32(addr + 32, wa.bottom);
+            /* dwFlags = MONITORINFOF_PRIMARY */
+            mem.Write32(addr + 36, 1);
+        }
+        regs[0] = 1;
+        return true;
+    });
     /* Ordinal-only entries */
     ThunkOrdinal("GetOwnerProcess", 606);
     ThunkOrdinal("Random", 80);

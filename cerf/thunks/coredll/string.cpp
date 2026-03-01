@@ -191,6 +191,47 @@ void Win32Thunks::RegisterStringHandlers() {
         return true;
     });
 
+    Thunk("LCMapStringW", 199, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        printf("[THUNK] LCMapStringW(locale=0x%X, flags=0x%X, src=0x%08X, srcLen=%d) -> 0 (stub)\n",
+               regs[0], regs[1], regs[2], (int32_t)regs[3]);
+        regs[0] = 0; return true;
+    });
+    Thunk("_itow", 1026, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        int value = (int32_t)regs[0];
+        uint32_t buf_addr = regs[1];
+        int radix = regs[2];
+        wchar_t buf[34];
+        _itow(value, buf, radix);
+        for (int i = 0; buf[i]; i++) mem.Write16(buf_addr + i * 2, buf[i]);
+        mem.Write16(buf_addr + (uint32_t)wcslen(buf) * 2, 0);
+        regs[0] = buf_addr;
+        return true;
+    });
+    Thunk("strcpy", 1066, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t dst = regs[0], src = regs[1];
+        uint32_t i = 0;
+        uint8_t c;
+        do { c = mem.Read8(src + i); mem.Write8(dst + i, c); i++; } while (c);
+        regs[0] = dst;
+        return true;
+    });
+    Thunk("strlen", 1068, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t addr = regs[0], len = 0;
+        while (mem.Read8(addr + len)) len++;
+        regs[0] = len;
+        return true;
+    });
+    Thunk("strncmp", 1070, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t s1 = regs[0], s2 = regs[1], n = regs[2];
+        int result = 0;
+        for (uint32_t i = 0; i < n; i++) {
+            uint8_t c1 = mem.Read8(s1 + i), c2 = mem.Read8(s2 + i);
+            if (c1 != c2) { result = (int)c1 - (int)c2; break; }
+            if (c1 == 0) break;
+        }
+        regs[0] = (uint32_t)(int32_t)result;
+        return true;
+    });
     /* Ordinal-only entries (name mapping, no handler) */
     ThunkOrdinal("wvsprintfW", 57);
     ThunkOrdinal("wcsncat", 64);
