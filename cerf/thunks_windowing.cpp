@@ -269,7 +269,8 @@ bool Win32Thunks::ExecuteWindowThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "SubtractRect") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] SubtractRect -> 0\n");
+        regs[0] = 0;
         return true;
     }
 
@@ -464,7 +465,8 @@ bool Win32Thunks::ExecuteWindowThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "MapWindowPoints") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] MapWindowPoints -> 0\n");
+        regs[0] = 0;
         return true;
     }
     if (func == "SetParent") {
@@ -713,29 +715,34 @@ bool Win32Thunks::ExecuteWindowThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "GetClassInfoW" || func == "UnregisterClassW") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] %s -> 0\n", func.c_str());
+        regs[0] = 0;
         return true;
     }
     if (func == "CallWindowProcW") {
-        /* Stub - just call DefWindowProcW */
+        printf("[STUB] CallWindowProcW -> DefWindowProcW\n");
         regs[0] = (uint32_t)DefWindowProcW((HWND)(intptr_t)(int32_t)regs[1], regs[2], regs[3],
                                             ReadStackArg(regs, mem, 0));
         return true;
     }
     if (func == "ScrollWindowEx") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] ScrollWindowEx -> 0\n");
+        regs[0] = 0;
         return true;
     }
     if (func == "SetScrollInfo" || func == "SetScrollPos" || func == "SetScrollRange" || func == "GetScrollInfo") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] %s -> 0\n", func.c_str());
+        regs[0] = 0;
         return true;
     }
     if (func == "EnumWindows" || func == "GetWindowThreadProcessId") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] %s -> 0\n", func.c_str());
+        regs[0] = 0;
         return true;
     }
     if (func == "TranslateAcceleratorW" || func == "LoadAcceleratorsW") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] %s -> 0\n", func.c_str());
+        regs[0] = 0;
         return true;
     }
 

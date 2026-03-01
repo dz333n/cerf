@@ -112,6 +112,7 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
 
     /* TLS */
     if (func == "TlsGetValue" || func == "TlsSetValue" || func == "TlsCall") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
@@ -152,11 +153,13 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "GetCPInfo") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] GetCPInfo -> 0\n");
+        regs[0] = 0;
         return true;
     }
     if (func == "LCMapStringW" || func == "GetTimeFormatW" || func == "GetDateFormatW") {
-        regs[0] = 0; /* Stub */
+        printf("[STUB] %s -> 0\n", func.c_str());
+        regs[0] = 0;
         return true;
     }
 
@@ -175,12 +178,14 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "RegCloseKey") {
+        printf("[STUB] RegCloseKey -> SUCCESS\n");
         regs[0] = ERROR_SUCCESS;
         return true;
     }
     if (func == "RegQueryValueExW" || func == "RegSetValueExW" ||
         func == "RegDeleteKeyW" || func == "RegDeleteValueW" ||
         func == "RegEnumValueW" || func == "RegEnumKeyExW" || func == "RegQueryInfoKeyW") {
+        printf("[STUB] %s -> ERROR_FILE_NOT_FOUND\n", func.c_str());
         regs[0] = ERROR_FILE_NOT_FOUND;
         return true;
     }
@@ -464,6 +469,7 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "FreeLibrary") {
+        printf("[STUB] FreeLibrary(0x%08X) -> 1\n", regs[0]);
         regs[0] = 1;
         return true;
     }
@@ -494,11 +500,13 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "FindNextFileW") {
-        regs[0] = 0; /* FALSE - no more files */
+        printf("[STUB] FindNextFileW -> 0\n");
+        regs[0] = 0;
         return true;
     }
     if (func == "FindClose") {
-        regs[0] = 1; /* TRUE */
+        printf("[STUB] FindClose -> 1\n");
+        regs[0] = 1;
         return true;
     }
 
@@ -518,9 +526,9 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
     }
 
     /* Stubs for misc functions */
-    if (func == "DisableThreadLibraryCalls") { regs[0] = 1; return true; }
-    if (func == "FlushInstructionCache") { regs[0] = 1; return true; }
-    if (func == "GetProcessIndexFromID") { regs[0] = 1; return true; }
+    if (func == "DisableThreadLibraryCalls") { printf("[STUB] DisableThreadLibraryCalls -> 1\n"); regs[0] = 1; return true; }
+    if (func == "FlushInstructionCache") { printf("[STUB] FlushInstructionCache -> 1\n"); regs[0] = 1; return true; }
+    if (func == "GetProcessIndexFromID") { printf("[STUB] GetProcessIndexFromID -> 1\n"); regs[0] = 1; return true; }
     if (func == "GlobalMemoryStatus") {
         uint32_t ptr = regs[0];
         if (ptr) {
@@ -556,14 +564,15 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
     /* Gesture stubs */
     if (func == "RegisterDefaultGestureHandler" || func == "GetGestureInfo" ||
         func == "GetGestureExtraArguments" || func == "CloseGestureInfoHandle") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
 
     /* Shell stubs */
-    if (func == "SHGetSpecialFolderPath") { regs[0] = 0; return true; }
-    if (func == "ShellExecuteEx") { regs[0] = 0; return true; }
-    if (func == "SHLoadDIBitmap") { regs[0] = 0; return true; }
+    if (func == "SHGetSpecialFolderPath") { printf("[STUB] SHGetSpecialFolderPath -> 0\n"); regs[0] = 0; return true; }
+    if (func == "ShellExecuteEx") { printf("[STUB] ShellExecuteEx -> 0\n"); regs[0] = 0; return true; }
+    if (func == "SHLoadDIBitmap") { printf("[STUB] SHLoadDIBitmap -> 0\n"); regs[0] = 0; return true; }
 
     /* Common controls */
     if (func == "ImageList_Create") {
@@ -609,21 +618,23 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
 
     /* IMM stubs */
     if (func == "ImmAssociateContext" || func == "ImmGetContext" || func == "ImmReleaseContext") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
 
     /* Clipboard stubs */
-    if (func == "OpenClipboard") { regs[0] = 1; return true; }
-    if (func == "CloseClipboard") { regs[0] = 1; return true; }
-    if (func == "EmptyClipboard") { regs[0] = 1; return true; }
-    if (func == "GetClipboardData") { regs[0] = 0; return true; }
-    if (func == "SetClipboardData") { regs[0] = 0; return true; }
-    if (func == "IsClipboardFormatAvailable") { regs[0] = 0; return true; }
-    if (func == "EnumClipboardFormats") { regs[0] = 0; return true; }
+    if (func == "OpenClipboard") { printf("[STUB] OpenClipboard -> 1\n"); regs[0] = 1; return true; }
+    if (func == "CloseClipboard") { printf("[STUB] CloseClipboard -> 1\n"); regs[0] = 1; return true; }
+    if (func == "EmptyClipboard") { printf("[STUB] EmptyClipboard -> 1\n"); regs[0] = 1; return true; }
+    if (func == "GetClipboardData") { printf("[STUB] GetClipboardData -> 0\n"); regs[0] = 0; return true; }
+    if (func == "SetClipboardData") { printf("[STUB] SetClipboardData -> 0\n"); regs[0] = 0; return true; }
+    if (func == "IsClipboardFormatAvailable") { printf("[STUB] IsClipboardFormatAvailable -> 0\n"); regs[0] = 0; return true; }
+    if (func == "EnumClipboardFormats") { printf("[STUB] EnumClipboardFormats -> 0\n"); regs[0] = 0; return true; }
 
     /* Caret stubs */
     if (func == "CreateCaret" || func == "HideCaret" || func == "ShowCaret") {
+        printf("[STUB] %s -> 1\n", func.c_str());
         regs[0] = 1;
         return true;
     }
@@ -632,18 +643,21 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
     if (func == "CreateCursor" || func == "DestroyCursor" || func == "DestroyIcon" ||
         func == "DrawIconEx" || func == "ClipCursor" || func == "GetClipCursor" ||
         func == "GetCursor" || func == "SetCursorPos" || func == "ShowCursor") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
 
     /* Sound stubs */
     if (func == "sndPlaySoundW") {
+        printf("[STUB] sndPlaySoundW -> 1\n");
         regs[0] = 1;
         return true;
     }
 
     /* Ras stubs */
     if (func == "RasDial" || func == "RasHangup" || func == "RasHangUp") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
@@ -660,6 +674,7 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "__security_gen_cookie" || func == "__security_gen_cookie2") {
+        printf("[STUB] %s -> 0xBB40E64E\n", func.c_str());
         regs[0] = 0xBB40E64E;
         return true;
     }
@@ -675,15 +690,16 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         regs[0] = MulDiv((int)regs[0], (int)regs[1], (int)regs[2]);
         return true;
     }
-    if (func == "GetAPIAddress") { regs[0] = 0; return true; }
-    if (func == "WaitForAPIReady") { regs[0] = 0; return true; }
-    if (func == "__GetUserKData") { regs[0] = 0; return true; }
-    if (func == "EventModify") { regs[0] = 1; return true; }
-    if (func == "GlobalAddAtomW") { regs[0] = 1; return true; }
-    if (func == "_setjmp3" || func == "_except_handler4_common") { regs[0] = 0; return true; }
+    if (func == "GetAPIAddress") { printf("[STUB] GetAPIAddress -> 0\n"); regs[0] = 0; return true; }
+    if (func == "WaitForAPIReady") { printf("[STUB] WaitForAPIReady -> 0\n"); regs[0] = 0; return true; }
+    if (func == "__GetUserKData") { printf("[STUB] __GetUserKData -> 0\n"); regs[0] = 0; return true; }
+    if (func == "EventModify") { printf("[STUB] EventModify -> 1\n"); regs[0] = 1; return true; }
+    if (func == "GlobalAddAtomW") { printf("[STUB] GlobalAddAtomW -> 1\n"); regs[0] = 1; return true; }
+    if (func == "_setjmp3" || func == "_except_handler4_common") { printf("[STUB] %s -> 0\n", func.c_str()); regs[0] = 0; return true; }
 
     /* Platform-specific ordinals */
     if (func == "__PlatformSpecific2005" || func == "__PlatformSpecific2008") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
@@ -693,6 +709,7 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         func == "SetThreadPriority" || func == "GetExitCodeProcess" || func == "OpenProcess" ||
         func == "WaitForMultipleObjects" || func == "CreateFileMappingW" ||
         func == "MapViewOfFile" || func == "UnmapViewOfFile") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }

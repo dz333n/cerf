@@ -401,16 +401,17 @@ bool Win32Thunks::ExecuteGdiThunk(const std::string& func, uint32_t* regs, Emula
         return true;
     }
     if (func == "ExtTextOutW" || func == "DrawTextW") {
-        /* Stub - return success */
+        printf("[STUB] %s -> 1\n", func.c_str());
         regs[0] = 1;
         return true;
     }
     if (func == "GetTextExtentExPointW") {
-        /* Stub */
+        printf("[STUB] GetTextExtentExPointW -> 1\n");
         regs[0] = 1;
         return true;
     }
     if (func == "CreateRectRgnIndirect" || func == "EqualRgn") {
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
@@ -422,11 +423,13 @@ bool Win32Thunks::ExecuteGdiThunk(const std::string& func, uint32_t* regs, Emula
         return true;
     }
     if (func == "GradientFill") {
-        regs[0] = 1; /* Stub */
+        printf("[STUB] GradientFill -> 1\n");
+        regs[0] = 1;
         return true;
     }
     if (func == "Polygon" || func == "Polyline") {
-        regs[0] = 1; /* Stub */
+        printf("[STUB] %s -> 1\n", func.c_str());
+        regs[0] = 1;
         return true;
     }
 

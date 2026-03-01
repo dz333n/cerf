@@ -25,6 +25,7 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "VirtualFree") {
+        printf("[STUB] VirtualFree(0x%08X) -> 1 (leak)\n", regs[0]);
         regs[0] = 1;
         return true;
     }
@@ -44,10 +45,12 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "LocalFree" || func == "LocalReAlloc") {
+        printf("[STUB] %s(0x%08X) -> 0 (leak)\n", func.c_str(), regs[0]);
         regs[0] = 0;
         return true;
     }
     if (func == "LocalSize") {
+        printf("[STUB] LocalSize(0x%08X) -> 0x1000\n", regs[0]);
         regs[0] = 0x1000;
         return true;
     }
@@ -65,6 +68,7 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "HeapFree" || func == "HeapDestroy") {
+        printf("[STUB] %s(0x%08X) -> 1 (leak)\n", func.c_str(), regs[0]);
         regs[0] = 1;
         return true;
     }
@@ -80,10 +84,12 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "HeapSize") {
+        printf("[STUB] HeapSize -> 0x1000\n");
         regs[0] = 0x1000;
         return true;
     }
     if (func == "HeapValidate") {
+        printf("[STUB] HeapValidate -> 1\n");
         regs[0] = 1;
         return true;
     }
@@ -102,10 +108,12 @@ bool Win32Thunks::ExecuteMemoryThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "free" || func == "delete") {
+        printf("[STUB] %s(0x%08X) (leak)\n", func.c_str(), regs[0]);
         regs[0] = 0;
         return true;
     }
     if (func == "_msize") {
+        printf("[STUB] _msize(0x%08X) -> 0x1000\n", regs[0]);
         regs[0] = 0x1000;
         return true;
     }
@@ -351,15 +359,17 @@ bool Win32Thunks::ExecuteStringThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "FormatMessageW") {
-        /* Stub - return 0 */
+        printf("[STUB] FormatMessageW -> 0\n");
         regs[0] = 0;
         return true;
     }
     if (func == "CompareStringW") {
+        printf("[STUB] CompareStringW -> CSTR_EQUAL\n");
         regs[0] = CSTR_EQUAL;
         return true;
     }
     if (func == "GetStringTypeW") {
+        printf("[STUB] GetStringTypeW -> 0\n");
         regs[0] = 0;
         return true;
     }
@@ -427,12 +437,12 @@ bool Win32Thunks::ExecuteStringThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "wcstok" || func == "wcspbrk") {
-        /* Stub */
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
     if (func == "_snwprintf" || func == "swprintf" || func == "swscanf" || func == "wvsprintfW") {
-        /* Basic stub */
+        printf("[STUB] %s -> 0\n", func.c_str());
         regs[0] = 0;
         return true;
     }
