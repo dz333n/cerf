@@ -306,11 +306,75 @@ bool Win32Thunks::ExecuteSystemThunk(const std::string& func, uint32_t* regs, Em
         return true;
     }
     if (func == "LoadImageW") {
-        regs[0] = (uint32_t)(uintptr_t)LoadImageW((HINSTANCE)(intptr_t)(int32_t)regs[0],
-                                                    MAKEINTRESOURCEW(regs[1]),
-                                                    regs[2], regs[3],
-                                                    ReadStackArg(regs, mem, 0),
-                                                    ReadStackArg(regs, mem, 1));
+        uint32_t hmod = regs[0];
+        uint32_t name_id = regs[1];
+        uint32_t type = regs[2];
+        int cx = (int)regs[3];
+        int cy = (int)ReadStackArg(regs, mem, 0);
+        uint32_t fuLoad = ReadStackArg(regs, mem, 1);
+
+        /* Check if this is an ARM module */
+        bool is_arm_module = (hmod == emu_hinstance);
+        for (auto& pair : loaded_dlls) {
+            if (pair.second.base_addr == hmod) { is_arm_module = true; break; }
+        }
+
+        if (is_arm_module && type == IMAGE_BITMAP) {
+            /* Load bitmap from ARM PE resources (same as LoadBitmapW) */
+            uint32_t rsrc_rva = 0, rsrc_sz = 0;
+            if (hmod == emu_hinstance) {
+                uint32_t dos_lfanew = mem.Read32(hmod + 0x3C);
+                uint32_t nt_addr = hmod + dos_lfanew;
+                uint32_t num_rva_sizes = mem.Read32(nt_addr + 0x74);
+                if (num_rva_sizes > IMAGE_DIRECTORY_ENTRY_RESOURCE) {
+                    rsrc_rva = mem.Read32(nt_addr + 0x78 + IMAGE_DIRECTORY_ENTRY_RESOURCE * 8);
+                    rsrc_sz = mem.Read32(nt_addr + 0x78 + IMAGE_DIRECTORY_ENTRY_RESOURCE * 8 + 4);
+                }
+            }
+            for (auto& pair : loaded_dlls) {
+                if (pair.second.base_addr == hmod) {
+                    rsrc_rva = pair.second.pe_info.rsrc_rva;
+                    rsrc_sz = pair.second.pe_info.rsrc_size;
+                    break;
+                }
+            }
+
+            uint32_t data_rva = 0, data_size = 0;
+            if (rsrc_rva && FindResourceInPE(hmod, rsrc_rva, rsrc_sz,
+                                             (uint32_t)RT_BITMAP, name_id, data_rva, data_size)) {
+                uint8_t* bmp_data = mem.Translate(hmod + data_rva);
+                if (bmp_data && data_size > sizeof(BITMAPINFOHEADER)) {
+                    BITMAPINFO* bmi = (BITMAPINFO*)bmp_data;
+                    HDC hdc = GetDC(NULL);
+                    int colors = 0;
+                    if (bmi->bmiHeader.biBitCount <= 8)
+                        colors = (bmi->bmiHeader.biClrUsed ? bmi->bmiHeader.biClrUsed : (1 << bmi->bmiHeader.biBitCount));
+                    uint8_t* bits = bmp_data + sizeof(BITMAPINFOHEADER) + colors * sizeof(RGBQUAD);
+                    HBITMAP hbm = CreateDIBitmap(hdc, &bmi->bmiHeader, CBM_INIT,
+                                                  bits, bmi, DIB_RGB_COLORS);
+                    ReleaseDC(NULL, hdc);
+                    regs[0] = (uint32_t)(uintptr_t)hbm;
+                    printf("[THUNK] LoadImageW(0x%08X, %u, IMAGE_BITMAP) -> HBITMAP=%p (from PE rsrc)\n",
+                           hmod, name_id, hbm);
+                } else {
+                    regs[0] = 0;
+                }
+            } else {
+                printf("[THUNK] LoadImageW(0x%08X, %u, IMAGE_BITMAP) -> resource not found\n",
+                       hmod, name_id);
+                regs[0] = 0;
+            }
+        } else if (!is_arm_module || hmod == 0) {
+            /* Non-ARM module or NULL (system resource) - use native API */
+            regs[0] = (uint32_t)(uintptr_t)LoadImageW(
+                (HINSTANCE)(intptr_t)(int32_t)hmod,
+                MAKEINTRESOURCEW(name_id), type, cx, cy, fuLoad);
+        } else {
+            /* ARM module with non-bitmap type - stub */
+            printf("[THUNK] LoadImageW(0x%08X, %u, type=%u) -> unsupported type for ARM module\n",
+                   hmod, name_id, type);
+            regs[0] = 0;
+        }
         return true;
     }
     if (func == "FindResourceW") {
