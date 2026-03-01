@@ -1,4 +1,5 @@
 [Tt]mp/
+.mcp.json
 
 # Reference materials (WinCE SDK, Platform Builder sources, etc.)
 # Only the README.md inside is tracked
