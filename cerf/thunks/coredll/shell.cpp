@@ -7,6 +7,7 @@
 #include "../../log.h"
 #include <cstdio>
 #include <shellapi.h>
+#include <shlobj.h>
 
 void Win32Thunks::RegisterShellHandlers() {
     auto stub0 = [](const char* name) -> ThunkHandler {
@@ -35,8 +36,27 @@ void Win32Thunks::RegisterShellHandlers() {
             return true;
         };
     };
-    /* SHGetSpecialFolderPath(hwnd, lpszPath, csidl, fCreate) — not exported by ceshell, keep stub */
-    Thunk("SHGetSpecialFolderPath", 295, stub0("SHGetSpecialFolderPath"));
+    /* SHGetSpecialFolderPath(hwnd, lpszPath, csidl, fCreate) — coredll kernel API, not in ceshell */
+    Thunk("SHGetSpecialFolderPath", 295, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t path_ptr = regs[1];
+        int csidl = (int)regs[2];
+        LOG(THUNK, "[THUNK] SHGetSpecialFolderPath(hwnd=0x%08X, csidl=%d, fCreate=%d)\n", regs[0], csidl, regs[3]);
+        wchar_t path[MAX_PATH] = {};
+        HRESULT hr = SHGetFolderPathW(NULL, csidl, NULL, 0, path);
+        if (SUCCEEDED(hr) && path_ptr) {
+            for (int i = 0; i < MAX_PATH; i++) {
+                mem.Write16(path_ptr + i * 2, path[i]);
+                if (path[i] == 0) break;
+            }
+            LOG(THUNK, "[THUNK]   -> '%ls'\n", path);
+            regs[0] = 1;
+        } else {
+            LOG(THUNK, "[THUNK]   -> FAILED (hr=0x%08X)\n", hr);
+            if (path_ptr) mem.Write16(path_ptr, 0);
+            regs[0] = 0;
+        }
+        return true;
+    });
     /* SHLoadDIBitmap(lpszFileName) — forward to ceshell.dll */
     Thunk("SHLoadDIBitmap", 487, forwardToArm("ceshell.dll", "SHLoadDIBitmap", 1));
     /* SHCreateShortcut(lpszShortcut, lpszTarget) — forward to ceshell.dll */

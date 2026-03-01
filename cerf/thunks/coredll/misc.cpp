@@ -17,6 +17,8 @@ void Win32Thunks::RegisterMiscHandlers() {
             LOG(THUNK, "[THUNK] [STUB] %s -> 1\n", name); regs[0] = 1; return true;
         };
     };
+    /* SIP (Software Input Panel) */
+    Thunk("SipGetInfo", stub0("SipGetInfo"));
     /* Debug */
     Thunk("OutputDebugStringW", 541, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LOG(DBG, "[DEBUG] %ls\n", ReadWStringFromEmu(mem, regs[0]).c_str()); return true;

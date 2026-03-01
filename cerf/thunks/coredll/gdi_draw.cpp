@@ -24,6 +24,12 @@ void Win32Thunks::RegisterGdiDrawHandlers() {
     Thunk("SetBkColor", 922, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = SetBkColor((HDC)(intptr_t)(int32_t)regs[0], regs[1]); return true; });
     Thunk("SetBkMode", 923, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = SetBkMode((HDC)(intptr_t)(int32_t)regs[0], regs[1]); return true; });
     Thunk("SetTextColor", 924, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = SetTextColor((HDC)(intptr_t)(int32_t)regs[0], regs[1]); return true; });
+    Thunk("SetBrushOrgEx", 943, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        POINT pt;
+        BOOL ret = SetBrushOrgEx((HDC)(intptr_t)(int32_t)regs[0], (int)regs[1], (int)regs[2], regs[3] ? &pt : NULL);
+        if (regs[3] && ret) { mem.Write32(regs[3], pt.x); mem.Write32(regs[3] + 4, pt.y); }
+        regs[0] = ret; return true;
+    });
     Thunk("CreateCompatibleBitmap", 902, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = (uint32_t)(uintptr_t)CreateCompatibleBitmap((HDC)(intptr_t)(int32_t)regs[0], regs[1], regs[2]); return true;
     });

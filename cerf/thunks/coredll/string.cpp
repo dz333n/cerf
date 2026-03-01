@@ -195,6 +195,16 @@ void Win32Thunks::RegisterStringHandlers() {
         return true;
     });
 
+    Thunk("StringCchLengthW", 1748, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t psz = regs[0], cchMax = regs[1], pcch_out = regs[2];
+        if (!psz) { regs[0] = 0x80070057; return true; } /* STRSAFE_E_INVALID_PARAMETER */
+        uint32_t len = 0;
+        for (; len < cchMax; len++) { if (mem.Read16(psz + len * 2) == 0) break; }
+        if (len >= cchMax) { if (pcch_out) mem.Write32(pcch_out, 0); regs[0] = 0x8007007A; return true; }
+        if (pcch_out) mem.Write32(pcch_out, len);
+        regs[0] = 0; /* S_OK */
+        return true;
+    });
     Thunk("LCMapStringW", 199, [](uint32_t* regs, EmulatedMemory&) -> bool {
         LOG(THUNK, "[THUNK] LCMapStringW(locale=0x%X, flags=0x%X, src=0x%08X, srcLen=%d) -> 0 (stub)\n",
                regs[0], regs[1], regs[2], (int32_t)regs[3]);

@@ -80,7 +80,9 @@ void Win32Thunks::RegisterInputHandlers() {
     ThunkOrdinal("GetCursor", 733);
     ThunkOrdinal("CreateCursor", 722);
     ThunkOrdinal("DestroyCursor", 724);
-    ThunkOrdinal("DestroyIcon", 725);
+    Thunk("DestroyIcon", 725, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = DestroyIcon((HICON)(intptr_t)(int32_t)regs[0]); return true;
+    });
     ThunkOrdinal("GetClipCursor", 732);
     ThunkOrdinal("LoadAcceleratorsW", 94);
 }

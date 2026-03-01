@@ -237,4 +237,5 @@ private:
     void RegisterMiscHandlers();
     void RegisterImageListHandlers();
     void RegisterModuleHandlers();
+    void RegisterDpaHandlers();
 };

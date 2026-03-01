@@ -93,6 +93,17 @@ void Win32Thunks::RegisterWindowHandlers() {
         regs[0] = ShowWindow(hw, regs[1]); return true;
     });
     Thunk("UpdateWindow", 267, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = UpdateWindow((HWND)(intptr_t)(int32_t)regs[0]); return true; });
+    Thunk("RedrawWindow", 1672, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
+        /* lprcUpdate (regs[1]) — WinCE RECT ptr in emulated memory */
+        RECT rc, *prc = NULL;
+        if (regs[1]) { rc = {(LONG)mem.Read32(regs[1]),(LONG)mem.Read32(regs[1]+4),(LONG)mem.Read32(regs[1]+8),(LONG)mem.Read32(regs[1]+12)}; prc = &rc; }
+        /* hrgnUpdate (regs[2]) — pass through as handle */
+        HRGN hrgn = (HRGN)(intptr_t)(int32_t)regs[2];
+        UINT flags = regs[3];
+        regs[0] = RedrawWindow(hw, prc, hrgn, flags);
+        return true;
+    });
     Thunk("DestroyWindow", 265, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = DestroyWindow((HWND)(intptr_t)(int32_t)regs[0]); return true; });
     Thunk("SetWindowPos", 247, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         regs[0] = SetWindowPos((HWND)(intptr_t)(int32_t)regs[0], (HWND)(intptr_t)(int32_t)regs[1], regs[2], regs[3],

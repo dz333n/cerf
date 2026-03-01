@@ -612,6 +612,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterMiscHandlers();
     RegisterImageListHandlers();
     RegisterModuleHandlers();
+    RegisterDpaHandlers();
     RegisterShellHandlers();
     current_dll_context.clear();
 
