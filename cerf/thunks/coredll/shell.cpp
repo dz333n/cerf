@@ -35,8 +35,10 @@ void Win32Thunks::RegisterShellHandlers() {
             return true;
         };
     };
+    /* SHGetSpecialFolderPath(hwnd, lpszPath, csidl, fCreate) — not exported by ceshell, keep stub */
     Thunk("SHGetSpecialFolderPath", 295, stub0("SHGetSpecialFolderPath"));
-    Thunk("SHLoadDIBitmap", 487, stub0("SHLoadDIBitmap"));
+    /* SHLoadDIBitmap(lpszFileName) — forward to ceshell.dll */
+    Thunk("SHLoadDIBitmap", 487, forwardToArm("ceshell.dll", "SHLoadDIBitmap", 1));
     /* SHCreateShortcut(lpszShortcut, lpszTarget) — forward to ceshell.dll */
     Thunk("SHCreateShortcut", 484, forwardToArm("ceshell.dll", "SHCreateShortcut", 2));
     /* SHCreateShortcutEx(lpszShortcut, lpszTarget, lpszParams) — forward to ceshell.dll */
@@ -106,35 +108,27 @@ void Win32Thunks::RegisterShellHandlers() {
     });
     /* SHGetFileInfo(pszPath, dwFileAttributes, psfi, cbFileInfo, uFlags) — forward to ceshell.dll */
     Thunk("SHGetFileInfo", 482, forwardToArm("ceshell.dll", "SHGetFileInfo", 5));
-    /* GetOpenFileNameW / GetSaveFileNameW — coredll re-exports from commdlg */
-    Thunk("GetOpenFileNameW", 488, forwardToArm("commdlg.dll", "GetOpenFileNameW", 1));
-    Thunk("GetSaveFileNameW", 489, forwardToArm("commdlg.dll", "GetSaveFileNameW", 1));
+    /* GetOpenFileNameW / GetSaveFileNameW — coredll forwards to ceshell!SHGetOpenFileName.
+       In real coredll, both Open and Save go through SHGetOpenFileName in ceshell.dll. */
+    Thunk("GetOpenFileNameW", 488, forwardToArm("ceshell.dll", "SHGetOpenFileName", 1));
+    Thunk("GetSaveFileNameW", 489, forwardToArm("ceshell.dll", "SHGetOpenFileName", 1));
     /* ceshell re-exports via coredll */
     /* SHGetShortcutTarget(lpszShortcut, lpszTarget, cbMax) — forward to ceshell.dll */
     Thunk("SHGetShortcutTarget", 485, forwardToArm("ceshell.dll", "SHGetShortcutTarget", 3));
     /* SHShowOutOfMemory(hwndOwner, grfFlags) — forward to ceshell.dll */
     Thunk("SHShowOutOfMemory", forwardToArm("ceshell.dll", "SHShowOutOfMemory", 2));
-    Thunk("SHAddToRecentDocs", 483, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] SHAddToRecentDocs(uFlags=%d, pv=0x%08X) -> stub\n", regs[0], regs[1]);
-        return true;
-    });
-    Thunk("SHGetSpecialFolderLocation", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] SHGetSpecialFolderLocation(...) -> E_NOTIMPL (stub)\n");
-        regs[0] = 0x80004001; /* E_NOTIMPL */
-        return true;
-    });
-    Thunk("SHGetMalloc", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] SHGetMalloc(...) -> E_NOTIMPL (stub)\n");
-        regs[0] = 0x80004001;
-        return true;
-    });
-    Thunk("SHGetPathFromIDList", stub0("SHGetPathFromIDList"));
-    Thunk("SHBrowseForFolder", stub0("SHBrowseForFolder"));
-    Thunk("SHFileOperation", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] SHFileOperation(...) -> ERROR (stub)\n");
-        regs[0] = 1;
-        return true;
-    });
+    /* SHAddToRecentDocs(uFlags, pv) — forward to ceshell.dll */
+    Thunk("SHAddToRecentDocs", 483, forwardToArm("ceshell.dll", "SHAddToRecentDocs", 2));
+    /* SHGetSpecialFolderLocation(hwnd, csidl, ppidl) — forward to ceshell.dll */
+    Thunk("SHGetSpecialFolderLocation", forwardToArm("ceshell.dll", "SHGetSpecialFolderLocation", 3));
+    /* SHGetMalloc(ppMalloc) — forward to ceshell.dll */
+    Thunk("SHGetMalloc", forwardToArm("ceshell.dll", "SHGetMalloc", 1));
+    /* SHGetPathFromIDList(pidl, pszPath) — forward to ceshell.dll */
+    Thunk("SHGetPathFromIDList", forwardToArm("ceshell.dll", "SHGetPathFromIDList", 2));
+    /* SHBrowseForFolder(lpbi) — forward to ceshell.dll */
+    Thunk("SHBrowseForFolder", forwardToArm("ceshell.dll", "SHBrowseForFolder", 1));
+    /* SHFileOperation(lpFileOp) — forward to ceshell.dll (exported as SHFileOperationW) */
+    Thunk("SHFileOperation", forwardToArm("ceshell.dll", "SHFileOperationW", 1));
     Thunk("ExtractIconExW", stub0("ExtractIconExW"));
     Thunk("DragAcceptFiles", [](uint32_t* regs, EmulatedMemory&) -> bool {
         return true; /* void */
