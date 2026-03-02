@@ -41,15 +41,16 @@ void Win32Thunks::InitVFS(const std::string& device_override) {
         device_name = device_override;
     }
     if (device_name.empty()) {
-        device_name = "wince5"; /* default */
-        LOG(EMU, "[VFS] No cerf.ini found or no device= setting, defaulting to '%s'\n", device_name.c_str());
+        LOG_ERR("[VFS] FATAL: No device configured. Set device= in cerf.ini or use --device=NAME.\n");
+        LOG_ERR("[VFS] Expected cerf.ini at: %s\n", ini_path.c_str());
+        ExitProcess(1);
     }
 
     device_fs_root = cerf_dir + "devices\\" + device_name + "\\fs\\";
     device_dir = cerf_dir + "devices\\" + device_name + "\\";
 
-    LOG(EMU, "[VFS] Device: %s\n", device_name.c_str());
-    LOG(EMU, "[VFS] Device FS root: %s\n", device_fs_root.c_str());
+    LOG(VFS, "[VFS] Device: %s\n", device_name.c_str());
+    LOG(VFS, "[VFS] Device FS root: %s\n", device_fs_root.c_str());
 
     /* Also set wince_sys_dir for ARM DLL loading compatibility —
        it now points to the Windows subdirectory of the device fs */
@@ -79,7 +80,7 @@ std::wstring Win32Thunks::MapWinCEPath(const std::wstring& wce_path) {
 
     /* Drive letter path (e.g. C:\foo\bar) -> real host C:\foo\bar */
     if (wce_path.size() >= 2 && wce_path[1] == L':' && IsDriveLetter(wce_path[0])) {
-        LOG(THUNK, "[VFS] Map '%ls' -> '%ls' (drive pass-through)\n", wce_path.c_str(), wce_path.c_str());
+        LOG(VFS, "[VFS] Map '%ls' -> '%ls' (drive pass-through)\n", wce_path.c_str(), wce_path.c_str());
         return wce_path;
     }
 
@@ -101,20 +102,20 @@ std::wstring Win32Thunks::MapWinCEPath(const std::wstring& wce_path) {
                 if (drive >= L'a' && drive <= L'z') drive -= 32; /* uppercase for host */
                 std::wstring rest = (after_root.size() > 1) ? after_root.substr(1) : L"\\";
                 std::wstring result = std::wstring(1, drive) + L":" + rest;
-                LOG(THUNK, "[VFS] Map '%ls' -> '%ls' (drive pass-through)\n", wce_path.c_str(), result.c_str());
+                LOG(VFS, "[VFS] Map '%ls' -> '%ls' (drive pass-through)\n", wce_path.c_str(), result.c_str());
                 return result;
             }
         }
 
         /* Multi-letter root directory -> device fs */
         std::wstring result = wide_fs_root + after_root;
-        LOG(THUNK, "[VFS] Map '%ls' -> '%ls'\n", wce_path.c_str(), result.c_str());
+        LOG(VFS, "[VFS] Map '%ls' -> '%ls'\n", wce_path.c_str(), result.c_str());
         return result;
     }
 
     /* Relative path — resolve under fs root */
     std::wstring result = wide_fs_root + wce_path;
-    LOG(THUNK, "[VFS] Map '%ls' -> '%ls'\n", wce_path.c_str(), result.c_str());
+    LOG(VFS, "[VFS] Map '%ls' -> '%ls'\n", wce_path.c_str(), result.c_str());
     return result;
 }
 

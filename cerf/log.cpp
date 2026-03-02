@@ -121,6 +121,7 @@ uint32_t Log::ParseCategories(const char* str) {
         else if (token == "CPU")   mask |= CPU;
         else if (token == "REG")   mask |= REG;
         else if (token == "DBG" || token == "DEBUG") mask |= DBG;
+        else if (token == "VFS")   mask |= VFS;
         else fprintf(stderr, "Warning: unknown log category '%s'\n", token.c_str());
 
         start = end + 1;

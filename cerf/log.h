@@ -15,6 +15,7 @@ namespace Log {
         CPU    = 1 << 4,
         REG    = 1 << 5,
         DBG    = 1 << 6,
+        VFS    = 1 << 7,
         ALL    = 0xFFFFFFFF
     };
 
