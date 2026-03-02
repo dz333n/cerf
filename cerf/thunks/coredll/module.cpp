@@ -25,11 +25,14 @@ void Win32Thunks::RegisterModuleHandlers() {
     });
     Thunk("GetModuleFileNameW", 537, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t buf_addr = regs[1], buf_size = regs[2];
-        for (uint32_t i = 0; i < exe_path.size() && i < buf_size; i++)
-            mem.Write16(buf_addr + i * 2, exe_path[i]);
-        uint32_t null_off = std::min((uint32_t)exe_path.size(), buf_size - 1);
+        /* Return WinCE-style path instead of host path */
+        std::wstring wce_path = MapHostToWinCE(exe_path);
+        LOG(THUNK, "[THUNK] GetModuleFileNameW() -> '%ls'\n", wce_path.c_str());
+        for (uint32_t i = 0; i < wce_path.size() && i < buf_size; i++)
+            mem.Write16(buf_addr + i * 2, wce_path[i]);
+        uint32_t null_off = std::min((uint32_t)wce_path.size(), buf_size - 1);
         mem.Write16(buf_addr + null_off * 2, 0);
-        regs[0] = (uint32_t)exe_path.size();
+        regs[0] = (uint32_t)wce_path.size();
         return true;
     });
     Thunk("LoadLibraryW", 528, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {

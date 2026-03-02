@@ -1,6 +1,7 @@
 [Tt]mp/
 .mcp.json
 
+
 # Reference materials (WinCE SDK, Platform Builder sources, etc.)
 # Only the README.md inside is tracked
 references/*
@@ -268,3 +269,7 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+
+# Bundled device files — track DLLs and PDBs that are part of the distribution
+!bundled/**/*.dll
+!bundled/**/*.pdb

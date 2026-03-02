@@ -45,15 +45,26 @@ cerf/
       shell.cpp                    - Shell APIs (SH* functions, file dialogs)
       imagelist.cpp                - ImageList_* and InitCommonControls (coredll re-exports)
       misc.cpp                     - Debug, clipboard, sound, COM, IMM stubs
-wince_sys/                         - Bundled WinCE ARM system DLLs (copied to windows/ at build)
+      vfs.cpp                      - Virtual filesystem: WinCE ↔ host path translation
+bundled/                           - Files bundled with the build output
+  cerf.ini                         - Configuration (device=wince5)
+  devices/
+    wince5/                        - WinCE 5.0 device profile
+      registry_to_import.reg       - Default registry entries (imported on first run)
+      fs/                          - Virtual filesystem root
+        Windows/                   - \Windows (ARM DLLs, system files)
+        My Documents/              - \My Documents
+        Application Data/          - \Application Data
+        Program Files/             - \Program Files
 ```
 
 ## Key Concepts
 
 - **Thunking**: ARM code calls COREDLL functions via the IAT. These point to magic addresses (0xFE000000+, `THUNK_BASE`) that the CPU intercepts, executing native Win32 equivalents.
 - **Only coredll is thunked**: coredll.dll is the WinCE kernel/system bridge — the only DLL that talks to the OS. All other WinCE DLLs (commctrl, commdlg, ole32, ceshell, aygshell) are user-mode libraries that just use coredll APIs internally. They are loaded and executed as real ARM code in the emulator.
-- **Bundled ARM DLLs**: The `wince_sys/` directory contains real ARM DLLs from a WinCE 5.0 build. At build time these are copied to `windows/` next to cerf.exe. At runtime, CERF auto-detects this directory and loads ARM DLLs from it when apps import them.
-- **ARM DLL loading**: `LoadArmDll()` searches the exe directory then `windows/` for ARM DLLs, loads them via `PELoader::LoadDll()`, and recursively resolves their imports (which may load more ARM DLLs).
+- **Virtual filesystem**: All WinCE paths are sandboxed under `devices/<device>/fs/`. The VFS layer (`vfs.cpp`) translates WinCE paths like `\Windows\foo` to host paths like `<cerf_dir>/devices/wince5/fs/Windows/foo`, and drive letters like `C:\foo` to `\c\foo` in WinCE space. `cerf.ini` selects the active device profile.
+- **Bundled device files**: The `bundled/` directory contains device profiles. At build time its contents are copied next to cerf.exe. Each device has a `fs/` directory (virtual filesystem root), a `registry_to_import.reg` (default registry), and a `registry.txt` (persisted registry state).
+- **ARM DLL loading**: `LoadArmDll()` searches the exe directory then `devices/<device>/fs/Windows/` for ARM DLLs, loads them via `PELoader::LoadDll()`, and recursively resolves their imports (which may load more ARM DLLs).
 - **coredll re-exports**: coredll.def re-exports functions from other DLLs (e.g. ImageList_* from commctrl, GetOpenFileNameW from commdlg, SH* from ceshell/aygshell). These are thunked as native implementations in coredll so apps that import them by ordinal from coredll still work.
 - **WinCE trap calls**: Some WinCE apps call APIs via hardcoded trap addresses in the `0xF000xxxx` range (descending from `0xF0010000`). The emulator decodes these as `api_index = (0xF0010000 - addr) / 4` and dispatches to the same thunk handlers.
 - **Owner-draw marshaling**: `WM_DRAWITEM` and `WM_MEASUREITEM` carry native 64-bit struct pointers in lParam. `EmuWndProc`/`EmuDlgProc` marshal these into 32-bit ARM layout in emulated memory before forwarding to ARM callbacks.
@@ -67,7 +78,7 @@ wince_sys/                         - Bundled WinCE ARM system DLLs (copied to wi
 msbuild cerf.sln /p:Configuration=Release /p:Platform=x64
 ```
 
-Output: `build/Release/x64/cerf.exe` with `build/Release/x64/windows/` containing bundled ARM DLLs.
+Output: `build/Release/x64/cerf.exe` with `build/Release/x64/devices/wince5/fs/Windows/` containing bundled ARM DLLs, `build/Release/x64/cerf.ini`, etc.
 
 ## Testing
 
@@ -75,7 +86,7 @@ Output: `build/Release/x64/cerf.exe` with `build/Release/x64/windows/` containin
 cerf.exe [options] <path-to-arm-wince-exe>
 ```
 
-Options: `--trace`, `--log=CATEGORIES`, `--no-log=CATEGORIES`, `--log-file=PATH`, `--flush-outputs`, `--wince-sys=DIR`, `--quiet`
+Options: `--trace`, `--log=CATEGORIES`, `--no-log=CATEGORIES`, `--log-file=PATH`, `--flush-outputs`, `--device=NAME`, `--quiet`
 
 Test apps in `tmp/arm_test_apps/`: solitare.exe, chearts.exe, Zuma-arm.exe
 
@@ -92,6 +103,19 @@ The `references/` directory (gitignored) holds local WinCE SDK materials includi
 - `LOG_ERR(...)` for errors (always prints to stderr), `LOG_RAW(...)` for uncategorized output
 - Static linking (`/MT` runtime)
 - Thunk functions return `true` when handled, setting `regs[0]` as the return value
+
+## IMPORTANT: Virtual Filesystem Path Rules
+
+**All file API thunks MUST use `MapWinCEPath()` for input paths and `MapHostToWinCE()` for output paths.** Never let WinCE programs see or use real host filesystem paths.
+
+Path translation rules (implemented in `thunks/coredll/vfs.cpp`):
+- `\Windows\foo` → `<cerf_dir>/devices/<device>/fs/Windows/foo`
+- `\My Documents\file.txt` → `<cerf_dir>/devices/<device>/fs/My Documents/file.txt`
+- `\anything` → `<cerf_dir>/devices/<device>/fs/anything`
+- `C:\foo\bar` → `<cerf_dir>/devices/<device>/fs/c/foo/bar` (drive letters become lowercase dirs)
+- `relative.txt` → `<cerf_dir>/devices/<device>/fs/relative.txt`
+
+Reverse mapping (`MapHostToWinCE`): strips the device fs root prefix and adds leading `\`.
 
 ## IMPORTANT: Thunk File Organization
 

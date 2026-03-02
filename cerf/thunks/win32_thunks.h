@@ -90,6 +90,10 @@ public:
     void SetExeDir(const std::string& dir) { exe_dir = dir; }
     void SetWinceSysDir(const std::string& dir) { wince_sys_dir = dir; }
 
+    /* Virtual filesystem initialization — reads cerf.ini, sets device paths.
+       If device_override is non-empty, it overrides the cerf.ini setting. */
+    void InitVFS(const std::string& device_override = "");
+
     /* Execute a callback from native code back into ARM emulator.
        Args: (arm_addr, args_array, num_args) -> return value */
     typedef std::function<uint32_t(uint32_t addr, uint32_t* args, int nargs)> CallbackExecutor;
@@ -120,6 +124,12 @@ private:
     std::wstring exe_path;
     std::string exe_dir;  /* Directory containing the exe */
     std::string wince_sys_dir;  /* WinCE system DLL directory (for ARM DLLs like commctrl.dll) */
+
+    /* Virtual filesystem device paths */
+    std::string cerf_dir;        /* Directory containing cerf.exe */
+    std::string device_name;     /* Active device name (e.g. "wince5") */
+    std::string device_fs_root;  /* <cerf_dir>/devices/<device>/fs/ */
+    std::string device_dir;      /* <cerf_dir>/devices/<device>/ */
 
     /* Loaded ARM DLLs */
     struct LoadedDll {
@@ -188,6 +198,8 @@ private:
 
     /* WinCE path mapping: converts WinCE paths to host filesystem paths */
     std::wstring MapWinCEPath(const std::wstring& wce_path);
+    /* Reverse mapping: converts host filesystem paths back to WinCE paths */
+    std::wstring MapHostToWinCE(const std::wstring& host_path);
 
 public:
     /* Emulated registry (file-backed, text format) */
@@ -248,4 +260,5 @@ private:
     void RegisterImageListHandlers();
     void RegisterModuleHandlers();
     void RegisterDpaHandlers();
+    void RegisterVfsHandlers();
 };

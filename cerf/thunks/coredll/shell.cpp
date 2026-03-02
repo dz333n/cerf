@@ -120,10 +120,12 @@ void Win32Thunks::RegisterShellHandlers() {
         native_sei.cbSize = sizeof(SHELLEXECUTEINFOW);
         native_sei.fMask = fMask;
         native_sei.hwnd = (HWND)(intptr_t)(int32_t)hwnd_val;
+        std::wstring mapped_file = file.empty() ? L"" : MapWinCEPath(file);
+        std::wstring mapped_dir = dir.empty() ? L"" : MapWinCEPath(dir);
         native_sei.lpVerb = verb.empty() ? NULL : verb.c_str();
-        native_sei.lpFile = file.empty() ? NULL : file.c_str();
+        native_sei.lpFile = mapped_file.empty() ? NULL : mapped_file.c_str();
         native_sei.lpParameters = params.empty() ? NULL : params.c_str();
-        native_sei.lpDirectory = dir.empty() ? NULL : dir.c_str();
+        native_sei.lpDirectory = mapped_dir.empty() ? NULL : mapped_dir.c_str();
         native_sei.nShow = nShow;
         BOOL ret = ShellExecuteExW(&native_sei);
         mem.Write32(sei_addr + 0x20, (uint32_t)(uintptr_t)native_sei.hInstApp);

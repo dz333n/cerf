@@ -28,11 +28,13 @@ void Win32Thunks::RegisterProcessHandlers() {
         PROCESS_INFORMATION pi = {};
         std::vector<wchar_t> cmdline_buf(cmdline.begin(), cmdline.end());
         cmdline_buf.push_back(0);
+        std::wstring mapped_image = image.empty() ? L"" : MapWinCEPath(image);
+        std::wstring mapped_curdir = curdir.empty() ? L"" : MapWinCEPath(curdir);
         BOOL ret = CreateProcessW(
-            image.empty() ? NULL : image.c_str(),
+            mapped_image.empty() ? NULL : mapped_image.c_str(),
             cmdline_buf.data(),
             NULL, NULL, FALSE, fdwCreate, NULL,
-            curdir.empty() ? NULL : curdir.c_str(),
+            mapped_curdir.empty() ? NULL : mapped_curdir.c_str(),
             &si, &pi);
         if (ret && procinfo_ptr) {
             mem.Write32(procinfo_ptr + 0x00, (uint32_t)(uintptr_t)pi.hProcess);

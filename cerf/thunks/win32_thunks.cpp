@@ -72,63 +72,7 @@ void Win32Thunks::RemoveHandle(uint32_t fake) {
     handle_map.erase(fake);
 }
 
-/* Map WinCE paths to host filesystem paths.
-   WinCE uses paths like "\skins\file.txt" (root-relative) or "file.txt" (relative).
-   We map these relative to the exe directory on the host.
-   Well-known WinCE directories (\My Documents, \Windows\Desktop) are mapped to
-   the real user folders on the host for a better experience. */
-std::wstring Win32Thunks::MapWinCEPath(const std::wstring& wce_path) {
-    if (wce_path.empty()) return wce_path;
-
-    /* Convert exe_dir to wide string */
-    std::wstring wide_exe_dir;
-    for (char c : exe_dir) wide_exe_dir += (wchar_t)c;
-
-    /* Check if it's already a host absolute path (has drive letter like C:\) */
-    if (wce_path.size() >= 2 && wce_path[1] == L':') {
-        return wce_path;
-    }
-
-    /* Map well-known WinCE special folders to real user directories */
-    if (wce_path[0] == L'\\' || wce_path[0] == L'/') {
-        auto startsWith = [&](const wchar_t* prefix) -> bool {
-            size_t plen = wcslen(prefix);
-            if (wce_path.size() < plen) return false;
-            return _wcsnicmp(wce_path.c_str(), prefix, plen) == 0 &&
-                   (wce_path.size() == plen || wce_path[plen] == L'\\' || wce_path[plen] == L'/');
-        };
-        auto mapToUserFolder = [&](const wchar_t* prefix, int csidl) -> std::wstring {
-            wchar_t real[MAX_PATH] = {};
-            if (SUCCEEDED(SHGetFolderPathW(NULL, csidl, NULL, 0, real))) {
-                size_t plen = wcslen(prefix);
-                std::wstring rest = (wce_path.size() > plen) ? wce_path.substr(plen) : L"";
-                return std::wstring(real) + rest;
-            }
-            return wide_exe_dir + wce_path.substr(1);
-        };
-
-        if (startsWith(L"\\My Documents"))
-            return mapToUserFolder(L"\\My Documents", CSIDL_PERSONAL);
-        if (startsWith(L"\\Windows\\Desktop"))
-            return mapToUserFolder(L"\\Windows\\Desktop", CSIDL_DESKTOPDIRECTORY);
-
-        /* \Windows → WinCE system directory (bundled ARM DLLs) */
-        if (startsWith(L"\\Windows")) {
-            std::wstring wide_sys_dir;
-            for (char c : wince_sys_dir) wide_sys_dir += (wchar_t)c;
-            if (!wide_sys_dir.empty()) {
-                std::wstring rest = (wce_path.size() > 8) ? wce_path.substr(8) : L"";
-                return wide_sys_dir + rest;
-            }
-        }
-
-        /* Default: strip leading backslash, relative to exe dir */
-        return wide_exe_dir + wce_path.substr(1);
-    }
-
-    /* Relative path - prepend exe directory */
-    return wide_exe_dir + wce_path;
-}
+/* MapWinCEPath and MapHostToWinCE are now in coredll/vfs.cpp */
 
 /* Write WIN32_FIND_DATAW to emulated memory using WinCE struct layout.
    WinCE layout (no dwReserved0/1, no cAlternateFileName):
@@ -276,29 +220,18 @@ void Win32Thunks::LoadRegistry() {
     if (registry_loaded) return;
     registry_loaded = true;
 
-    /* Store registry next to cerf.exe, not the WinCE app */
-    char cerf_path[MAX_PATH];
-    ::GetModuleFileNameA(NULL, cerf_path, MAX_PATH);
-    std::string cerf_dir(cerf_path);
-    size_t last_sep = cerf_dir.find_last_of("\\/");
-    if (last_sep != std::string::npos) cerf_dir = cerf_dir.substr(0, last_sep + 1);
-    else cerf_dir = "";
-    registry_path = cerf_dir + "cerf_registry.txt";
+    /* Store registry in the device directory */
+    registry_path = device_dir + "registry.txt";
     LOG(REG, "[REG] Loading registry from %s\n", registry_path.c_str());
 
     std::ifstream f(registry_path);
     if (!f.is_open()) {
         LOG(REG, "[REG] No registry file found, looking for WinCE .reg import\n");
-        /* Import a WinCE registry export (.reg file) from the wince_sys dir
-           or from next to cerf.exe. This provides default COM CLSIDs etc. */
+        /* Import a WinCE registry export (.reg file) from the device directory.
+           This provides default COM CLSIDs etc. */
         std::string import_path;
-        if (!wince_sys_dir.empty()) {
-            import_path = wince_sys_dir + "wince_registry.reg";
-            std::ifstream test(import_path);
-            if (!test.is_open()) import_path = "";
-        }
-        if (import_path.empty()) {
-            import_path = cerf_dir + "wince_registry.reg";
+        {
+            import_path = device_dir + "registry_to_import.reg";
             std::ifstream test(import_path);
             if (!test.is_open()) import_path = "";
         }
@@ -788,6 +721,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterImageListHandlers();
     RegisterModuleHandlers();
     RegisterDpaHandlers();
+    RegisterVfsHandlers();
     RegisterShellHandlers();
     current_dll_context.clear();
 
