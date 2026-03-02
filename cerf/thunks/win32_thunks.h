@@ -175,6 +175,13 @@ private:
        through 32-bit ARM registers (sign-extension corrupts bit-31-set handles) */
     std::map<uint32_t, HANDLE> handle_map;   /* fake 32-bit handle -> real 64-bit HANDLE */
     uint32_t next_fake_handle = 0x00100000;
+
+    /* File mapping tracking */
+    struct FileMappingInfo {
+        uint32_t emu_addr;
+        uint32_t size;
+    };
+    std::map<uint32_t, FileMappingInfo> file_mappings; /* fake handle -> mapping info */
     uint32_t WrapHandle(HANDLE h);
     HANDLE UnwrapHandle(uint32_t fake);
     void RemoveHandle(uint32_t fake);

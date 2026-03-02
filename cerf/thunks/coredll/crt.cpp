@@ -69,6 +69,14 @@ void Win32Thunks::RegisterCrtHandlers() {
         regs[0] = (uint32_t)bits; regs[1] = (uint32_t)(bits >> 32);
         return true;
     });
+    Thunk("strncpy", 1071, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t dst = regs[0], src = regs[1], count = regs[2];
+        uint8_t* dst_p = mem.Translate(dst);
+        uint8_t* src_p = mem.Translate(src);
+        if (dst_p && src_p) strncpy((char*)dst_p, (char*)src_p, count);
+        regs[0] = dst;
+        return true;
+    });
     Thunk("_wfopen", 1145, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring filename = ReadWStringFromEmu(mem, regs[0]);
         std::wstring mode = ReadWStringFromEmu(mem, regs[1]);

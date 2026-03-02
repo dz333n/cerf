@@ -236,8 +236,6 @@ void Win32Thunks::RegisterSystemHandlers() {
     ThunkOrdinal("GetTimeZoneInformation", 27);
     ThunkOrdinal("CompareFileTime", 18);
     ThunkOrdinal("SystemTimeToFileTime", 19);
-    ThunkOrdinal("FileTimeToSystemTime", 20);
-    ThunkOrdinal("FileTimeToLocalFileTime", 21);
     ThunkOrdinal("SetLocalTime", 24);
     ThunkOrdinal("CreateThread", 492);
     ThunkOrdinal("TerminateThread", 491);

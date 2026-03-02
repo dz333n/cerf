@@ -113,11 +113,47 @@ void Win32Thunks::RegisterFileHandlers() {
         RemoveHandle(fake);
         return true;
     });
+    Thunk("GetFileTime", 176, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HANDLE h = UnwrapHandle(regs[0]);
+        FILETIME ct, at, wt;
+        BOOL ret = GetFileTime(h, regs[1] ? &ct : NULL, regs[2] ? &at : NULL, regs[3] ? &wt : NULL);
+        if (ret) {
+            if (regs[1]) { mem.Write32(regs[1], ct.dwLowDateTime); mem.Write32(regs[1]+4, ct.dwHighDateTime); }
+            if (regs[2]) { mem.Write32(regs[2], at.dwLowDateTime); mem.Write32(regs[2]+4, at.dwHighDateTime); }
+            if (regs[3]) { mem.Write32(regs[3], wt.dwLowDateTime); mem.Write32(regs[3]+4, wt.dwHighDateTime); }
+        }
+        LOG(THUNK, "[THUNK] GetFileTime(0x%08X) -> %d\n", regs[0], ret);
+        regs[0] = ret; return true;
+    });
+    Thunk("FileTimeToLocalFileTime", 21, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        FILETIME ft_in, ft_out;
+        ft_in.dwLowDateTime = mem.Read32(regs[0]);
+        ft_in.dwHighDateTime = mem.Read32(regs[0] + 4);
+        BOOL ret = FileTimeToLocalFileTime(&ft_in, &ft_out);
+        if (ret && regs[1]) {
+            mem.Write32(regs[1], ft_out.dwLowDateTime);
+            mem.Write32(regs[1] + 4, ft_out.dwHighDateTime);
+        }
+        regs[0] = ret; return true;
+    });
+    Thunk("FileTimeToSystemTime", 20, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        FILETIME ft;
+        ft.dwLowDateTime = mem.Read32(regs[0]);
+        ft.dwHighDateTime = mem.Read32(regs[0] + 4);
+        SYSTEMTIME st;
+        BOOL ret = FileTimeToSystemTime(&ft, &st);
+        if (ret && regs[1]) {
+            mem.Write16(regs[1]+0, st.wYear); mem.Write16(regs[1]+2, st.wMonth);
+            mem.Write16(regs[1]+4, st.wDayOfWeek); mem.Write16(regs[1]+6, st.wDay);
+            mem.Write16(regs[1]+8, st.wHour); mem.Write16(regs[1]+10, st.wMinute);
+            mem.Write16(regs[1]+12, st.wSecond); mem.Write16(regs[1]+14, st.wMilliseconds);
+        }
+        regs[0] = ret; return true;
+    });
     /* Ordinal-only entries */
     ThunkOrdinal("CopyFileW", 164);
     ThunkOrdinal("GetTempPathW", 162);
     ThunkOrdinal("FlushFileBuffers", 175);
-    ThunkOrdinal("GetFileTime", 176);
     ThunkOrdinal("SetFileTime", 177);
     ThunkOrdinal("DeviceIoControl", 179);
     ThunkOrdinal("DeleteAndRenameFile", 183);
