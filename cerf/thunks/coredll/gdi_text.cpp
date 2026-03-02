@@ -42,8 +42,81 @@ void Win32Thunks::RegisterGdiTextHandlers() {
     });
     Thunk("SetTextAlign", 1654, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = SetTextAlign((HDC)(intptr_t)(int32_t)regs[0], regs[1]); return true; });
     Thunk("GetTextAlign", 1655, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = GetTextAlign((HDC)(intptr_t)(int32_t)regs[0]); return true; });
-    Thunk("ExtTextOutW", 896, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
-    Thunk("GetTextExtentExPointW", 897, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
+    /* ExtTextOutW(hdc, x, y, options, lprc, lpString, nCount, lpDx)
+       r0=hdc, r1=x, r2=y, r3=options, stack[0]=lprc, stack[1]=lpString,
+       stack[2]=nCount, stack[3]=lpDx */
+    Thunk("ExtTextOutW", 896, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HDC hdc = (HDC)(intptr_t)(int32_t)regs[0];
+        int x = (int)regs[1], y = (int)regs[2];
+        UINT options = regs[3];
+        uint32_t lprc_addr = ReadStackArg(regs, mem, 0);
+        uint32_t lpStr_addr = ReadStackArg(regs, mem, 1);
+        UINT count = ReadStackArg(regs, mem, 2);
+        uint32_t lpDx_addr = ReadStackArg(regs, mem, 3);
+        RECT rc = {};
+        RECT* prc = NULL;
+        if (lprc_addr) {
+            rc.left = (int32_t)mem.Read32(lprc_addr);
+            rc.top = (int32_t)mem.Read32(lprc_addr + 4);
+            rc.right = (int32_t)mem.Read32(lprc_addr + 8);
+            rc.bottom = (int32_t)mem.Read32(lprc_addr + 12);
+            prc = &rc;
+        }
+        std::wstring text;
+        if (lpStr_addr && count > 0) {
+            text.resize(count);
+            for (UINT i = 0; i < count; i++)
+                text[i] = (wchar_t)mem.Read16(lpStr_addr + i * 2);
+        }
+        std::vector<INT> dx;
+        INT* pdx = NULL;
+        if (lpDx_addr && count > 0) {
+            dx.resize(count);
+            for (UINT i = 0; i < count; i++)
+                dx[i] = (INT)mem.Read32(lpDx_addr + i * 4);
+            pdx = dx.data();
+        }
+        regs[0] = ExtTextOutW(hdc, x, y, options, prc,
+                               text.empty() ? NULL : text.c_str(), count, pdx);
+        return true;
+    });
+    /* GetTextExtentExPointW(hdc, lpszStr, cchString, nMaxExtent,
+       lpnFit, alpDx, lpSize)
+       r0=hdc, r1=lpszStr, r2=cchString, r3=nMaxExtent,
+       stack[0]=lpnFit, stack[1]=alpDx, stack[2]=lpSize */
+    Thunk("GetTextExtentExPointW", 897, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HDC hdc = (HDC)(intptr_t)(int32_t)regs[0];
+        uint32_t str_addr = regs[1];
+        int cch = (int)regs[2];
+        int maxExtent = (int)regs[3];
+        uint32_t pnFit_addr = ReadStackArg(regs, mem, 0);
+        uint32_t alpDx_addr = ReadStackArg(regs, mem, 1);
+        uint32_t pSize_addr = ReadStackArg(regs, mem, 2);
+        std::wstring text;
+        if (str_addr && cch > 0) {
+            text.resize(cch);
+            for (int i = 0; i < cch; i++)
+                text[i] = (wchar_t)mem.Read16(str_addr + i * 2);
+        }
+        int nFit = 0;
+        std::vector<INT> dx(cch > 0 ? cch : 1);
+        SIZE sz = {};
+        BOOL ret = GetTextExtentExPointW(hdc, text.c_str(), cch, maxExtent,
+                                          &nFit, dx.data(), &sz);
+        if (ret) {
+            if (pnFit_addr) mem.Write32(pnFit_addr, (uint32_t)nFit);
+            if (alpDx_addr) {
+                for (int i = 0; i < nFit; i++)
+                    mem.Write32(alpDx_addr + i * 4, (uint32_t)dx[i]);
+            }
+            if (pSize_addr) {
+                mem.Write32(pSize_addr, (uint32_t)sz.cx);
+                mem.Write32(pSize_addr + 4, (uint32_t)sz.cy);
+            }
+        }
+        regs[0] = ret;
+        return true;
+    });
     Thunk("EnumFontFamiliesW", 965, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t arm_callback = regs[2];
         uint32_t arm_lparam = regs[3];

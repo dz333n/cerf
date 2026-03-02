@@ -111,4 +111,8 @@ void Win32Thunks::RegisterCrtHandlers() {
         }
         return true;
     });
+    Thunk("abs", 988, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = (uint32_t)abs((int)regs[0]);
+        return true;
+    });
 }

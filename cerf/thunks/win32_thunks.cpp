@@ -724,6 +724,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterImageListHandlers();
     RegisterModuleHandlers();
     RegisterDpaHandlers();
+    RegisterDsaHandlers();
     RegisterStdioHandlers();
     RegisterVfsHandlers();
     RegisterShellHandlers();

@@ -61,4 +61,38 @@ void Win32Thunks::RegisterMenuHandlers() {
         regs[0] = DeleteMenu((HMENU)(intptr_t)(int32_t)regs[0], regs[1], regs[2]);
         return true;
     });
+    /* SetMenuItemInfoW — WinCE MENUITEMINFOW is 44 bytes (32-bit pointers):
+       +0 cbSize, +4 fMask, +8 fType, +12 fState, +16 wID,
+       +20 hSubMenu(32), +24 hbmpChecked(32), +28 hbmpUnchecked(32),
+       +32 dwItemData(32), +36 dwTypeData(32), +40 cch */
+    Thunk("SetMenuItemInfoW", 853, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HMENU hMenu = (HMENU)(intptr_t)(int32_t)regs[0];
+        UINT uItem = regs[1];
+        BOOL fByPosition = regs[2];
+        uint32_t pMii = regs[3];
+        MENUITEMINFOW mii = {};
+        mii.cbSize = sizeof(MENUITEMINFOW);
+        mii.fMask = mem.Read32(pMii + 4);
+        mii.fType = mem.Read32(pMii + 8);
+        mii.fState = mem.Read32(pMii + 12);
+        mii.wID = mem.Read32(pMii + 16);
+        mii.hSubMenu = (HMENU)(intptr_t)(int32_t)mem.Read32(pMii + 20);
+        mii.hbmpChecked = (HBITMAP)(intptr_t)(int32_t)mem.Read32(pMii + 24);
+        mii.hbmpUnchecked = (HBITMAP)(intptr_t)(int32_t)mem.Read32(pMii + 28);
+        mii.dwItemData = mem.Read32(pMii + 32);
+        std::wstring text;
+        uint32_t typeData = mem.Read32(pMii + 36);
+        if ((mii.fMask & MIIM_STRING) || ((mii.fMask & MIIM_TYPE) && !(mii.fType & MFT_SEPARATOR))) {
+            if (typeData) {
+                text = ReadWStringFromEmu(mem, typeData);
+                mii.dwTypeData = const_cast<LPWSTR>(text.c_str());
+                mii.cch = (UINT)text.size();
+            }
+        }
+        BOOL ret = SetMenuItemInfoW(hMenu, uItem, fByPosition, &mii);
+        LOG(THUNK, "[THUNK] SetMenuItemInfoW(0x%08X, %u, %d) -> %d\n",
+            (uint32_t)(uintptr_t)hMenu, uItem, fByPosition, ret);
+        regs[0] = ret;
+        return true;
+    });
 }

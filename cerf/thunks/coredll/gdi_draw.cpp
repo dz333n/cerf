@@ -124,7 +124,13 @@ void Win32Thunks::RegisterGdiDrawHandlers() {
             (int)ReadStackArg(regs,mem,4),(int)ReadStackArg(regs,mem,5),ReadStackArg(regs,mem,6));
         return true;
     });
-    ThunkOrdinal("TransparentBlt", 906);
+    Thunk("TransparentBlt", 906, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        regs[0]=TransparentBlt((HDC)(intptr_t)(int32_t)regs[0],(int)regs[1],(int)regs[2],(int)regs[3],
+            (int)ReadStackArg(regs,mem,0),(HDC)(intptr_t)(int32_t)ReadStackArg(regs,mem,1),
+            (int)ReadStackArg(regs,mem,2),(int)ReadStackArg(regs,mem,3),
+            (int)ReadStackArg(regs,mem,4),(int)ReadStackArg(regs,mem,5),ReadStackArg(regs,mem,6));
+        return true;
+    });
     Thunk("InvertRect", 1770, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         RECT rc; rc.left=mem.Read32(regs[1]); rc.top=mem.Read32(regs[1]+4);
         rc.right=mem.Read32(regs[1]+8); rc.bottom=mem.Read32(regs[1]+12);

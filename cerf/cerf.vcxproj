@@ -182,6 +182,7 @@
     <ClCompile Include="thunks\coredll\misc.cpp" />
     <ClCompile Include="thunks\coredll\imagelist.cpp" />
     <ClCompile Include="thunks\coredll\dpa.cpp" />
+    <ClCompile Include="thunks\coredll\dsa.cpp" />
     <ClCompile Include="thunks\coredll\module.cpp" />
     <ClCompile Include="thunks\coredll\shell.cpp" />
     <ClCompile Include="thunks\coredll\vfs.cpp" />
