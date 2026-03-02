@@ -65,24 +65,7 @@ void Win32Thunks::RegisterMessageHandlers() {
     });
     Thunk("SendMessageW", 868, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0]; UINT umsg = regs[1]; WPARAM wp = regs[2]; LPARAM lp = regs[3];
-        /* For ARM windows, dispatch directly via callback_executor to keep ARM
-           pointers in ARM address space. Depth-limited to prevent stack overflow
-           from commctrl re-entrancy (ARM → SendMessage → ARM → SendMessage → ...). */
-        auto it = hwnd_wndproc_map.find(hw);
-        if (it != hwnd_wndproc_map.end() && callback_executor) {
-            static int send_depth = 0;
-            if (send_depth < 5) {
-                send_depth++;
-                uint32_t args[4] = { regs[0], (uint32_t)umsg, (uint32_t)wp, (uint32_t)lp };
-                regs[0] = callback_executor(it->second, args, 4);
-                send_depth--;
-                return true;
-            }
-            /* Too deep — return DefWindowProc to break recursion */
-            regs[0] = (uint32_t)DefWindowProcW(hw, umsg, wp, lp);
-            return true;
-        }
-        /* Target is a native window — marshal ARM pointers to native.
+        /* Marshal ARM pointers to native.
            Messages that pass strings in lParam need conversion from
            emulated ARM addresses to native pointers. */
         bool lp_is_string = (lp != 0) && (
