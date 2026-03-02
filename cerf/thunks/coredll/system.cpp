@@ -232,6 +232,10 @@ void Win32Thunks::RegisterSystemHandlers() {
         for (int i = 0; i < 68; i += 4) mem.Write32(regs[0] + i, 0);
         mem.Write32(regs[0], 68); return true;
     });
+    Thunk("IsAPIReady", 30, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        LOG(THUNK, "[THUNK] IsAPIReady(%d) -> TRUE\n", regs[0]);
+        regs[0] = 1; return true;
+    });
     /* Ordinal-only entries */
     ThunkOrdinal("GetTimeZoneInformation", 27);
     ThunkOrdinal("CompareFileTime", 18);

@@ -75,14 +75,16 @@ void Win32Thunks::RemoveHandle(uint32_t fake) {
 /* MapWinCEPath and MapHostToWinCE are now in coredll/vfs.cpp */
 
 /* Write WIN32_FIND_DATAW to emulated memory using WinCE struct layout.
-   WinCE layout (no dwReserved0/1, no cAlternateFileName):
+   WinCE layout (has dwOID, no dwReserved0/1, no cAlternateFileName):
      +0   DWORD  dwFileAttributes
      +4   FILETIME ftCreationTime
      +12  FILETIME ftLastAccessTime
      +20  FILETIME ftLastWriteTime
      +28  DWORD  nFileSizeHigh
      +32  DWORD  nFileSizeLow
-     +36  WCHAR  cFileName[MAX_PATH]  (260 wchars = 520 bytes) */
+     +36  DWORD  dwOID              (WinCE-specific object identifier)
+     +40  WCHAR  cFileName[MAX_PATH]  (260 wchars = 520 bytes)
+   Total: 560 bytes */
 void Win32Thunks::WriteFindDataToEmu(EmulatedMemory& mem, uint32_t addr, const WIN32_FIND_DATAW& fd) {
     mem.Write32(addr + 0, fd.dwFileAttributes);
     mem.Write32(addr + 4, fd.ftCreationTime.dwLowDateTime);
@@ -93,13 +95,14 @@ void Win32Thunks::WriteFindDataToEmu(EmulatedMemory& mem, uint32_t addr, const W
     mem.Write32(addr + 24, fd.ftLastWriteTime.dwHighDateTime);
     mem.Write32(addr + 28, fd.nFileSizeHigh);
     mem.Write32(addr + 32, fd.nFileSizeLow);
-    /* Write filename at offset 36 */
+    mem.Write32(addr + 36, 0); /* dwOID — no real OID, just zero */
+    /* Write filename at offset 40 */
     for (int i = 0; i < MAX_PATH && fd.cFileName[i]; i++) {
-        mem.Write16(addr + 36 + i * 2, fd.cFileName[i]);
+        mem.Write16(addr + 40 + i * 2, fd.cFileName[i]);
     }
     /* Null terminator */
     int len = (int)wcslen(fd.cFileName);
-    if (len < MAX_PATH) mem.Write16(addr + 36 + len * 2, 0);
+    if (len < MAX_PATH) mem.Write16(addr + 40 + len * 2, 0);
 }
 
 /* ---- Emulated Registry (file-backed, text format) ---- */
@@ -721,6 +724,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterImageListHandlers();
     RegisterModuleHandlers();
     RegisterDpaHandlers();
+    RegisterStdioHandlers();
     RegisterVfsHandlers();
     RegisterShellHandlers();
     current_dll_context.clear();

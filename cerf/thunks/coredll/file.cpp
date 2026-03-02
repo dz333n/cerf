@@ -155,7 +155,6 @@ void Win32Thunks::RegisterFileHandlers() {
     ThunkOrdinal("GetTempPathW", 162);
     ThunkOrdinal("FlushFileBuffers", 175);
     ThunkOrdinal("SetFileTime", 177);
-    ThunkOrdinal("DeviceIoControl", 179);
     ThunkOrdinal("DeleteAndRenameFile", 183);
     ThunkOrdinal("GetDiskFreeSpaceExW", 184);
     Thunk("SetFileAttributesW", 169, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {

@@ -27,6 +27,13 @@ void Win32Thunks::RegisterModuleHandlers() {
         uint32_t buf_addr = regs[1], buf_size = regs[2];
         /* Return WinCE-style path instead of host path */
         std::wstring wce_path = MapHostToWinCE(exe_path);
+        /* If MapHostToWinCE returned the path unchanged (exe is outside VFS),
+           synthesize a WinCE path: \Windows\<filename> */
+        if (wce_path == exe_path) {
+            size_t sep = wce_path.find_last_of(L"\\/");
+            std::wstring filename = (sep != std::wstring::npos) ? wce_path.substr(sep + 1) : wce_path;
+            wce_path = L"\\Windows\\" + filename;
+        }
         LOG(THUNK, "[THUNK] GetModuleFileNameW() -> '%ls'\n", wce_path.c_str());
         for (uint32_t i = 0; i < wce_path.size() && i < buf_size; i++)
             mem.Write16(buf_addr + i * 2, wce_path[i]);

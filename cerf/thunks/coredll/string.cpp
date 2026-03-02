@@ -16,7 +16,7 @@ void Win32Thunks::RegisterStringHandlers() {
                 i++;
                 /* Collect flags */
                 bool left_align = false, zero_pad = false;
-                while (i < fmt.size() && (fmt[i] == L'-' || fmt[i] == L'+' || fmt[i] == L' ' || fmt[i] == L'0')) {
+                while (i < fmt.size() && (fmt[i] == L'-' || fmt[i] == L'+' || fmt[i] == L' ' || fmt[i] == L'0' || fmt[i] == L'#')) {
                     if (fmt[i] == L'-') left_align = true;
                     if (fmt[i] == L'0') zero_pad = true;
                     i++;
@@ -26,33 +26,79 @@ void Win32Thunks::RegisterStringHandlers() {
                 while (i < fmt.size() && fmt[i] >= L'0' && fmt[i] <= L'9') {
                     width = width * 10 + (fmt[i] - L'0'); i++;
                 }
-                /* Skip precision */
+                /* Precision */
+                int precision = -1;
                 if (i < fmt.size() && fmt[i] == L'.') {
-                    i++;
-                    while (i < fmt.size() && fmt[i] >= L'0' && fmt[i] <= L'9') i++;
+                    i++; precision = 0;
+                    while (i < fmt.size() && fmt[i] >= L'0' && fmt[i] <= L'9') {
+                        precision = precision * 10 + (fmt[i] - L'0'); i++;
+                    }
                 }
-                /* Skip length modifier (l, h) */
-                if (i < fmt.size() && (fmt[i] == L'l' || fmt[i] == L'h')) i++;
+                /* Length modifier: l, h, I64 */
+                bool is_i64 = false;
+                if (i + 2 < fmt.size() && fmt[i] == L'I' && fmt[i+1] == L'6' && fmt[i+2] == L'4') {
+                    is_i64 = true; i += 3;
+                } else if (i < fmt.size() && (fmt[i] == L'l' || fmt[i] == L'h')) {
+                    i++;
+                    if (i < fmt.size() && (fmt[i] == L'l' || fmt[i] == L'h')) i++;
+                }
                 if (i >= fmt.size()) break;
                 if (arg_idx >= nargs) { result += L'?'; arg_idx++; continue; }
                 wchar_t spec = fmt[i];
+                /* Helper: apply width/padding to a formatted string */
+                auto pad = [&](std::wstring s) {
+                    while ((int)s.size() < width) {
+                        if (left_align) s += L' ';
+                        else s.insert(s.begin(), zero_pad ? L'0' : L' ');
+                    }
+                    result += s;
+                };
                 if (spec == L'd' || spec == L'i') {
-                    wchar_t buf[32]; _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%d", (int)args[arg_idx++]);
-                    result += buf;
+                    wchar_t buf[32];
+                    if (is_i64 && arg_idx + 1 < nargs) {
+                        int64_t val = (int64_t)(((uint64_t)args[arg_idx+1] << 32) | args[arg_idx]);
+                        arg_idx += 2;
+                        _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%lld", val);
+                    } else {
+                        _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%d", (int)args[arg_idx++]);
+                    }
+                    pad(buf);
                 } else if (spec == L'u') {
-                    wchar_t buf[32]; _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%u", args[arg_idx++]);
-                    result += buf;
+                    wchar_t buf[32];
+                    if (is_i64 && arg_idx + 1 < nargs) {
+                        uint64_t val = ((uint64_t)args[arg_idx+1] << 32) | args[arg_idx];
+                        arg_idx += 2;
+                        _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%llu", val);
+                    } else {
+                        _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%u", args[arg_idx++]);
+                    }
+                    pad(buf);
                 } else if (spec == L'x') {
                     wchar_t buf[32]; _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%x", args[arg_idx++]);
-                    result += buf;
+                    pad(buf);
                 } else if (spec == L'X') {
                     wchar_t buf[32]; _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%X", args[arg_idx++]);
-                    result += buf;
+                    pad(buf);
                 } else if (spec == L'c') {
                     result += (wchar_t)args[arg_idx++];
                 } else if (spec == L's') {
-                    if (args[arg_idx]) result += ReadWStringFromEmu(mem, args[arg_idx]);
+                    std::wstring s;
+                    if (args[arg_idx]) s = ReadWStringFromEmu(mem, args[arg_idx]);
                     arg_idx++;
+                    if (precision >= 0 && (int)s.size() > precision) s.resize(precision);
+                    pad(s);
+                } else if (spec == L'S') {
+                    std::wstring s;
+                    if (args[arg_idx]) {
+                        std::string ns = ReadStringFromEmu(mem, args[arg_idx]);
+                        for (char c : ns) s += (wchar_t)(unsigned char)c;
+                    }
+                    arg_idx++;
+                    if (precision >= 0 && (int)s.size() > precision) s.resize(precision);
+                    pad(s);
+                } else if (spec == L'p') {
+                    wchar_t buf[32]; _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%08X", args[arg_idx++]);
+                    result += buf;
                 } else if (spec == L'%') {
                     result += L'%';
                 } else { result += L'?'; arg_idx++; }

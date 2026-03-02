@@ -260,5 +260,6 @@ private:
     void RegisterImageListHandlers();
     void RegisterModuleHandlers();
     void RegisterDpaHandlers();
+    void RegisterStdioHandlers();
     void RegisterVfsHandlers();
 };
