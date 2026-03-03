@@ -140,6 +140,16 @@ LOG(THUNK, "[THUNK] FunctionName(...) -> stub\n");
 ```
 Never create a silent stub that just returns a value without logging. This is critical for debugging which functions apps actually call.
 
+## IMPORTANT: Known Issues Tracking
+
+**Log debugging findings, root causes, and fixes into `known_issues/<app>.md` files.** These serve as a reference for future sessions — when revisiting an app, check its known_issues file first to avoid re-investigating solved problems. Each issue should document:
+- Description of the symptom
+- Root cause analysis (what went wrong and why)
+- The fix applied (which files/thunks changed)
+- Current status (OPEN, IN PROGRESS, RESOLVED, INVESTIGATING)
+
+Create a new `known_issues/<app>.md` file when first investigating a new app. Update it as issues are found and resolved.
+
 ## IMPORTANT: Capturing App Output
 
 **Always use `--flush-outputs`** when capturing logs. Without it, buffered output will be truncated when the process is killed.
