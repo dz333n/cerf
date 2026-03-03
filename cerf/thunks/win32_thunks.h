@@ -135,6 +135,13 @@ private:
     std::string exe_dir;  /* Directory containing the exe */
     std::string wince_sys_dir;  /* WinCE system DLL directory (for ARM DLLs like commctrl.dll) */
 
+    /* WinCE system font (from HKLM\System\GDI\SYSFNT registry key).
+       Used to remap "System" font requests to the device's actual font. */
+    std::wstring wce_sysfont_name = L"Tahoma";  /* default fallback */
+    LONG wce_sysfont_height = -12;
+    LONG wce_sysfont_weight = FW_NORMAL;
+    void InitWceSysFont();
+
     /* Virtual filesystem device paths */
     std::string cerf_dir;        /* Directory containing cerf.exe */
     std::string device_name;     /* Active device name (e.g. "wince5") */

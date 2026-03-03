@@ -3,13 +3,65 @@
 #include "../../log.h"
 #include <cstdio>
 
+/* Read WinCE system font configuration from HKLM\System\GDI\SYSFNT registry.
+   This is how real WinCE configures the System/default GUI font. */
+void Win32Thunks::InitWceSysFont() {
+    LoadRegistry();
+    auto key_it = registry.find(L"hklm\\system\\gdi\\sysfnt");
+    if (key_it == registry.end()) return;
+    auto& vals = key_it->second.values;
+    /* "Nm" = font name (REG_SZ) */
+    auto nm_it = vals.find(L"Nm");
+    if (nm_it != vals.end() && nm_it->second.type == REG_SZ && nm_it->second.data.size() >= 2) {
+        wce_sysfont_name.clear();
+        const wchar_t* p = (const wchar_t*)nm_it->second.data.data();
+        size_t len = nm_it->second.data.size() / 2;
+        for (size_t i = 0; i < len && p[i]; i++) wce_sysfont_name += p[i];
+    }
+    /* "Ht" = height (REG_DWORD, negative = point size) */
+    auto ht_it = vals.find(L"Ht");
+    if (ht_it != vals.end() && ht_it->second.type == REG_DWORD && ht_it->second.data.size() >= 4)
+        wce_sysfont_height = *(LONG*)ht_it->second.data.data();
+    /* "Wt" = weight (REG_DWORD, 400=normal, 700=bold) */
+    auto wt_it = vals.find(L"Wt");
+    if (wt_it != vals.end() && wt_it->second.type == REG_DWORD && wt_it->second.data.size() >= 4)
+        wce_sysfont_weight = *(LONG*)wt_it->second.data.data();
+    LOG(THUNK, "[THUNK] WinCE system font: '%ls' height=%d weight=%d\n",
+        wce_sysfont_name.c_str(), wce_sysfont_height, wce_sysfont_weight);
+}
+
 void Win32Thunks::RegisterGdiTextHandlers() {
     Thunk("CreateFontIndirectW", 895, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        /* LOGFONTW is 92 bytes, identical layout on 32-bit WinCE and 64-bit Windows */
+        uint32_t p = regs[0];
         LOGFONTW lf = {};
-        lf.lfHeight = (LONG)mem.Read32(regs[0]); lf.lfWidth = (LONG)mem.Read32(regs[0]+4);
-        lf.lfWeight = (LONG)mem.Read32(regs[0]+16); lf.lfCharSet = mem.Read8(regs[0]+23);
-        for (int i = 0; i < 32; i++) { lf.lfFaceName[i] = mem.Read16(regs[0]+28+i*2); if (!lf.lfFaceName[i]) break; }
-        regs[0] = (uint32_t)(uintptr_t)CreateFontIndirectW(&lf); return true;
+        lf.lfHeight         = (LONG)mem.Read32(p);
+        lf.lfWidth          = (LONG)mem.Read32(p + 4);
+        lf.lfEscapement     = (LONG)mem.Read32(p + 8);
+        lf.lfOrientation    = (LONG)mem.Read32(p + 12);
+        lf.lfWeight         = (LONG)mem.Read32(p + 16);
+        lf.lfItalic         = mem.Read8(p + 20);
+        lf.lfUnderline      = mem.Read8(p + 21);
+        lf.lfStrikeOut      = mem.Read8(p + 22);
+        lf.lfCharSet        = mem.Read8(p + 23);
+        lf.lfOutPrecision   = mem.Read8(p + 24);
+        lf.lfClipPrecision  = mem.Read8(p + 25);
+        lf.lfQuality        = mem.Read8(p + 26);
+        lf.lfPitchAndFamily = mem.Read8(p + 27);
+        for (int i = 0; i < 32; i++) {
+            lf.lfFaceName[i] = mem.Read16(p + 28 + i * 2);
+            if (!lf.lfFaceName[i]) break;
+        }
+        /* WinCE "System" font is configured via HKLM\System\GDI\SYSFNT registry.
+           On desktop Windows, "System" is an old bitmap font that looks wrong.
+           Remap to the device's configured system font (typically Tahoma). */
+        if (_wcsicmp(lf.lfFaceName, L"System") == 0) {
+            wcscpy_s(lf.lfFaceName, wce_sysfont_name.c_str());
+        }
+        LOG(THUNK, "[THUNK] CreateFontIndirectW('%ls', h=%d, w=%d, wt=%d)\n",
+            lf.lfFaceName, lf.lfHeight, lf.lfWidth, lf.lfWeight);
+        regs[0] = (uint32_t)(uintptr_t)CreateFontIndirectW(&lf);
+        return true;
     });
     Thunk("GetTextMetricsW", 898, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         HDC hdc = (HDC)(intptr_t)(int32_t)regs[0];

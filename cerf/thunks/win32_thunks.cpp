@@ -127,6 +127,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterGdiDcHandlers();
     RegisterGdiDrawHandlers();
     RegisterGdiTextHandlers();
+    InitWceSysFont();
     RegisterGdiRegionHandlers();
     RegisterWindowHandlers();
     RegisterWindowPropsHandlers();

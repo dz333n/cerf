@@ -32,7 +32,30 @@ void Win32Thunks::RegisterGdiDcHandlers() {
     Thunk("DeleteObject", 912, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = DeleteObject((HGDIOBJ)(intptr_t)(int32_t)regs[0]); return true;
     });
-    Thunk("GetStockObject", 919, [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("GetStockObject", 919, [this](uint32_t* regs, EmulatedMemory&) -> bool {
+        /* DEFAULT_GUI_FONT (17) and SYSTEM_FONT (13): WinCE configures these
+           via HKLM\System\GDI\SYSFNT registry (typically Tahoma).
+           Desktop Windows returns Segoe UI / System bitmap font.
+           Override to match the WinCE device's configured font. */
+        if (regs[0] == DEFAULT_GUI_FONT || regs[0] == SYSTEM_FONT) {
+            static HFONT s_wce_font = NULL;
+            if (!s_wce_font) {
+                LOGFONTW lf = {};
+                lf.lfHeight = wce_sysfont_height;
+                lf.lfWeight = wce_sysfont_weight;
+                lf.lfCharSet = DEFAULT_CHARSET;
+                lf.lfQuality = DEFAULT_QUALITY;
+                lf.lfPitchAndFamily = VARIABLE_PITCH | FF_SWISS;
+                wcscpy_s(lf.lfFaceName, wce_sysfont_name.c_str());
+                s_wce_font = CreateFontIndirectW(&lf);
+                LOG(THUNK, "[THUNK] GetStockObject(%d) -> created '%ls' h=%d wt=%d font %p\n",
+                    regs[0], wce_sysfont_name.c_str(), wce_sysfont_height, wce_sysfont_weight, s_wce_font);
+            }
+            if (s_wce_font) {
+                regs[0] = (uint32_t)(uintptr_t)s_wce_font;
+                return true;
+            }
+        }
         regs[0] = (uint32_t)(uintptr_t)GetStockObject(regs[0]); return true;
     });
     Thunk("GetDeviceCaps", 916, [](uint32_t* regs, EmulatedMemory&) -> bool {
