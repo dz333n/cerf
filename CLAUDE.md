@@ -144,10 +144,38 @@ cerf.exe --flush-outputs [options] <app.exe> > log.txt 2>&1
 ```
 Apps run a GUI message loop and won't exit on their own. Launch in background, wait ~10s, then read the log file. Use `taskkill //f //im cerf.exe` when done investigating.
 
-To inspect the running app's windows (check if UI is showing, what dialogs are open):
-```
+## IMPORTANT: App Interaction & Visual Verification
+
+Use `tools/interact.py` to screenshot, click, type, and inspect running apps. See `tools/INTERACTION_GUIDE.md` for full reference.
+
+**CRITICAL**: After EVERY mouse/keyboard interaction, take a screenshot and verify the result before proceeding.
+
+```bash
+# Inspect windows (classes, titles, coordinates, child tree)
+python3 tools/interact.py windows
+
+# Take screenshot (saved to screenshot.png, then read it with Read tool)
+python3 tools/interact.py screenshot
+
+# Click/type/key (auto-foregrounds the cerf window first)
+python3 tools/interact.py click X Y          # use center coords from 'windows' output
+python3 tools/interact.py dclick X Y         # double-click (e.g. open ListView items)
+python3 tools/interact.py key enter          # press named key
+python3 tools/interact.py type "text"        # type text string
+python3 tools/interact.py combo ctrl+a       # key combinations
+
+# Old inspection tool (still works, less features)
 python3 tools/inspect_cerf.py
 ```
-This lists all windows owned by cerf.exe with class, title, visibility, and size.
 
-You can also **take screenshots** to visually verify app rendering, and **click on screen** if needed to interact with the running app (e.g., navigate directories, press buttons). Always kill cerf.exe when done investigating (`taskkill //f //im cerf.exe`).
+Workflow: launch app → `windows` to get coordinates → `screenshot` to see UI → `click`/`key` to interact → `screenshot` to verify → repeat. Always `taskkill //f //im cerf.exe` when done.
+
+## IDA Pro MCP Servers (Reverse Engineering)
+
+IDA Pro instances are connected via MCP for decompiling WinCE ARM DLLs. See `tools/IDA_MCP_GUIDE.md` for full reference.
+
+Available instances: `ida-ceshell`, `ida-commctrl`, `ida-commdlg`, `ida-target-app`, `ida-windows-ce-original-coredll`. Use `ToolSearch` to load tools before calling them (e.g. `ToolSearch query: "+ida-commctrl decompile"`).
+
+Key tools: `ida_decompile` (C pseudocode), `ida_list_functions`, `ida_get_exports`, `ida_get_xrefs` (cross-references), `ida_get_names`, `ida_get_strings`.
+
+**Target app** changes per session — ask user to switch if needed. You can also ask user to open additional IDA instances for other DLLs.
