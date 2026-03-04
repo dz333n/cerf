@@ -84,7 +84,9 @@ File list, path ComboBoxes, toolbar buttons, and Properties dialog all now use T
 
 **Original fix**: Returned `BITSPIXEL=2` — forced commctrl to load mono bitmaps. **This caused Issue 8 below.**
 
-**Revised fix**: Return `BITSPIXEL=16` (realistic WinCE 5.0 value). The bundled WinCE `stdsmXP.bmp` is loaded correctly via `SHLoadDIBitmap`. The "What's This?" cursor at STD_HELP index 11 is actually correct for stdsmXP.bmp on real WinCE too.
+**Revised fix**: Return `BITSPIXEL=16` (realistic WinCE 5.0 value). The bundled WinCE `stdsmXP.bmp` is loaded correctly via `SHLoadDIBitmap`.
+
+**Note on ? icon**: With `BITSPIXEL=16`, commctrl loads `stdsmXP.bmp` for the help button (index 11 = STD_HELP). This XP-styled bitmap has a "What's This?" cursor icon at that index, which differs from the simple "?" in `stdsm.2bp` (the mono version). The bundled `stdsmXP.bmp` comes from a WinCE 5.0 XP theme — real WinCE devices without the XP theme likely used `stdsm.2bp` and showed the simpler icon. Needs verification on real hardware.
 
 ---
 
