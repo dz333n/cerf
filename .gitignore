@@ -274,3 +274,5 @@ __pycache__/
 # Bundled device files — track DLLs and PDBs that are part of the distribution
 !bundled/**/*.dll
 !bundled/**/*.pdb
+
+run_claude.md
