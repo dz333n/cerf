@@ -12,7 +12,7 @@
 void Win32Thunks::RegisterShellHandlers() {
     auto stub0 = [](const char* name) -> ThunkHandler {
         return [name](uint32_t* regs, EmulatedMemory&) -> bool {
-            LOG(THUNK, "[THUNK] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
+            LOG(API, "[API] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
         };
     };
     /* Helper: forward a coredll re-export to the real ARM DLL.
@@ -23,7 +23,7 @@ void Win32Thunks::RegisterShellHandlers() {
             if (mod && callback_executor) {
                 uint32_t addr = PELoader::ResolveExportName(mem, mod->pe_info, func);
                 if (addr) {
-                    LOG(THUNK, "[THUNK] %s -> forwarding to ARM %s!%s @ 0x%08X\n", func, dll, func, addr);
+                    LOG(API, "[API] %s -> forwarding to ARM %s!%s @ 0x%08X\n", func, dll, func, addr);
                     uint32_t args[8] = {};
                     for (int i = 0; i < nargs && i < 4; i++) args[i] = regs[i];
                     for (int i = 4; i < nargs; i++) args[i] = ReadStackArg(regs, mem, i - 4);
@@ -31,7 +31,7 @@ void Win32Thunks::RegisterShellHandlers() {
                     return true;
                 }
             }
-            LOG(THUNK, "[THUNK] %s -> %s not available, stub returning 0\n", func, dll);
+            LOG(API, "[API] %s -> %s not available, stub returning 0\n", func, dll);
             regs[0] = 0;
             return true;
         };
@@ -43,7 +43,7 @@ void Win32Thunks::RegisterShellHandlers() {
         uint32_t path_ptr = regs[1];
         int csidl = (int)regs[2];
         bool fCreate = regs[3] != 0;
-        LOG(THUNK, "[THUNK] SHGetSpecialFolderPath(hwnd=0x%08X, csidl=%d, fCreate=%d)\n", regs[0], csidl, fCreate);
+        LOG(API, "[API] SHGetSpecialFolderPath(hwnd=0x%08X, csidl=%d, fCreate=%d)\n", regs[0], csidl, fCreate);
         /* Map CSIDL to WinCE-style paths */
         const wchar_t* wce_path = nullptr;
         switch (csidl & 0xFF) { /* mask off CSIDL_FLAG_CREATE etc. */
@@ -67,7 +67,7 @@ void Win32Thunks::RegisterShellHandlers() {
                 std::wstring host_path = MapWinCEPath(wce_path);
                 CreateDirectoryW(host_path.c_str(), NULL); /* ensure it exists */
             }
-            LOG(THUNK, "[THUNK]   -> '%ls'\n", wce_path);
+            LOG(API, "[API]   -> '%ls'\n", wce_path);
             regs[0] = 1;
         } else if (path_ptr) {
             /* Unknown CSIDL — try native */
@@ -78,10 +78,10 @@ void Win32Thunks::RegisterShellHandlers() {
                     mem.Write16(path_ptr + i * 2, path[i]);
                     if (path[i] == 0) break;
                 }
-                LOG(THUNK, "[THUNK]   -> '%ls' (native fallback)\n", path);
+                LOG(API, "[API]   -> '%ls' (native fallback)\n", path);
                 regs[0] = 1;
             } else {
-                LOG(THUNK, "[THUNK]   -> FAILED (csidl=%d)\n", csidl);
+                LOG(API, "[API]   -> FAILED (csidl=%d)\n", csidl);
                 mem.Write16(path_ptr, 0);
                 regs[0] = 0;
             }
@@ -96,11 +96,11 @@ void Win32Thunks::RegisterShellHandlers() {
     Thunk("SHLoadDIBitmap", 487, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring wce_path = ReadWStringFromEmu(mem, regs[0]);
         std::wstring host_path = MapWinCEPath(wce_path);
-        LOG(THUNK, "[THUNK] SHLoadDIBitmap('%ls' -> '%ls')\n", wce_path.c_str(), host_path.c_str());
+        LOG(API, "[API] SHLoadDIBitmap('%ls' -> '%ls')\n", wce_path.c_str(), host_path.c_str());
         HANDLE hFile = CreateFileW(host_path.c_str(), GENERIC_READ, FILE_SHARE_READ,
                                    NULL, OPEN_EXISTING, 0, NULL);
         if (hFile == INVALID_HANDLE_VALUE) {
-            LOG(THUNK, "[THUNK]   -> file not found\n");
+            LOG(API, "[API]   -> file not found\n");
             regs[0] = 0;
             return true;
         }
@@ -110,7 +110,7 @@ void Win32Thunks::RegisterShellHandlers() {
         ReadFile(hFile, buf.data(), fileSize, &bytesRead, NULL);
         CloseHandle(hFile);
         if (bytesRead < sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER)) {
-            LOG(THUNK, "[THUNK]   -> file too small (%u bytes)\n", bytesRead);
+            LOG(API, "[API]   -> file too small (%u bytes)\n", bytesRead);
             regs[0] = 0;
             return true;
         }
@@ -150,7 +150,7 @@ void Win32Thunks::RegisterShellHandlers() {
             hbm = CreateDIBitmap(hdc, &bmi->bmiHeader, CBM_INIT, bits, bmi, DIB_RGB_COLORS);
         }
         ReleaseDC(NULL, hdc);
-        LOG(THUNK, "[THUNK]   -> hbm=%p (%dx%d %dbpp)\n", hbm,
+        LOG(API, "[API]   -> hbm=%p (%dx%d %dbpp)\n", hbm,
             bmi->bmiHeader.biWidth, bmi->bmiHeader.biHeight, bmi->bmiHeader.biBitCount);
         regs[0] = (uint32_t)(uintptr_t)hbm;
         return true;
@@ -177,7 +177,7 @@ void Win32Thunks::RegisterShellHandlers() {
         if (file_ptr) file = ReadWStringFromEmu(mem, file_ptr);
         if (params_ptr) params = ReadWStringFromEmu(mem, params_ptr);
         if (dir_ptr) dir = ReadWStringFromEmu(mem, dir_ptr);
-        LOG(THUNK, "[THUNK] ShellExecuteEx(verb='%ls', file='%ls', params='%ls', dir='%ls', nShow=%d)\n",
+        LOG(API, "[API] ShellExecuteEx(verb='%ls', file='%ls', params='%ls', dir='%ls', nShow=%d)\n",
                verb.c_str(), file.c_str(), params.c_str(), dir.c_str(), nShow);
         SHELLEXECUTEINFOW native_sei = {};
         native_sei.cbSize = sizeof(SHELLEXECUTEINFOW);
@@ -194,7 +194,7 @@ void Win32Thunks::RegisterShellHandlers() {
         mem.Write32(sei_addr + 0x20, (uint32_t)(uintptr_t)native_sei.hInstApp);
         if (fMask & SEE_MASK_NOCLOSEPROCESS)
             mem.Write32(sei_addr + 0x38, (uint32_t)(uintptr_t)native_sei.hProcess);
-        LOG(THUNK, "[THUNK]   -> %s\n", ret ? "OK" : "FAILED");
+        LOG(API, "[API]   -> %s\n", ret ? "OK" : "FAILED");
         regs[0] = ret;
         return true;
     });
@@ -218,7 +218,7 @@ void Win32Thunks::RegisterShellHandlers() {
             if (c == 0) break;
         }
         nid.szTip[63] = 0;
-        LOG(THUNK, "[THUNK] Shell_NotifyIcon(msg=%d, uID=%d, tip='%ls')\n",
+        LOG(API, "[API] Shell_NotifyIcon(msg=%d, uID=%d, tip='%ls')\n",
                dwMessage, nid.uID, nid.szTip);
         BOOL ret = Shell_NotifyIconW(dwMessage, &nid);
         regs[0] = ret;
@@ -229,7 +229,7 @@ void Win32Thunks::RegisterShellHandlers() {
         uint32_t pszPath_ptr = regs[0], dwFileAttrs = regs[1], psfi = regs[2];
         uint32_t cbFileInfo = regs[3], uFlags = ReadStackArg(regs, mem, 0);
         std::wstring path = pszPath_ptr ? ReadWStringFromEmu(mem, pszPath_ptr) : L"(null)";
-        LOG(THUNK, "[THUNK] SHGetFileInfo('%ls', attrs=0x%X, psfi=0x%08X, cb=%d, flags=0x%04X)\n",
+        LOG(API, "[API] SHGetFileInfo('%ls', attrs=0x%X, psfi=0x%08X, cb=%d, flags=0x%04X)\n",
             path.c_str(), dwFileAttrs, psfi, cbFileInfo, uFlags);
         LoadedDll* mod = LoadArmDll("ceshell.dll");
         if (mod && callback_executor) {
@@ -237,12 +237,12 @@ void Win32Thunks::RegisterShellHandlers() {
             if (addr) {
                 uint32_t args[5] = { regs[0], regs[1], regs[2], regs[3], uFlags };
                 regs[0] = callback_executor(addr, args, 5);
-                LOG(THUNK, "[THUNK]   -> returned 0x%08X (iIcon=%d)\n",
+                LOG(API, "[API]   -> returned 0x%08X (iIcon=%d)\n",
                     regs[0], psfi ? (int)mem.Read32(psfi + 4) : -1);
                 return true;
             }
         }
-        LOG(THUNK, "[THUNK]   -> ceshell.dll not available, returning 0\n");
+        LOG(API, "[API]   -> ceshell.dll not available, returning 0\n");
         regs[0] = 0;
         return true;
     });
@@ -287,7 +287,7 @@ void Win32Thunks::RegisterShellHandlers() {
     Thunk("SHDoneButton", 1782, [](uint32_t* regs, EmulatedMemory&) -> bool {
         HWND hwnd = (HWND)(intptr_t)(int32_t)regs[0];
         DWORD dwState = regs[1];
-        LOG(THUNK, "[THUNK] SHDoneButton(hwnd=0x%p, dwState=%d)\n", hwnd, dwState);
+        LOG(API, "[API] SHDoneButton(hwnd=0x%p, dwState=%d)\n", hwnd, dwState);
         if (!hwnd) { regs[0] = 0; return true; }
         if (dwState == 1 /*SHDB_SHOW*/ || dwState == 4 /*SHDB_SHOWCANCEL*/) {
             if (captionok_hwnds.insert(hwnd).second) InstallCaptionOk(hwnd);

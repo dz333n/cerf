@@ -8,7 +8,7 @@ namespace Log {
 
     enum Category : uint32_t {
         NONE   = 0,
-        THUNK  = 1 << 0,
+        API    = 1 << 0,
         PE     = 1 << 1,
         EMU    = 1 << 2,
         TRACE  = 1 << 3,
@@ -34,7 +34,7 @@ namespace Log {
 
     inline bool IsEnabled(Category cat) { return (GetEnabled() & cat) != 0; }
 
-    /* Parse a comma-separated category string like "THUNK,PE,EMU" into a bitmask.
+    /* Parse a comma-separated category string like "API,PE,EMU" into a bitmask.
        Special values: "all", "none". Case-insensitive. */
     uint32_t ParseCategories(const char* str);
 }

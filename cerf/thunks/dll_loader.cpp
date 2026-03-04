@@ -40,11 +40,11 @@ Win32Thunks::LoadedDll* Win32Thunks::LoadArmDll(const std::string& dll_name) {
     PEInfo dll_info = {};
     uint32_t entry = PELoader::LoadDll(dll_path.c_str(), mem, dll_info);
     if (entry == 0 && dll_info.image_base == 0) {
-        LOG(THUNK, "[THUNK] Failed to load ARM DLL: %s\n", dll_path.c_str());
+        LOG(API, "[API] Failed to load ARM DLL: %s\n", dll_path.c_str());
         return nullptr;
     }
 
-    LOG(THUNK, "[THUNK] Loaded ARM DLL '%s' at 0x%08X (exports: RVA=0x%X size=0x%X)\n",
+    LOG(API, "[API] Loaded ARM DLL '%s' at 0x%08X (exports: RVA=0x%X size=0x%X)\n",
            dll_name.c_str(), dll_info.image_base, dll_info.export_rva, dll_info.export_size);
 
     LoadedDll loaded;
@@ -59,7 +59,7 @@ Win32Thunks::LoadedDll* Win32Thunks::LoadArmDll(const std::string& dll_name) {
 
     /* Queue DLL entry point (DllMain) for deferred call after CPU init */
     if (entry != 0 && dll_info.entry_point_rva != 0) {
-        LOG(THUNK, "[THUNK]  DLL has entry point at 0x%08X - queued for init\n", entry);
+        LOG(API, "[API]  DLL has entry point at 0x%08X - queued for init\n", entry);
         pending_dll_inits.push_back({entry, dll_info.image_base});
     }
 
@@ -77,10 +77,10 @@ void Win32Thunks::InstallThunks(PEInfo& info) {
             uint32_t thunk_addr = AllocThunk(imp.dll_name, imp.func_name, imp.ordinal, imp.by_ordinal);
             mem.Write32(imp.iat_addr, thunk_addr);
             if (imp.by_ordinal) {
-                LOG(THUNK, "[THUNK] Installed thunk for %s!@%d at 0x%08X -> IAT 0x%08X\n",
+                LOG(API, "[API] Installed thunk for %s!@%d at 0x%08X -> IAT 0x%08X\n",
                        imp.dll_name.c_str(), imp.ordinal, thunk_addr, imp.iat_addr);
             } else {
-                LOG(THUNK, "[THUNK] Installed thunk for %s!%s at 0x%08X -> IAT 0x%08X\n",
+                LOG(API, "[API] Installed thunk for %s!%s at 0x%08X -> IAT 0x%08X\n",
                        imp.dll_name.c_str(), imp.func_name.c_str(), thunk_addr, imp.iat_addr);
             }
             continue;
@@ -100,19 +100,19 @@ void Win32Thunks::InstallThunks(PEInfo& info) {
             if (arm_addr != 0) {
                 mem.Write32(imp.iat_addr, arm_addr);
                 if (imp.by_ordinal) {
-                    LOG(THUNK, "[THUNK] Resolved %s!@%d -> ARM 0x%08X (IAT 0x%08X)\n",
+                    LOG(API, "[API] Resolved %s!@%d -> ARM 0x%08X (IAT 0x%08X)\n",
                            imp.dll_name.c_str(), imp.ordinal, arm_addr, imp.iat_addr);
                 } else {
-                    LOG(THUNK, "[THUNK] Resolved %s!%s -> ARM 0x%08X (IAT 0x%08X)\n",
+                    LOG(API, "[API] Resolved %s!%s -> ARM 0x%08X (IAT 0x%08X)\n",
                            imp.dll_name.c_str(), imp.func_name.c_str(), arm_addr, imp.iat_addr);
                 }
                 continue;
             }
-            LOG(THUNK, "[THUNK] WARNING: Export not found in %s for %s@%d, using thunk stub\n",
+            LOG(API, "[API] WARNING: Export not found in %s for %s@%d, using thunk stub\n",
                    imp.dll_name.c_str(), imp.func_name.c_str(), imp.ordinal);
         } else {
             if (warned_dlls.insert(imp.dll_name).second) {
-                LOG_ERR("[THUNK] ERROR: DLL not found: %s — imports will fail at runtime!\n", imp.dll_name.c_str());
+                LOG_ERR("[API] ERROR: DLL not found: %s — imports will fail at runtime!\n", imp.dll_name.c_str());
             }
         }
 
@@ -120,10 +120,10 @@ void Win32Thunks::InstallThunks(PEInfo& info) {
         uint32_t thunk_addr = AllocThunk(imp.dll_name, imp.func_name, imp.ordinal, imp.by_ordinal);
         mem.Write32(imp.iat_addr, thunk_addr);
         if (imp.by_ordinal) {
-            LOG(THUNK, "[THUNK] Installed thunk for %s!@%d at 0x%08X -> IAT 0x%08X\n",
+            LOG(API, "[API] Installed thunk for %s!@%d at 0x%08X -> IAT 0x%08X\n",
                    imp.dll_name.c_str(), imp.ordinal, thunk_addr, imp.iat_addr);
         } else {
-            LOG(THUNK, "[THUNK] Installed thunk for %s!%s at 0x%08X -> IAT 0x%08X\n",
+            LOG(API, "[API] Installed thunk for %s!%s at 0x%08X -> IAT 0x%08X\n",
                    imp.dll_name.c_str(), imp.func_name.c_str(), thunk_addr, imp.iat_addr);
         }
     }
@@ -133,7 +133,7 @@ void Win32Thunks::CallDllEntryPoints() {
     if (!callback_executor || pending_dll_inits.empty()) return;
 
     for (auto& init : pending_dll_inits) {
-        LOG(THUNK, "[THUNK] Calling DllMain at 0x%08X (base=0x%08X, DLL_PROCESS_ATTACH)\n",
+        LOG(API, "[API] Calling DllMain at 0x%08X (base=0x%08X, DLL_PROCESS_ATTACH)\n",
                init.entry_point, init.base_addr);
         /* DllMain(hinstDLL, DLL_PROCESS_ATTACH, lpvReserved)
            R0 = hinstDLL (DLL base address)
@@ -141,7 +141,7 @@ void Win32Thunks::CallDllEntryPoints() {
            R2 = lpvReserved = 0 */
         uint32_t args[3] = { init.base_addr, 1, 0 };
         uint32_t result = callback_executor(init.entry_point, args, 3);
-        LOG(THUNK, "[THUNK] DllMain returned %d\n", result);
+        LOG(API, "[API] DllMain returned %d\n", result);
     }
     pending_dll_inits.clear();
 }

@@ -135,13 +135,13 @@ void Win32Thunks::RegisterDialogHandlers() {
             SetParent(dlg, (HWND)(intptr_t)(int32_t)hwndParent);
         }
         pending_arm_dlgproc = 0;
-        LOG(THUNK, "[THUNK] CreateDialogIndirectParamW(parent=0x%X, dlgproc=0x%08X) -> HWND=0x%p (err=%lu)\n",
+        LOG(API, "[API] CreateDialogIndirectParamW(parent=0x%X, dlgproc=0x%08X) -> HWND=0x%p (err=%lu)\n",
             hwndParent, arm_dlgProc, dlg, dlg ? 0UL : GetLastError());
         if (dlg && arm_dlgProc) hwnd_dlgproc_map[dlg] = arm_dlgProc;
         if (dlg && has_captionok) {
             captionok_hwnds.insert(dlg);
             InstallCaptionOk(dlg);
-            LOG(THUNK, "[THUNK]   Dialog HWND=0x%p has WS_EX_CAPTIONOKBTN\n", dlg);
+            LOG(API, "[API]   Dialog HWND=0x%p has WS_EX_CAPTIONOKBTN\n", dlg);
         }
         regs[0] = (uint32_t)(uintptr_t)dlg;
         return true;
@@ -161,7 +161,7 @@ void Win32Thunks::RegisterDialogHandlers() {
             if (has_captionok) {
                 captionok_hwnds.insert(dlg);
                 InstallCaptionOk(dlg);
-                LOG(THUNK, "[THUNK]   Modal dialog HWND=0x%p has WS_EX_CAPTIONOKBTN\n", dlg);
+                LOG(API, "[API]   Modal dialog HWND=0x%p has WS_EX_CAPTIONOKBTN\n", dlg);
             }
             uint32_t args[4] = { (uint32_t)(uintptr_t)dlg, WM_INITDIALOG, 0, (uint32_t)initParam };
             callback_executor(arm_dlgProc, args, 4);
@@ -187,7 +187,7 @@ void Win32Thunks::RegisterDialogHandlers() {
         modal_dlg_result = (INT_PTR)(int32_t)regs[1];
         modal_dlg_ended = true;
         ShowWindow(dlg, SW_HIDE);
-        LOG(THUNK, "[THUNK] EndDialog(hwnd=0x%p, result=%d)\n", dlg, (int)modal_dlg_result);
+        LOG(API, "[API] EndDialog(hwnd=0x%p, result=%d)\n", dlg, (int)modal_dlg_result);
         regs[0] = 1;
         return true;
     });

@@ -24,7 +24,7 @@ void Win32Thunks::RegisterStdioHandlers() {
             case 2: regs[0] = stderr_handle; break;
             default: regs[0] = 0; break;
         }
-        LOG(THUNK, "[THUNK] _getstdfilex(%u) -> 0x%08X\n", idx, regs[0]);
+        LOG(API, "[API] _getstdfilex(%u) -> 0x%08X\n", idx, regs[0]);
         return true;
     });
 
@@ -205,7 +205,7 @@ void Win32Thunks::RegisterStdioHandlers() {
         FILE* f = (FILE*)UnwrapHandle(regs[0]);
         if (!f) { regs[0] = (uint32_t)-1; return true; }
         regs[0] = (uint32_t)_fileno(f);
-        LOG(THUNK, "[THUNK] _fileno(0x%08X) -> %d\n", regs[0], (int)regs[0]);
+        LOG(API, "[API] _fileno(0x%08X) -> %d\n", regs[0], (int)regs[0]);
         return true;
     });
 
@@ -258,7 +258,7 @@ void Win32Thunks::RegisterStdioHandlers() {
        For console apps, return "\\CON" to indicate console is available. */
     Thunk("GetStdioPathW", 1149, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t id = regs[0], buf_addr = regs[1], len_addr = regs[2];
-        LOG(THUNK, "[THUNK] GetStdioPathW(id=%u)\n", id);
+        LOG(API, "[API] GetStdioPathW(id=%u)\n", id);
         const wchar_t* path = L"\\CON";
         uint32_t pathlen = (uint32_t)wcslen(path);
         if (buf_addr) {
@@ -272,7 +272,7 @@ void Win32Thunks::RegisterStdioHandlers() {
 
     /* SetStdioPathW(int id, const wchar_t* path) — ordinal 1150 */
     Thunk("SetStdioPathW", 1150, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] SetStdioPathW(id=%u) -> stub\n", regs[0]);
+        LOG(API, "[API] SetStdioPathW(id=%u) -> stub\n", regs[0]);
         regs[0] = 1; return true;
     });
 
@@ -288,7 +288,7 @@ void Win32Thunks::RegisterStdioHandlers() {
         uint32_t outbuf = ReadStackArg(regs, mem, 0);
         uint32_t outsize = ReadStackArg(regs, mem, 1);
         uint32_t bytes_ret = ReadStackArg(regs, mem, 2);
-        LOG(THUNK, "[THUNK] DeviceIoControl(ioctl=0x%08X)\n", ioctl);
+        LOG(API, "[API] DeviceIoControl(ioctl=0x%08X)\n", ioctl);
 
         /* Console IOCTLs */
         CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -310,7 +310,7 @@ void Win32Thunks::RegisterStdioHandlers() {
                 }
                 regs[0] = 1; return true;
             case 0x1020020: /* Set Ctrl-C handler — stub */
-                LOG(THUNK, "[THUNK]   Console: set Ctrl-C handler (stub)\n");
+                LOG(API, "[API]   Console: set Ctrl-C handler (stub)\n");
                 regs[0] = 1; return true;
             case 0x102000C: /* Set console title */
                 if (inbuf && insize > 0) {
@@ -318,11 +318,11 @@ void Win32Thunks::RegisterStdioHandlers() {
                     uint8_t* p = mem.Translate(inbuf);
                     if (p) title.assign((char*)p, insize);
                     SetConsoleTitleA(title.c_str());
-                    LOG(THUNK, "[THUNK]   Console: set title '%s'\n", title.c_str());
+                    LOG(API, "[API]   Console: set title '%s'\n", title.c_str());
                 }
                 regs[0] = 1; return true;
             default:
-                LOG(THUNK, "[THUNK]   DeviceIoControl(0x%08X) -> stub\n", ioctl);
+                LOG(API, "[API]   DeviceIoControl(0x%08X) -> stub\n", ioctl);
                 regs[0] = 0; return true;
         }
     });

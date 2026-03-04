@@ -9,7 +9,7 @@
 void Win32Thunks::RegisterProcessHandlers() {
     auto stub0 = [](const char* name) -> ThunkHandler {
         return [name](uint32_t* regs, EmulatedMemory&) -> bool {
-            LOG(THUNK, "[THUNK] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
+            LOG(API, "[API] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
         };
     };
     Thunk("CreateThread", 492, stub0("CreateThread"));
@@ -22,7 +22,7 @@ void Win32Thunks::RegisterProcessHandlers() {
         if (image_ptr) image = ReadWStringFromEmu(mem, image_ptr);
         if (cmdline_ptr) cmdline = ReadWStringFromEmu(mem, cmdline_ptr);
         if (curdir_ptr) curdir = ReadWStringFromEmu(mem, curdir_ptr);
-        LOG(THUNK, "[THUNK] CreateProcessW(image='%ls', cmdline='%ls', curdir='%ls', flags=0x%X)\n",
+        LOG(API, "[API] CreateProcessW(image='%ls', cmdline='%ls', curdir='%ls', flags=0x%X)\n",
                image.c_str(), cmdline.c_str(), curdir.c_str(), fdwCreate);
         STARTUPINFOW si = {}; si.cb = sizeof(si);
         PROCESS_INFORMATION pi = {};
@@ -42,7 +42,7 @@ void Win32Thunks::RegisterProcessHandlers() {
             mem.Write32(procinfo_ptr + 0x08, pi.dwProcessId);
             mem.Write32(procinfo_ptr + 0x0C, pi.dwThreadId);
         }
-        LOG(THUNK, "[THUNK]   -> %s (pid=%d)\n", ret ? "OK" : "FAILED", ret ? pi.dwProcessId : 0);
+        LOG(API, "[API]   -> %s (pid=%d)\n", ret ? "OK" : "FAILED", ret ? pi.dwProcessId : 0);
         regs[0] = ret;
         return true;
     });
@@ -56,14 +56,14 @@ void Win32Thunks::RegisterProcessHandlers() {
     Thunk("CreateFileMappingW", 548, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         HANDLE hFile = UnwrapHandle(regs[0]);
         uint32_t flProtect = regs[2];
-        LOG(THUNK, "[THUNK] CreateFileMappingW(hFile=0x%08X, protect=0x%X)\n", regs[0], flProtect);
+        LOG(API, "[API] CreateFileMappingW(hFile=0x%08X, protect=0x%X)\n", regs[0], flProtect);
         if (hFile == INVALID_HANDLE_VALUE || hFile == NULL) {
-            LOG(THUNK, "[THUNK]   -> FAILED (invalid file handle)\n");
+            LOG(API, "[API]   -> FAILED (invalid file handle)\n");
             regs[0] = 0; return true;
         }
         DWORD file_size = GetFileSize(hFile, NULL);
         if (file_size == INVALID_FILE_SIZE || file_size == 0) {
-            LOG(THUNK, "[THUNK]   -> FAILED (file size = 0x%X)\n", file_size);
+            LOG(API, "[API]   -> FAILED (file size = 0x%X)\n", file_size);
             regs[0] = 0; return true;
         }
         /* Allocate emulated memory and read the file into it */
@@ -71,7 +71,7 @@ void Win32Thunks::RegisterProcessHandlers() {
         uint32_t alloc_size = (file_size + 0xFFF) & ~0xFFF;
         uint8_t* host_ptr = mem.Alloc(next_mmap, alloc_size);
         if (!host_ptr) {
-            LOG(THUNK, "[THUNK]   -> FAILED (alloc)\n");
+            LOG(API, "[API]   -> FAILED (alloc)\n");
             regs[0] = 0; return true;
         }
         /* Save and restore file pointer */
@@ -86,7 +86,7 @@ void Win32Thunks::RegisterProcessHandlers() {
         /* Pack mapping info: store in file_mappings map */
         file_mappings[WrapHandle((HANDLE)(uintptr_t)emu_addr)] = { emu_addr, file_size };
         uint32_t fake_handle = next_fake_handle - 1; /* last wrapped handle */
-        LOG(THUNK, "[THUNK]   -> handle=0x%08X (mapped %u bytes at emu 0x%08X)\n",
+        LOG(API, "[API]   -> handle=0x%08X (mapped %u bytes at emu 0x%08X)\n",
             fake_handle, bytes_read, emu_addr);
         regs[0] = fake_handle;
         return true;
@@ -94,20 +94,20 @@ void Win32Thunks::RegisterProcessHandlers() {
     Thunk("MapViewOfFile", 549, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t mapping_handle = regs[0];
         uint32_t offset_high = regs[2], offset_low = regs[3];
-        LOG(THUNK, "[THUNK] MapViewOfFile(handle=0x%08X, offset=0x%X:%08X)\n",
+        LOG(API, "[API] MapViewOfFile(handle=0x%08X, offset=0x%X:%08X)\n",
             mapping_handle, offset_high, offset_low);
         auto it = file_mappings.find(mapping_handle);
         if (it == file_mappings.end()) {
-            LOG(THUNK, "[THUNK]   -> FAILED (unknown mapping)\n");
+            LOG(API, "[API]   -> FAILED (unknown mapping)\n");
             regs[0] = 0; return true;
         }
         uint32_t addr = it->second.emu_addr + offset_low;
-        LOG(THUNK, "[THUNK]   -> 0x%08X (size=%u)\n", addr, it->second.size);
+        LOG(API, "[API]   -> 0x%08X (size=%u)\n", addr, it->second.size);
         regs[0] = addr;
         return true;
     });
     Thunk("UnmapViewOfFile", 550, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] UnmapViewOfFile(0x%08X) -> 1\n", regs[0]);
+        LOG(API, "[API] UnmapViewOfFile(0x%08X) -> 1\n", regs[0]);
         regs[0] = 1; return true;
     });
     /* CreateFileForMappingW - same as CreateFileW but used specifically before mapping */
@@ -118,7 +118,7 @@ void Win32Thunks::RegisterProcessHandlers() {
         std::wstring host_path = MapWinCEPath(wce_path);
         HANDLE h = CreateFileW(host_path.c_str(), access, share, NULL, creation, flags, NULL);
         regs[0] = WrapHandle(h);
-        LOG(THUNK, "[THUNK] CreateFileForMappingW('%ls') -> handle=0x%08X\n", wce_path.c_str(), regs[0]);
+        LOG(API, "[API] CreateFileForMappingW('%ls') -> handle=0x%08X\n", wce_path.c_str(), regs[0]);
         return true;
     });
 }

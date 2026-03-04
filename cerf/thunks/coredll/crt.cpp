@@ -38,7 +38,7 @@ void Win32Thunks::RegisterCrtHandlers() {
         return true;
     });
     Thunk("qsort", 1052, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] WARNING: qsort called - stubbed\n"); return true;
+        LOG(API, "[API] WARNING: qsort called - stubbed\n"); return true;
     });
     Thunk("rand", 1053, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = (uint32_t)rand(); return true;
@@ -81,7 +81,7 @@ void Win32Thunks::RegisterCrtHandlers() {
         std::wstring filename = ReadWStringFromEmu(mem, regs[0]);
         std::wstring mode = ReadWStringFromEmu(mem, regs[1]);
         std::wstring host_path = MapWinCEPath(filename);
-        LOG(THUNK, "[THUNK] _wfopen('%ls' -> '%ls', '%ls')\n", filename.c_str(), host_path.c_str(), mode.c_str());
+        LOG(API, "[API] _wfopen('%ls' -> '%ls', '%ls')\n", filename.c_str(), host_path.c_str(), mode.c_str());
         FILE* f = _wfopen(host_path.c_str(), mode.c_str());
         regs[0] = f ? WrapHandle(f) : 0;
         return true;
@@ -113,6 +113,19 @@ void Win32Thunks::RegisterCrtHandlers() {
     });
     Thunk("abs", 988, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = (uint32_t)abs((int)regs[0]);
+        return true;
+    });
+    Thunk("atof", 995, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        const char* str = (const char*)mem.Translate(regs[0]);
+        double result = str ? atof(str) : 0.0;
+        uint64_t bits; memcpy(&bits, &result, 8);
+        regs[0] = (uint32_t)bits; regs[1] = (uint32_t)(bits >> 32);
+        LOG(API, "[API] atof('%s') -> %f\n", str ? str : "(null)", result);
+        return true;
+    });
+    Thunk("atol", 994, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        const char* str = (const char*)mem.Translate(regs[0]);
+        regs[0] = str ? (uint32_t)atol(str) : 0;
         return true;
     });
 }

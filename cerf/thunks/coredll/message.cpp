@@ -68,7 +68,7 @@ void Win32Thunks::RegisterMessageHandlers() {
         /* WM_SETFONT: wParam is an HFONT handle — must sign-extend for 64-bit */
         if (umsg == WM_SETFONT) {
             wp = (WPARAM)(intptr_t)(int32_t)regs[2];
-            LOG(THUNK, "[THUNK] SendMessage WM_SETFONT hwnd=%p hFont=0x%08X -> %p\n",
+            LOG(API, "[API] SendMessage WM_SETFONT hwnd=%p hFont=0x%08X -> %p\n",
                 hw, regs[2], (HFONT)wp);
         }
         /* Marshal ARM pointers to native.
@@ -119,7 +119,7 @@ void Win32Thunks::RegisterMessageHandlers() {
     Thunk("MessageBoxW", 858, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring text = ReadWStringFromEmu(mem, regs[1]);
         std::wstring title = ReadWStringFromEmu(mem, regs[2]);
-        LOG(THUNK, "[THUNK] MessageBoxW(hwnd=0x%08X, text='%ls', title='%ls', type=0x%X)\n",
+        LOG(API, "[API] MessageBoxW(hwnd=0x%08X, text='%ls', title='%ls', type=0x%X)\n",
             regs[0], text.c_str(), title.c_str(), regs[3]);
         regs[0] = MessageBoxW((HWND)(intptr_t)(int32_t)regs[0], text.c_str(), title.c_str(), regs[3]);
         return true;

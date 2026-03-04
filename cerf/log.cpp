@@ -114,7 +114,7 @@ uint32_t Log::ParseCategories(const char* str) {
         if (end == std::string::npos) end = s.size();
         std::string token = s.substr(start, end - start);
 
-        if (token == "THUNK")      mask |= THUNK;
+        if (token == "API")        mask |= API;
         else if (token == "PE")    mask |= PE;
         else if (token == "EMU")   mask |= EMU;
         else if (token == "TRACE") mask |= TRACE;

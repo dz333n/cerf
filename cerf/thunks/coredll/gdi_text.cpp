@@ -26,7 +26,7 @@ void Win32Thunks::InitWceSysFont() {
     auto wt_it = vals.find(L"Wt");
     if (wt_it != vals.end() && wt_it->second.type == REG_DWORD && wt_it->second.data.size() >= 4)
         wce_sysfont_weight = *(LONG*)wt_it->second.data.data();
-    LOG(THUNK, "[THUNK] WinCE system font: '%ls' height=%d weight=%d\n",
+    LOG(API, "[API] WinCE system font: '%ls' height=%d weight=%d\n",
         wce_sysfont_name.c_str(), wce_sysfont_height, wce_sysfont_weight);
 }
 
@@ -58,7 +58,7 @@ void Win32Thunks::RegisterGdiTextHandlers() {
         if (_wcsicmp(lf.lfFaceName, L"System") == 0) {
             wcscpy_s(lf.lfFaceName, wce_sysfont_name.c_str());
         }
-        LOG(THUNK, "[THUNK] CreateFontIndirectW('%ls', h=%d, w=%d, wt=%d)\n",
+        LOG(API, "[API] CreateFontIndirectW('%ls', h=%d, w=%d, wt=%d)\n",
             lf.lfFaceName, lf.lfHeight, lf.lfWidth, lf.lfWeight);
         regs[0] = (uint32_t)(uintptr_t)CreateFontIndirectW(&lf);
         return true;
@@ -174,7 +174,7 @@ void Win32Thunks::RegisterGdiTextHandlers() {
     Thunk("EnumFontFamiliesW", 965, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t arm_callback = regs[2];
         uint32_t arm_lparam = regs[3];
-        LOG(THUNK, "[THUNK] EnumFontFamiliesW(hdc=0x%08X, proc=0x%08X)\n", regs[0], arm_callback);
+        LOG(API, "[API] EnumFontFamiliesW(hdc=0x%08X, proc=0x%08X)\n", regs[0], arm_callback);
         if (!callback_executor || !arm_callback) { regs[0] = 1; return true; }
 
         /* Scratch area for LOGFONT (92 bytes) + TEXTMETRIC (60 bytes) in ARM memory */
@@ -212,15 +212,15 @@ void Win32Thunks::RegisterGdiTextHandlers() {
             mem.Write8(tm_addr + 56, 1);    /* tmCharSet (DEFAULT_CHARSET) */
 
             uint32_t args[4] = { lf_addr, tm_addr, 4 /* TRUETYPE_FONTTYPE */, arm_lparam };
-            LOG(THUNK, "[THUNK] EnumFontFamiliesW: callback for '%ls'\n", name);
+            LOG(API, "[API] EnumFontFamiliesW: callback for '%ls'\n", name);
             result = (int)callback_executor(arm_callback, args, 4);
-            LOG(THUNK, "[THUNK] EnumFontFamiliesW: callback returned %d\n", result);
+            LOG(API, "[API] EnumFontFamiliesW: callback returned %d\n", result);
         }
         regs[0] = (uint32_t)result;
         return true;
     });
     Thunk("GetTextFaceW", 967, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] GetTextFaceW(hdc=0x%08X, nCount=%d, lpFaceName=0x%08X) -> 0 (stub)\n",
+        LOG(API, "[API] GetTextFaceW(hdc=0x%08X, nCount=%d, lpFaceName=0x%08X) -> 0 (stub)\n",
                regs[0], regs[1], regs[2]);
         regs[0] = 0; return true;
     });

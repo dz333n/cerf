@@ -20,11 +20,11 @@ void Win32Thunks::RegisterMemoryHandlers() {
             if (addr_arg == 0) next_valloc = base + ((size + 0xFFF) & ~0xFFF);
             regs[0] = base;
         } else { regs[0] = 0; }
-        LOG(THUNK, "[THUNK] VirtualAlloc(0x%08X, 0x%X) -> 0x%08X\n", addr_arg, size, regs[0]);
+        LOG(API, "[API] VirtualAlloc(0x%08X, 0x%X) -> 0x%08X\n", addr_arg, size, regs[0]);
         return true;
     });
     Thunk("VirtualFree", 525, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[STUB] VirtualFree(0x%08X) -> 1 (leak)\n", regs[0]);
+        LOG(API, "[STUB] VirtualFree(0x%08X) -> 1 (leak)\n", regs[0]);
         regs[0] = 1; return true;
     });
     Thunk("LocalAlloc", 33, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
@@ -55,7 +55,7 @@ void Win32Thunks::RegisterMemoryHandlers() {
         regs[0] = 0; return true;
     });
     Thunk("LocalSize", 35, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[STUB] LocalSize(0x%08X) -> 0x1000\n", regs[0]);
+        LOG(API, "[STUB] LocalSize(0x%08X) -> 0x1000\n", regs[0]);
         regs[0] = 0x1000; return true;
     });
     Thunk("GetProcessHeap", 50, [](uint32_t* regs, EmulatedMemory&) -> bool {

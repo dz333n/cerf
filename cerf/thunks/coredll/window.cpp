@@ -39,10 +39,10 @@ void Win32Thunks::RegisterWindowHandlers() {
         std::wstring className = ReadWStringFromEmu(mem, mem.Read32(regs[0]+36));
         wc.lpszClassName = className.c_str();
         arm_wndprocs[className] = arm_wndproc;
-        LOG(THUNK, "[THUNK] RegisterClassW: '%ls' (ARM WndProc=0x%08X, brush=0x%08X->0x%08X)\n",
+        LOG(API, "[API] RegisterClassW: '%ls' (ARM WndProc=0x%08X, brush=0x%08X->0x%08X)\n",
             className.c_str(), arm_wndproc, emu_brush, (uint32_t)(uintptr_t)wc.hbrBackground);
         ATOM atom = RegisterClassW(&wc);
-        if (!atom) LOG(THUNK, "[THUNK]   RegisterClassW FAILED (error=%d)\n", GetLastError());
+        if (!atom) LOG(API, "[API]   RegisterClassW FAILED (error=%d)\n", GetLastError());
         regs[0] = (uint32_t)atom; return true;
     });
     Thunk("CreateWindowExW", 246, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
@@ -88,14 +88,14 @@ void Win32Thunks::RegisterWindowHandlers() {
                 if (h == 0) h = 240;
             }
         }
-        LOG(THUNK, "[THUNK] CreateWindowExW: class='%ls' title='%ls' style=0x%08X exStyle=0x%08X parent=0x%p size=(%dx%d) lpParam=0x%08X\n", className.c_str(), windowName.c_str(), style, exStyle, parent, w, h, arm_lpParam);
+        LOG(API, "[API] CreateWindowExW: class='%ls' title='%ls' style=0x%08X exStyle=0x%08X parent=0x%p size=(%dx%d) lpParam=0x%08X\n", className.c_str(), windowName.c_str(), style, exStyle, parent, w, h, arm_lpParam);
         HWND hwnd = CreateWindowExW(exStyle, className.c_str(), windowName.c_str(), style, x, y, w, h, parent, menu_h, GetModuleHandleW(NULL), (LPVOID)(uintptr_t)arm_lpParam);
         if (!hwnd) {
             DWORD err = GetLastError();
             WNDCLASSEXW probe = {}; probe.cbSize = sizeof(probe);
             BOOL found = GetClassInfoExW(GetModuleHandleW(NULL), className.c_str(), &probe);
             BOOL foundGlobal = found ? TRUE : GetClassInfoExW(NULL, className.c_str(), &probe);
-            LOG(THUNK, "[THUNK]   CreateWindowExW FAILED (error=%d, classFound=%d/%d)\n", err, found, foundGlobal);
+            LOG(API, "[API]   CreateWindowExW FAILED (error=%d, classFound=%d/%d)\n", err, found, foundGlobal);
         }
         if (hwnd) {
             /* Case-insensitive lookup: window classes are case-insensitive */
@@ -116,7 +116,7 @@ void Win32Thunks::RegisterWindowHandlers() {
             if (has_captionok) {
                 captionok_hwnds.insert(hwnd);
                 InstallCaptionOk(hwnd);
-                LOG(THUNK, "[THUNK]   WS_EX_CAPTIONOKBTN tracked for HWND=0x%p\n", hwnd);
+                LOG(API, "[API]   WS_EX_CAPTIONOKBTN tracked for HWND=0x%p\n", hwnd);
             }
             /* On real WinCE, the default system font is Tahoma (from SYSFNT registry).
                On desktop Windows, native controls default to Segoe UI.
@@ -207,7 +207,7 @@ void Win32Thunks::RegisterWindowHandlers() {
     Thunk("GetClassInfoW", 878, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring className = ReadWStringFromEmu(mem, regs[1]);
         uint32_t pWC = regs[2];
-        LOG(THUNK, "[THUNK] GetClassInfoW(0x%08X, '%ls', 0x%08X)\n", regs[0], className.c_str(), pWC);
+        LOG(API, "[API] GetClassInfoW(0x%08X, '%ls', 0x%08X)\n", regs[0], className.c_str(), pWC);
         /* Check ARM-registered classes first (case-insensitive) */
         for (auto& [cls, proc] : arm_wndprocs) {
             if (_wcsicmp(cls.c_str(), className.c_str()) == 0) {
@@ -225,7 +225,7 @@ void Win32Thunks::RegisterWindowHandlers() {
                     mem.Write32(pWC + 32, 0);
                     mem.Write32(pWC + 36, regs[1]);
                 }
-                LOG(THUNK, "[THUNK]   -> found in ARM map (proc=0x%08X)\n", proc);
+                LOG(API, "[API]   -> found in ARM map (proc=0x%08X)\n", proc);
                 regs[0] = 1;
                 return true;
             }
@@ -234,7 +234,7 @@ void Win32Thunks::RegisterWindowHandlers() {
            ToolbarWindow32 exist in our process (from comctl32.lib) but have native
            WndProcs. Returning success would make ARM code skip RegisterClassW,
            creating native windows instead of ARM-controlled ones. */
-        LOG(THUNK, "[THUNK]   -> not found\n");
+        LOG(API, "[API]   -> not found\n");
         regs[0] = 0;
         return true;
     });

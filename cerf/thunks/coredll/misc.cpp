@@ -9,12 +9,12 @@
 void Win32Thunks::RegisterMiscHandlers() {
     auto stub0 = [](const char* name) -> ThunkHandler {
         return [name](uint32_t* regs, EmulatedMemory&) -> bool {
-            LOG(THUNK, "[THUNK] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
+            LOG(API, "[API] [STUB] %s -> 0\n", name); regs[0] = 0; return true;
         };
     };
     auto stub1 = [](const char* name) -> ThunkHandler {
         return [name](uint32_t* regs, EmulatedMemory&) -> bool {
-            LOG(THUNK, "[THUNK] [STUB] %s -> 1\n", name); regs[0] = 1; return true;
+            LOG(API, "[API] [STUB] %s -> 1\n", name); regs[0] = 1; return true;
         };
     };
     /* SIP (Software Input Panel) */
@@ -59,7 +59,7 @@ void Win32Thunks::RegisterMiscHandlers() {
         return true;
     });
     Thunk("RegisterDbgZones", 546, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] RegisterDbgZones(hMod=0x%08X, lpdbgZones=0x%08X) -> TRUE (stub)\n", regs[0], regs[1]);
+        LOG(API, "[API] RegisterDbgZones(hMod=0x%08X, lpdbgZones=0x%08X) -> TRUE (stub)\n", regs[0], regs[1]);
         regs[0] = 1; return true;
     });
     /* Clipboard */
@@ -83,10 +83,10 @@ void Win32Thunks::RegisterMiscHandlers() {
     thunk_handlers["RasHangUp"] = thunk_handlers["RasHangup"];
     /* C runtime misc */
     Thunk("_purecall", 1092, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] _purecall\n"); regs[0] = 0; return true;
+        LOG(API, "[API] _purecall\n"); regs[0] = 0; return true;
     });
     Thunk("terminate", 1556, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] terminate\n"); ExitProcess(3); return true;
+        LOG(API, "[API] terminate\n"); ExitProcess(3); return true;
     });
     Thunk("__security_gen_cookie", 1875, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0xBB40E64E; return true; });
     Thunk("__security_gen_cookie2", 2696, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0xBB40E64E; return true; });
@@ -107,7 +107,7 @@ void Win32Thunks::RegisterMiscHandlers() {
             mem.Write32(buf + 8 * 4, regs[13]); /* SP */
             mem.Write32(buf + 9 * 4, regs[14]); /* LR (return address) */
         }
-        LOG(THUNK, "[THUNK] setjmp(buf=0x%08X, LR=0x%08X) -> 0\n", buf, regs[14]);
+        LOG(API, "[API] setjmp(buf=0x%08X, LR=0x%08X) -> 0\n", buf, regs[14]);
         regs[0] = 0;
         return true;
     });
@@ -122,7 +122,7 @@ void Win32Thunks::RegisterMiscHandlers() {
             regs[13] = mem.Read32(buf + 8 * 4); /* SP */
             regs[14] = mem.Read32(buf + 9 * 4); /* LR */
         }
-        LOG(THUNK, "[THUNK] longjmp(buf=0x%08X, val=%u) -> LR=0x%08X\n", buf, val, regs[14]);
+        LOG(API, "[API] longjmp(buf=0x%08X, val=%u) -> LR=0x%08X\n", buf, val, regs[14]);
         regs[0] = val;
         return true;
     });
@@ -151,12 +151,12 @@ void Win32Thunks::RegisterMiscHandlers() {
        to the same handler here since our dispatch is name-based (flat map). */
     Thunk("CoInitializeEx", [](uint32_t* regs, EmulatedMemory&) -> bool {
         HRESULT hr = CoInitializeEx(NULL, regs[1]);
-        LOG(THUNK, "[THUNK] CoInitializeEx(0x%X) -> 0x%08X\n", regs[1], (uint32_t)hr);
+        LOG(API, "[API] CoInitializeEx(0x%X) -> 0x%08X\n", regs[1], (uint32_t)hr);
         regs[0] = (uint32_t)hr;
         return true;
     });
     Thunk("CoUninitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] CoUninitialize()\n");
+        LOG(API, "[API] CoUninitialize()\n");
         CoUninitialize(); regs[0] = 0; return true;
     });
     /* IMM stubs */
@@ -169,24 +169,24 @@ void Win32Thunks::RegisterMiscHandlers() {
     /* Clipboard */
     Thunk("RegisterClipboardFormatW", 673, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring fmt = ReadWStringFromEmu(mem, regs[0]);
-        LOG(THUNK, "[THUNK] RegisterClipboardFormatW('%ls')\n", fmt.c_str());
+        LOG(API, "[API] RegisterClipboardFormatW('%ls')\n", fmt.c_str());
         UINT id = RegisterClipboardFormatW(fmt.c_str());
         regs[0] = id;
         return true;
     });
     Thunk("GetClipboardOwner", 670, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] GetClipboardOwner() -> NULL (stub)\n");
+        LOG(API, "[API] GetClipboardOwner() -> NULL (stub)\n");
         regs[0] = 0;
         return true;
     });
     /* Monitor */
     Thunk("MonitorFromWindow", 1524, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] MonitorFromWindow(hwnd=0x%08X, flags=0x%X) -> stub\n", regs[0], regs[1]);
+        LOG(API, "[API] MonitorFromWindow(hwnd=0x%08X, flags=0x%X) -> stub\n", regs[0], regs[1]);
         regs[0] = 1; /* fake monitor handle */
         return true;
     });
     Thunk("GetMonitorInfo", 1525, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        LOG(THUNK, "[THUNK] GetMonitorInfo(hMonitor=0x%08X, lpmi=0x%08X) -> stub\n", regs[0], regs[1]);
+        LOG(API, "[API] GetMonitorInfo(hMonitor=0x%08X, lpmi=0x%08X) -> stub\n", regs[0], regs[1]);
         if (regs[1]) {
             /* Fill MONITORINFO with desktop work area */
             RECT wa;
@@ -208,7 +208,7 @@ void Win32Thunks::RegisterMiscHandlers() {
     Thunk("ImmEscapeW", 775, stub0("ImmEscapeW"));
     Thunk("ImmGetCandidateWindow", 779, stub0("ImmGetCandidateWindow"));
     Thunk("ImmGetCompositionStringW", 781, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] ImmGetCompositionStringW(himc=0x%08X, dwIndex=0x%X) -> 0 (stub)\n", regs[0], regs[1]);
+        LOG(API, "[API] ImmGetCompositionStringW(himc=0x%08X, dwIndex=0x%X) -> 0 (stub)\n", regs[0], regs[1]);
         regs[0] = 0; return true;
     });
     Thunk("ImmGetConversionStatus", 785, stub0("ImmGetConversionStatus"));
@@ -237,28 +237,28 @@ void Win32Thunks::RegisterMiscHandlers() {
     ThunkOrdinal("Random", 80);
     /* COM — WinCE coredll re-exports some COM functions */
     Thunk("CoInitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] CoInitialize(pvReserved=0x%08X) -> S_OK\n", regs[0]);
+        LOG(API, "[API] CoInitialize(pvReserved=0x%08X) -> S_OK\n", regs[0]);
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
         regs[0] = (uint32_t)hr;
         return true;
     });
     Thunk("OleInitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] OleInitialize(pvReserved=0x%08X) -> S_OK (stub)\n", regs[0]);
+        LOG(API, "[API] OleInitialize(pvReserved=0x%08X) -> S_OK (stub)\n", regs[0]);
         regs[0] = 0; /* S_OK */
         return true;
     });
     Thunk("OleUninitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] OleUninitialize() -> stub\n");
+        LOG(API, "[API] OleUninitialize() -> stub\n");
         return true;
     });
     Thunk("CoCreateInstance", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] CoCreateInstance(rclsid=0x%08X, ...) -> E_NOTIMPL (stub)\n", regs[0]);
+        LOG(API, "[API] CoCreateInstance(rclsid=0x%08X, ...) -> E_NOTIMPL (stub)\n", regs[0]);
         regs[0] = 0x80004001; /* E_NOTIMPL */
         return true;
     });
     Thunk("CoTaskMemAlloc", [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t size = regs[0];
-        LOG(THUNK, "[THUNK] CoTaskMemAlloc(cb=%u)\n", size);
+        LOG(API, "[API] CoTaskMemAlloc(cb=%u)\n", size);
         uint32_t ptr = 0;
         if (size > 0) {
             static uint32_t cotask_heap = 0x60000000;
@@ -270,12 +270,12 @@ void Win32Thunks::RegisterMiscHandlers() {
         return true;
     });
     Thunk("CoTaskMemFree", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] CoTaskMemFree(pv=0x%08X) -> stub\n", regs[0]);
+        LOG(API, "[API] CoTaskMemFree(pv=0x%08X) -> stub\n", regs[0]);
         return true;
     });
     Thunk("StringFromGUID2", [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t guid_addr = regs[0], buf_addr = regs[1], cchMax = regs[2];
-        LOG(THUNK, "[THUNK] StringFromGUID2(rguid=0x%08X, lpsz=0x%08X, cchMax=%d)\n",
+        LOG(API, "[API] StringFromGUID2(rguid=0x%08X, lpsz=0x%08X, cchMax=%d)\n",
                guid_addr, buf_addr, cchMax);
         if (guid_addr && buf_addr && cchMax >= 39) {
             uint32_t d1 = mem.Read32(guid_addr);
@@ -298,7 +298,7 @@ void Win32Thunks::RegisterMiscHandlers() {
         return true;
     });
     Thunk("CoCreateGuid", [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        LOG(THUNK, "[THUNK] CoCreateGuid(pguid=0x%08X)\n", regs[0]);
+        LOG(API, "[API] CoCreateGuid(pguid=0x%08X)\n", regs[0]);
         if (regs[0]) {
             for (int i = 0; i < 16; i++)
                 mem.Write8(regs[0] + i, (uint8_t)(rand() & 0xFF));

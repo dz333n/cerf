@@ -46,7 +46,7 @@ void Win32Thunks::RegisterFileHandlers() {
         std::wstring host_path = MapWinCEPath(wce_path);
         HANDLE h = CreateFileW(host_path.c_str(), access, share, NULL, creation, flags, NULL);
         regs[0] = WrapHandle(h);
-        LOG(THUNK, "[THUNK] CreateFileW('%ls') -> handle=0x%08X\n", wce_path.c_str(), regs[0]);
+        LOG(API, "[API] CreateFileW('%ls') -> handle=0x%08X\n", wce_path.c_str(), regs[0]);
         return true;
     });
     Thunk("ReadFile", 170, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
@@ -99,7 +99,7 @@ void Win32Thunks::RegisterFileHandlers() {
         std::wstring wce_path = ReadWStringFromEmu(mem, regs[0]);
         std::wstring host_path = MapWinCEPath(wce_path);
         regs[0] = GetFileAttributesW(host_path.c_str());
-        LOG(THUNK, "[THUNK] GetFileAttributesW('%ls' -> '%ls') -> 0x%08X\n", wce_path.c_str(), host_path.c_str(), regs[0]);
+        LOG(API, "[API] GetFileAttributesW('%ls' -> '%ls') -> 0x%08X\n", wce_path.c_str(), host_path.c_str(), regs[0]);
         return true;
     });
     Thunk("DeleteFileW", 165, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
@@ -207,7 +207,7 @@ void Win32Thunks::RegisterFileHandlers() {
             if (regs[2]) { mem.Write32(regs[2], at.dwLowDateTime); mem.Write32(regs[2]+4, at.dwHighDateTime); }
             if (regs[3]) { mem.Write32(regs[3], wt.dwLowDateTime); mem.Write32(regs[3]+4, wt.dwHighDateTime); }
         }
-        LOG(THUNK, "[THUNK] GetFileTime(0x%08X) -> %d\n", regs[0], ret);
+        LOG(API, "[API] GetFileTime(0x%08X) -> %d\n", regs[0], ret);
         regs[0] = ret; return true;
     });
     Thunk("FileTimeToLocalFileTime", 21, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
@@ -254,21 +254,21 @@ void Win32Thunks::RegisterFileHandlers() {
             if (regs[2]) { mem.Write32(regs[2], totalBytes.LowPart); mem.Write32(regs[2]+4, totalBytes.HighPart); }
             if (regs[3]) { mem.Write32(regs[3], totalFree.LowPart); mem.Write32(regs[3]+4, totalFree.HighPart); }
         }
-        LOG(THUNK, "[THUNK] GetDiskFreeSpaceExW('%ls') -> %d\n", path.c_str(), ret);
+        LOG(API, "[API] GetDiskFreeSpaceExW('%ls') -> %d\n", path.c_str(), ret);
         regs[0] = ret;
         return true;
     });
     Thunk("SetFileAttributesW", 169, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring path = ReadWStringFromEmu(mem, regs[0]);
         std::wstring mapped = MapWinCEPath(path);
-        LOG(THUNK, "[THUNK] SetFileAttributesW('%ls', 0x%X)\n", path.c_str(), regs[1]);
+        LOG(API, "[API] SetFileAttributesW('%ls', 0x%X)\n", path.c_str(), regs[1]);
         regs[0] = SetFileAttributesW(mapped.c_str(), regs[1]);
         return true;
     });
     Thunk("FindFirstChangeNotificationW", 1682, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring path = ReadWStringFromEmu(mem, regs[0]);
         std::wstring mapped = MapWinCEPath(path);
-        LOG(THUNK, "[THUNK] FindFirstChangeNotificationW('%ls', subtree=%d, filter=0x%X)\n",
+        LOG(API, "[API] FindFirstChangeNotificationW('%ls', subtree=%d, filter=0x%X)\n",
             path.c_str(), regs[1], regs[2]);
         HANDLE h = FindFirstChangeNotificationW(mapped.c_str(), regs[1], regs[2]);
         regs[0] = WrapHandle(h);

@@ -36,7 +36,7 @@ void Win32Thunks::RegisterMenuHandlers() {
         regs[0] = DrawMenuBar((HWND)(intptr_t)(int32_t)regs[0]); return true;
     });
     Thunk("SetAssociatedMenu", 299, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] SetAssociatedMenu(hwnd=0x%08X, hmenu=0x%08X) -> stub\n", regs[0], regs[1]);
+        LOG(API, "[API] SetAssociatedMenu(hwnd=0x%08X, hmenu=0x%08X) -> stub\n", regs[0], regs[1]);
         regs[0] = 0; return true;
     });
     Thunk("LoadMenuW", 846, [this](uint32_t* regs, EmulatedMemory&) -> bool {
@@ -55,7 +55,7 @@ void Win32Thunks::RegisterMenuHandlers() {
             native_mod = (HMODULE)(intptr_t)(int32_t)hmod;
         }
         HMENU hMenu = native_mod ? LoadMenuW(native_mod, MAKEINTRESOURCEW(regs[1])) : NULL;
-        LOG(THUNK, "[THUNK] LoadMenuW(0x%08X, %d) -> 0x%p%s\n",
+        LOG(API, "[API] LoadMenuW(0x%08X, %d) -> 0x%p%s\n",
             hmod, regs[1], hMenu, is_arm ? " (ARM)" : "");
         regs[0] = (uint32_t)(uintptr_t)hMenu;
         return true;
@@ -111,7 +111,7 @@ void Win32Thunks::RegisterMenuHandlers() {
             }
         }
         BOOL ret = SetMenuItemInfoW(hMenu, uItem, fByPosition, &mii);
-        LOG(THUNK, "[THUNK] SetMenuItemInfoW(0x%08X, %u, %d) -> %d\n",
+        LOG(API, "[API] SetMenuItemInfoW(0x%08X, %u, %d) -> %d\n",
             (uint32_t)(uintptr_t)hMenu, uItem, fByPosition, ret);
         regs[0] = ret;
         return true;
@@ -136,7 +136,7 @@ void Win32Thunks::RegisterMenuHandlers() {
             mii.cch = min((uint32_t)511, cch);
         }
         BOOL ret = GetMenuItemInfoW(hMenu, uItem, fByPosition, &mii);
-        LOG(THUNK, "[THUNK] GetMenuItemInfoW(0x%08X, %u, %d, mask=0x%X) -> %d\n",
+        LOG(API, "[API] GetMenuItemInfoW(0x%08X, %u, %d, mask=0x%X) -> %d\n",
             (uint32_t)(uintptr_t)hMenu, uItem, fByPosition, fMask, ret);
         if (ret) {
             if (fMask & MIIM_TYPE)       mem.Write32(pMii + 8,  mii.fType);

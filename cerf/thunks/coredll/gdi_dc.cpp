@@ -48,7 +48,7 @@ void Win32Thunks::RegisterGdiDcHandlers() {
                 lf.lfPitchAndFamily = VARIABLE_PITCH | FF_SWISS;
                 wcscpy_s(lf.lfFaceName, wce_sysfont_name.c_str());
                 s_wce_font = CreateFontIndirectW(&lf);
-                LOG(THUNK, "[THUNK] GetStockObject(%d) -> created '%ls' h=%d wt=%d font %p\n",
+                LOG(API, "[API] GetStockObject(%d) -> created '%ls' h=%d wt=%d font %p\n",
                     regs[0], wce_sysfont_name.c_str(), wce_sysfont_height, wce_sysfont_weight, s_wce_font);
             }
             if (s_wce_font) {

@@ -49,9 +49,9 @@ bool Win32Thunks::HandleThunk(uint32_t addr, uint32_t* regs, EmulatedMemory& mem
                 auto name_it = ordinal_map.find((uint16_t)api_index);
                 std::string func_name = (name_it != ordinal_map.end()) ? name_it->second : "";
                 if (!func_name.empty()) {
-                    LOG(THUNK, "[THUNK] WinCE trap 0x%08X -> API %u (%s)\n", addr, api_index, func_name.c_str());
+                    LOG(API, "[API] WinCE trap 0x%08X -> API %u (%s)\n", addr, api_index, func_name.c_str());
                 } else {
-                    LOG(THUNK, "[THUNK] WinCE trap 0x%08X -> API %u (unknown)\n", addr, api_index);
+                    LOG(API, "[API] WinCE trap 0x%08X -> API %u (unknown)\n", addr, api_index);
                 }
                 /* Create a temporary thunk entry and execute it */
                 ThunkEntry trap_entry;
@@ -101,7 +101,7 @@ bool Win32Thunks::ExecuteThunk(const ThunkEntry& entry, uint32_t* regs, Emulated
     if (func.empty() && entry.by_ordinal) {
         func = ResolveOrdinal(entry.ordinal, entry.dll_name);
         if (!func.empty()) {
-            LOG(THUNK, "[THUNK] Resolved ordinal %d -> %s\n", entry.ordinal, func.c_str());
+            LOG(API, "[API] Resolved ordinal %d -> %s\n", entry.ordinal, func.c_str());
         }
     }
 
@@ -111,13 +111,13 @@ bool Win32Thunks::ExecuteThunk(const ThunkEntry& entry, uint32_t* regs, Emulated
 
     /* Unhandled function */
     if (!func.empty()) {
-        LOG(THUNK, "[THUNK] UNHANDLED: %s!%s (ordinal=%d) - returning 0\n",
+        LOG(API, "[API] UNHANDLED: %s!%s (ordinal=%d) - returning 0\n",
                entry.dll_name.c_str(), func.c_str(), entry.ordinal);
     } else if (entry.by_ordinal) {
-        LOG(THUNK, "[THUNK] UNHANDLED: %s!@%d (no name mapping) - returning 0\n",
+        LOG(API, "[API] UNHANDLED: %s!@%d (no name mapping) - returning 0\n",
                entry.dll_name.c_str(), entry.ordinal);
     } else {
-        LOG(THUNK, "[THUNK] UNHANDLED: %s!%s - returning 0\n",
+        LOG(API, "[API] UNHANDLED: %s!%s - returning 0\n",
                entry.dll_name.c_str(), entry.func_name.c_str());
     }
     regs[0] = 0;

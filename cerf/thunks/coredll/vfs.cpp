@@ -165,7 +165,7 @@ void Win32Thunks::RegisterVfsHandlers() {
         uint32_t buf_addr = regs[1];
         const wchar_t* temp_path = L"\\Temp\\";
         size_t len = wcslen(temp_path);
-        LOG(THUNK, "[THUNK] GetTempPathW(bufLen=%d) -> '%ls'\n", buf_len, temp_path);
+        LOG(API, "[API] GetTempPathW(bufLen=%d) -> '%ls'\n", buf_len, temp_path);
         if (buf_addr && buf_len > len) {
             for (size_t i = 0; i <= len; i++)
                 mem.Write16(buf_addr + (uint32_t)i * 2, temp_path[i]);

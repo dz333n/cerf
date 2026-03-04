@@ -12,10 +12,10 @@ void Win32Thunks::RegisterModuleHandlers() {
         uint32_t name_addr = regs[0];
         if (name_addr == 0) {
             regs[0] = emu_hinstance;
-            LOG(THUNK, "[THUNK] GetModuleHandleW(NULL) -> 0x%08X\n", regs[0]);
+            LOG(API, "[API] GetModuleHandleW(NULL) -> 0x%08X\n", regs[0]);
         } else {
             std::wstring name = ReadWStringFromEmu(mem, name_addr);
-            LOG(THUNK, "[THUNK] GetModuleHandleW('%ls')\n", name.c_str());
+            LOG(API, "[API] GetModuleHandleW('%ls')\n", name.c_str());
             std::wstring lower = name;
             std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
             auto* info = FindThunkedDllW(lower);
@@ -34,7 +34,7 @@ void Win32Thunks::RegisterModuleHandlers() {
             std::wstring filename = (sep != std::wstring::npos) ? wce_path.substr(sep + 1) : wce_path;
             wce_path = L"\\Windows\\" + filename;
         }
-        LOG(THUNK, "[THUNK] GetModuleFileNameW() -> '%ls'\n", wce_path.c_str());
+        LOG(API, "[API] GetModuleFileNameW() -> '%ls'\n", wce_path.c_str());
         for (uint32_t i = 0; i < wce_path.size() && i < buf_size; i++)
             mem.Write16(buf_addr + i * 2, wce_path[i]);
         uint32_t null_off = std::min((uint32_t)wce_path.size(), buf_size - 1);
@@ -44,17 +44,17 @@ void Win32Thunks::RegisterModuleHandlers() {
     });
     Thunk("LoadLibraryW", 528, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring name = ReadWStringFromEmu(mem, regs[0]);
-        LOG(THUNK, "[THUNK] LoadLibraryW('%ls')\n", name.c_str());
+        LOG(API, "[API] LoadLibraryW('%ls')\n", name.c_str());
         std::wstring lower = name;
         std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
         auto* info = FindThunkedDllW(lower);
-        if (info) { regs[0] = info->fake_handle; LOG(THUNK, "[THUNK]   -> thunked (%s)\n", info->name); return true; }
+        if (info) { regs[0] = info->fake_handle; LOG(API, "[API]   -> thunked (%s)\n", info->name); return true; }
         /* Use LoadArmDll which handles search paths, caching, and recursive import resolution */
         std::string narrow_name;
         for (auto c : name) narrow_name += (char)c;
         LoadedDll* dll = LoadArmDll(narrow_name);
         if (!dll) {
-            LOG(THUNK, "[THUNK]   DLL not found: %s\n", narrow_name.c_str());
+            LOG(API, "[API]   DLL not found: %s\n", narrow_name.c_str());
             regs[0] = 0; return true;
         }
         /* Call DllMain(DLL_PROCESS_ATTACH) if loaded fresh and callback_executor available */
@@ -63,10 +63,10 @@ void Win32Thunks::RegisterModuleHandlers() {
             /* Check if there are pending inits for this DLL and call them now */
             for (auto it2 = pending_dll_inits.begin(); it2 != pending_dll_inits.end(); ) {
                 if (it2->base_addr == dll->base_addr) {
-                    LOG(THUNK, "[THUNK]   Calling DllMain at 0x%08X\n", it2->entry_point);
+                    LOG(API, "[API]   Calling DllMain at 0x%08X\n", it2->entry_point);
                     uint32_t args[3] = { it2->base_addr, 1 /* DLL_PROCESS_ATTACH */, 0 };
                     uint32_t result = callback_executor(it2->entry_point, args, 3);
-                    LOG(THUNK, "[THUNK]   DllMain returned %d\n", result);
+                    LOG(API, "[API]   DllMain returned %d\n", result);
                     it2 = pending_dll_inits.erase(it2);
                 } else {
                     ++it2;
@@ -118,7 +118,7 @@ void Win32Thunks::RegisterModuleHandlers() {
         }
         /* For loaded ARM DLLs, resolve export from the PE export table */
         if (arm_dll) {
-            LOG(THUNK, "[THUNK] GetProcAddress%s(0x%08X [ARM DLL], '%s')\n",
+            LOG(API, "[API] GetProcAddress%s(0x%08X [ARM DLL], '%s')\n",
                    is_wide ? "W" : "", hmod, func_name.c_str());
             uint32_t addr = 0;
             if (by_ordinal) {
@@ -127,24 +127,24 @@ void Win32Thunks::RegisterModuleHandlers() {
                 addr = PELoader::ResolveExportName(mem, arm_dll->pe_info, func_name);
             }
             if (addr) {
-                LOG(THUNK, "[THUNK]   -> ARM export at 0x%08X\n", addr);
+                LOG(API, "[API]   -> ARM export at 0x%08X\n", addr);
             } else {
-                LOG(THUNK, "[THUNK]   -> export not found\n");
+                LOG(API, "[API]   -> export not found\n");
             }
             regs[0] = addr;
             return true;
         }
         if (by_ordinal) {
-            LOG(THUNK, "[THUNK] GetProcAddress(0x%08X [%s], ordinal %d -> %s)\n", hmod, dll_name.c_str(), ordinal,
+            LOG(API, "[API] GetProcAddress(0x%08X [%s], ordinal %d -> %s)\n", hmod, dll_name.c_str(), ordinal,
                    func_name.empty() ? "UNKNOWN" : func_name.c_str());
             regs[0] = AllocThunk(dll_name, func_name, ordinal, func_name.empty());
             return true;
         }
-        LOG(THUNK, "[THUNK] GetProcAddress%s(0x%08X [%s], '%s')\n",
+        LOG(API, "[API] GetProcAddress%s(0x%08X [%s], '%s')\n",
                is_wide ? "W" : "", hmod, dll_name.c_str(), func_name.c_str());
         if (FindThunkedDll(dll_name) != nullptr || func_name.size() > 0) {
             regs[0] = AllocThunk(dll_name, func_name, 0, false);
-            LOG(THUNK, "[THUNK]   -> thunk at 0x%08X\n", regs[0]);
+            LOG(API, "[API]   -> thunk at 0x%08X\n", regs[0]);
         } else {
             regs[0] = 0;
         }
@@ -174,28 +174,28 @@ void Win32Thunks::RegisterModuleHandlers() {
     Thunk("CacheSync", 577, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
     Thunk("CacheRangeFlush", 1765, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
     Thunk("ExitProcess", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] ExitProcess(%d)\n", regs[0]); ExitProcess(regs[0]); return true;
+        LOG(API, "[API] ExitProcess(%d)\n", regs[0]); ExitProcess(regs[0]); return true;
     });
     Thunk("TerminateProcess", 544, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] ExitProcess(%d)\n", regs[0]); ExitProcess(regs[0]); return true;
+        LOG(API, "[API] ExitProcess(%d)\n", regs[0]); ExitProcess(regs[0]); return true;
     });
     Thunk("ExitThread", 6, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] ExitThread(%d)\n", regs[0]); ExitThread(regs[0]); return true;
+        LOG(API, "[API] ExitThread(%d)\n", regs[0]); ExitThread(regs[0]); return true;
     });
     Thunk("FreeLibrary", 529, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        LOG(THUNK, "[THUNK] FreeLibrary(hModule=0x%08X) -> TRUE (stub)\n", regs[0]);
+        LOG(API, "[API] FreeLibrary(hModule=0x%08X) -> TRUE (stub)\n", regs[0]);
         regs[0] = 1; /* TRUE */
         return true;
     });
     Thunk("DisableThreadLibraryCalls", 1232, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] DisableThreadLibraryCalls(hModule=0x%08X) -> TRUE\n", regs[0]);
+        LOG(API, "[API] DisableThreadLibraryCalls(hModule=0x%08X) -> TRUE\n", regs[0]);
         regs[0] = 1;
         return true;
     });
     Thunk("LoadLibraryExW", 1241, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         std::wstring name = ReadWStringFromEmu(mem, regs[0]);
         uint32_t flags = regs[2];
-        LOG(THUNK, "[THUNK] LoadLibraryExW('%ls', flags=0x%X)\n", name.c_str(), flags);
+        LOG(API, "[API] LoadLibraryExW('%ls', flags=0x%X)\n", name.c_str(), flags);
         std::wstring lower = name;
         std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
         auto* info = FindThunkedDllW(lower);
@@ -204,7 +204,7 @@ void Win32Thunks::RegisterModuleHandlers() {
         for (auto c : name) narrow_name += (char)c;
         LoadedDll* dll = LoadArmDll(narrow_name);
         if (!dll) {
-            LOG(THUNK, "[THUNK]   DLL not found: %s\n", narrow_name.c_str());
+            LOG(API, "[API]   DLL not found: %s\n", narrow_name.c_str());
             regs[0] = 0; return true;
         }
         /* LOAD_LIBRARY_AS_DATAFILE (0x2) — skip DllMain, just return handle for resources */
@@ -212,7 +212,7 @@ void Win32Thunks::RegisterModuleHandlers() {
         if (!as_datafile && callback_executor) {
             for (auto it2 = pending_dll_inits.begin(); it2 != pending_dll_inits.end(); ) {
                 if (it2->base_addr == dll->base_addr) {
-                    LOG(THUNK, "[THUNK]   Calling DllMain at 0x%08X\n", it2->entry_point);
+                    LOG(API, "[API]   Calling DllMain at 0x%08X\n", it2->entry_point);
                     uint32_t args[3] = { it2->base_addr, 1, 0 };
                     callback_executor(it2->entry_point, args, 3);
                     it2 = pending_dll_inits.erase(it2);
@@ -225,7 +225,7 @@ void Win32Thunks::RegisterModuleHandlers() {
         return true;
     });
     Thunk("GetExitCodeThread", 518, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        LOG(THUNK, "[THUNK] GetExitCodeThread(hThread=0x%08X, lpExitCode=0x%08X) -> stub\n", regs[0], regs[1]);
+        LOG(API, "[API] GetExitCodeThread(hThread=0x%08X, lpExitCode=0x%08X) -> stub\n", regs[0], regs[1]);
         if (regs[1]) mem.Write32(regs[1], 0);
         regs[0] = 1;
         return true;

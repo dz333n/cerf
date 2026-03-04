@@ -85,7 +85,7 @@ void Win32Thunks::RegisterResourceHandlers() {
                         ? (bmi->bmiHeader.biClrUsed ? bmi->bmiHeader.biClrUsed : (1 << bmi->bmiHeader.biBitCount)) : 0;
                     uint8_t* bits = bmp_data + sizeof(BITMAPINFOHEADER) + colors * sizeof(RGBQUAD);
                     HBITMAP hbm = CreateDIBitmap(hdc, &bmi->bmiHeader, CBM_INIT, bits, bmi, DIB_RGB_COLORS);
-                    LOG(THUNK, "[THUNK] LoadBitmapW(0x%08X, %d) -> ARM rsrc: %dx%d %dbpp %dcolors hbm=%p (data_size=%d)\n",
+                    LOG(API, "[API] LoadBitmapW(0x%08X, %d) -> ARM rsrc: %dx%d %dbpp %dcolors hbm=%p (data_size=%d)\n",
                         hmod, name_id, bmi->bmiHeader.biWidth, bmi->bmiHeader.biHeight,
                         bmi->bmiHeader.biBitCount, colors, hbm, data_size);
                     ReleaseDC(NULL, hdc); regs[0] = (uint32_t)(uintptr_t)hbm;
@@ -93,12 +93,12 @@ void Win32Thunks::RegisterResourceHandlers() {
             } else {
                 HMODULE native_mod = GetNativeModuleForResources(hmod);
                 regs[0] = native_mod ? (uint32_t)(uintptr_t)LoadBitmapW(native_mod, MAKEINTRESOURCEW(name_id)) : 0;
-                LOG(THUNK, "[THUNK] LoadBitmapW(0x%08X, %d) -> native fallback: %p\n",
+                LOG(API, "[API] LoadBitmapW(0x%08X, %d) -> native fallback: %p\n",
                     hmod, name_id, (void*)(uintptr_t)regs[0]);
             }
         } else {
             regs[0] = (uint32_t)(uintptr_t)LoadBitmapW((HINSTANCE)(intptr_t)(int32_t)hmod, MAKEINTRESOURCEW(name_id));
-            LOG(THUNK, "[THUNK] LoadBitmapW(0x%08X, %d) -> non-ARM: %p\n",
+            LOG(API, "[API] LoadBitmapW(0x%08X, %d) -> non-ARM: %p\n",
                 hmod, name_id, (void*)(uintptr_t)regs[0]);
         }
         return true;
@@ -107,7 +107,7 @@ void Win32Thunks::RegisterResourceHandlers() {
         uint32_t hmod = regs[0], name_id = regs[1], type = regs[2];
         int cx = (int)regs[3], cy = (int)ReadStackArg(regs, mem, 0);
         uint32_t fuLoad = ReadStackArg(regs, mem, 1);
-        LOG(THUNK, "[THUNK] LoadImageW(hmod=0x%08X, id=%d, type=%d, cx=%d, cy=%d, flags=0x%X)\n",
+        LOG(API, "[API] LoadImageW(hmod=0x%08X, id=%d, type=%d, cx=%d, cy=%d, flags=0x%X)\n",
             hmod, name_id, type, cx, cy, fuLoad);
         bool is_arm_module = (hmod == emu_hinstance);
         for (auto& pair : loaded_dlls) { if (pair.second.base_addr == hmod) { is_arm_module = true; break; } }
@@ -172,7 +172,7 @@ void Win32Thunks::RegisterResourceHandlers() {
             HICON hIcon = (cx <= 16) ? hSmall : hLarge;
             if (hIcon) {
                 regs[0] = (uint32_t)(uintptr_t)hIcon;
-                LOG(THUNK, "[THUNK] LoadImageW: ceshell icon %d (%dx%d) -> shell32 idx %d = 0x%08X\n",
+                LOG(API, "[API] LoadImageW: ceshell icon %d (%dx%d) -> shell32 idx %d = 0x%08X\n",
                     name_id, cx, cy, shell32_idx, regs[0]);
                 /* Destroy the other icon we didn't use */
                 if (hSmall && hSmall != hIcon) DestroyIcon(hSmall);
@@ -217,7 +217,7 @@ void Win32Thunks::RegisterResourceHandlers() {
     });
     Thunk("LoadAcceleratorsW", 94, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t hmod = regs[0], name_id = regs[1];
-        LOG(THUNK, "[THUNK] LoadAcceleratorsW(0x%08X, %d)\n", hmod, name_id);
+        LOG(API, "[API] LoadAcceleratorsW(0x%08X, %d)\n", hmod, name_id);
         uint32_t rsrc_rva = 0, rsrc_sz = 0;
         bool is_arm = (hmod == emu_hinstance);
         if (is_arm) {
@@ -250,7 +250,7 @@ void Win32Thunks::RegisterResourceHandlers() {
                     HACCEL h = CreateAcceleratorTableW(accels, count);
                     delete[] accels;
                     regs[0] = (uint32_t)(uintptr_t)h;
-                    LOG(THUNK, "[THUNK]   -> HACCEL 0x%08X (%d entries)\n", regs[0], count);
+                    LOG(API, "[API]   -> HACCEL 0x%08X (%d entries)\n", regs[0], count);
                     return true;
                 }
             }

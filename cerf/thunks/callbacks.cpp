@@ -262,7 +262,7 @@ LRESULT CALLBACK Win32Thunks::CaptionOkSubclassProc(
     }
     case WM_NCLBUTTONDOWN:
         if (wParam == HT_CAPTIONOK) {
-            LOG(THUNK, "[THUNK] CaptionOK clicked on HWND=0x%p, posting WM_COMMAND(IDOK)\n", hwnd);
+            LOG(API, "[API] CaptionOK clicked on HWND=0x%p, posting WM_COMMAND(IDOK)\n", hwnd);
             PostMessageW(hwnd, WM_COMMAND, MAKEWPARAM(IDOK, BN_CLICKED), 0);
             return 0;
         }

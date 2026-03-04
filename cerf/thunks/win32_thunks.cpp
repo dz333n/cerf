@@ -190,7 +190,7 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
         wcx.cbWndExtra = 3 * sizeof(LONG_PTR);
         wcx.lpszClassName = L"Menu";
         ATOM a = RegisterClassExW(&wcx);
-        LOG(THUNK, "[THUNK] Pre-register WinCE class 'Menu' -> atom=%d (err=%d)\n",
+        LOG(API, "[API] Pre-register WinCE class 'Menu' -> atom=%d (err=%d)\n",
             a, a ? 0 : GetLastError());
     }
 }

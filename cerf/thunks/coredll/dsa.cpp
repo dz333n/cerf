@@ -111,7 +111,7 @@ void Win32Thunks::RegisterDsaHandlers() {
         mem.Write32(hdsa + 16, (uint32_t)cGrow);
         mem.Write32(hdsa + 20, 0); /* magic */
         DsaGrow(mem, hdsa, cGrow);
-        LOG(THUNK, "[THUNK] DSA_Create(cbItem=%d, cGrow=%d) -> 0x%08X\n",
+        LOG(API, "[API] DSA_Create(cbItem=%d, cGrow=%d) -> 0x%08X\n",
             cbItem, cGrow, hdsa);
         regs[0] = hdsa;
         return true;
@@ -180,7 +180,7 @@ void Win32Thunks::RegisterDsaHandlers() {
 
     /* DSA_DestroyCallback(hdsa, pfnCB, pData) */
     Thunk("DSA_DestroyCallback", 1857, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] DSA_DestroyCallback(0x%08X) -> destroying without callback\n", regs[0]);
+        LOG(API, "[API] DSA_DestroyCallback(0x%08X) -> destroying without callback\n", regs[0]);
         regs[0] = 0;
         return true;
     });
@@ -277,7 +277,7 @@ void Win32Thunks::RegisterDsaHandlers() {
 
     /* DSA_Search(hdsa, pFind, iStart, pfnCmp, lParam, options) -> int */
     Thunk("DSA_Search", 1863, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] DSA_Search(...) -> stub returning -1\n");
+        LOG(API, "[API] DSA_Search(...) -> stub returning -1\n");
         regs[0] = (uint32_t)-1;
         return true;
     });
@@ -300,14 +300,14 @@ void Win32Thunks::RegisterDsaHandlers() {
 
     /* DSA_SetRange(hdsa, i, cItems, pItems) -> BOOL */
     Thunk("DSA_SetRange", 1865, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] DSA_SetRange(...) -> stub returning TRUE\n");
+        LOG(API, "[API] DSA_SetRange(...) -> stub returning TRUE\n");
         regs[0] = TRUE;
         return true;
     });
 
     /* DSA_Sort(hdsa, pfnCmp, lParam) -> BOOL */
     Thunk("DSA_Sort", 1866, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] DSA_Sort(...) -> stub returning TRUE\n");
+        LOG(API, "[API] DSA_Sort(...) -> stub returning TRUE\n");
         regs[0] = TRUE;
         return true;
     });

@@ -96,6 +96,23 @@ void Win32Thunks::RegisterStringHandlers() {
                     arg_idx++;
                     if (precision >= 0 && (int)s.size() > precision) s.resize(precision);
                     pad(s);
+                } else if (spec == L'f' || spec == L'e' || spec == L'E' || spec == L'g' || spec == L'G') {
+                    /* Floating-point: doubles occupy two consecutive 32-bit args on ARM */
+                    if (arg_idx + 1 < nargs) {
+                        uint64_t bits = ((uint64_t)args[arg_idx + 1] << 32) | args[arg_idx];
+                        double val; memcpy(&val, &bits, 8);
+                        arg_idx += 2;
+                        wchar_t fmtbuf[16];
+                        if (precision >= 0)
+                            _snwprintf_s(fmtbuf, _countof(fmtbuf), _TRUNCATE, L"%%%d.%d%c", width, precision, (char)spec);
+                        else if (width > 0)
+                            _snwprintf_s(fmtbuf, _countof(fmtbuf), _TRUNCATE, L"%%%d%c", width, (char)spec);
+                        else
+                            _snwprintf_s(fmtbuf, _countof(fmtbuf), _TRUNCATE, L"%%%c", (char)spec);
+                        wchar_t buf[64];
+                        _snwprintf_s(buf, _countof(buf), _TRUNCATE, fmtbuf, val);
+                        pad(buf);
+                    } else { result += L'?'; arg_idx = nargs; }
                 } else if (spec == L'p') {
                     wchar_t buf[32]; _snwprintf_s(buf, _countof(buf), _TRUNCATE, L"%08X", args[arg_idx++]);
                     result += buf;
@@ -346,7 +363,7 @@ void Win32Thunks::RegisterStringHandlers() {
         return true;
     });
     Thunk("LCMapStringW", 199, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(THUNK, "[THUNK] LCMapStringW(locale=0x%X, flags=0x%X, src=0x%08X, srcLen=%d) -> 0 (stub)\n",
+        LOG(API, "[API] LCMapStringW(locale=0x%X, flags=0x%X, src=0x%08X, srcLen=%d) -> 0 (stub)\n",
                regs[0], regs[1], regs[2], (int32_t)regs[3]);
         regs[0] = 0; return true;
     });

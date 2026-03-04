@@ -82,7 +82,7 @@ void Win32Thunks::RegisterGdiDrawHandlers() {
         HBITMAP hbm = CreateDIBSection(hdc, (BITMAPINFO*)bmi_buf.data(), regs[2], &pvBits, NULL, 0);
         if (regs[3]) mem.Write32(regs[3], 0);
         regs[0] = (uint32_t)(uintptr_t)hbm;
-        LOG(THUNK, "[THUNK] CreateDIBSection(%dx%d, %dbpp) -> 0x%08X\n", bih.biWidth, bih.biHeight, bih.biBitCount, regs[0]);
+        LOG(API, "[API] CreateDIBSection(%dx%d, %dbpp) -> 0x%08X\n", bih.biWidth, bih.biHeight, bih.biBitCount, regs[0]);
         return true;
     });
     Thunk("StretchDIBits", 1667, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
