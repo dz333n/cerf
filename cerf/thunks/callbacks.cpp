@@ -56,6 +56,16 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     case WM_POWERBROADCAST:
     case WM_INPUT:              /* lParam = HRAWINPUT */
     case WM_NCPAINT:
+    /* Undocumented User32 Aero Handler (UAH) theme messages (0x90-0x95).
+       Sent internally by TrackPopupMenuEx and other menu APIs on Windows 10/11.
+       These carry native 64-bit pointers that would crash if truncated to 32-bit
+       for ARM code. WinCE apps don't know about these. */
+    case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95:
+    /* Menu-loop messages sent to the owner window by TrackPopupMenuEx.
+       WM_ENTERMENULOOP/WM_EXITMENULOOP are desktop-only and WinCE apps
+       don't expect them. WM_MENUSELECT lParam = HMENU (64-bit handle). */
+    case WM_ENTERMENULOOP:  /* 0x0211 */
+    case WM_EXITMENULOOP:   /* 0x0212 */
         return DefWindowProcW(hwnd, msg, wParam, lParam);
     case WM_NOTIFY: {
         /* WM_NOTIFY from ARM commctrl: lParam is a pointer to NMHDR in ARM memory.
@@ -267,6 +277,17 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         LOG(API, "[API] EmuWndProc: msg=0x%04X hwnd=0x%p class='%ls' wP=0x%X lP=0x%X\n",
             msg, hwnd, cls, (uint32_t)wParam, (uint32_t)lParam);
     }
+    if (msg == WM_NOTIFY) {
+        wchar_t cls[64] = {};
+        GetClassNameW(hwnd, cls, 64);
+        int32_t nmCode = 0;
+        EmulatedMemory& emem = s_instance->mem;
+        uint32_t lp32 = (uint32_t)lParam;
+        if (lp32 && emem.IsValid(lp32 + 8))
+            nmCode = (int32_t)emem.Read32(lp32 + 8);
+        LOG(API, "[API] EmuWndProc WM_NOTIFY: hwnd=0x%p class='%ls' code=%d lP=0x%X\n",
+            hwnd, cls, nmCode, lp32);
+    }
     uint32_t args[4] = {
         (uint32_t)(uintptr_t)hwnd,
         (uint32_t)msg,
@@ -275,6 +296,10 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     };
 
     uint32_t result = s_instance->callback_executor(arm_wndproc, args, 4);
+
+    if (msg == WM_NOTIFY) {
+        LOG(API, "[API] EmuWndProc WM_NOTIFY result=%u (0x%X)\n", result, result);
+    }
 
     /* Copy back results from WM_MEASUREITEM */
     if (msg == WM_MEASUREITEM && native_lParam) {

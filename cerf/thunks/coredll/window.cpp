@@ -129,7 +129,10 @@ void Win32Thunks::RegisterWindowHandlers() {
                     break;
                 }
             }
-            if (arm_wndproc) hwnd_wndproc_map[hwnd] = arm_wndproc;
+            /* Only set if not already updated (e.g., by SetWindowLongW(GWL_WNDPROC)
+               during WM_CREATE — as done by aygshell's TempWndProc pattern) */
+            if (arm_wndproc && hwnd_wndproc_map.find(hwnd) == hwnd_wndproc_map.end())
+                hwnd_wndproc_map[hwnd] = arm_wndproc;
             if (is_toplevel) {
                 if (!windowName.empty()) SetWindowTextW(hwnd, windowName.c_str());
                 HICON hIcon = LoadIconW(NULL, IDI_APPLICATION);
@@ -278,7 +281,17 @@ void Win32Thunks::RegisterWindowHandlers() {
     });
     Thunk("UnregisterClassW", 884, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
     Thunk("CallWindowProcW", 285, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        regs[0] = (uint32_t)DefWindowProcW((HWND)(intptr_t)(int32_t)regs[1], regs[2], regs[3], ReadStackArg(regs,mem,0)); return true;
+        uint32_t wndproc = regs[0];
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[1];
+        UINT umsg = regs[2]; WPARAM wp = regs[3]; LPARAM lp = ReadStackArg(regs, mem, 0);
+        /* If the wndproc is an ARM address (in emulated memory), call via callback_executor */
+        if (wndproc && wndproc < 0x20000000 && mem.IsValid(wndproc) && callback_executor) {
+            uint32_t args[4] = { (uint32_t)(uintptr_t)hw, umsg, (uint32_t)wp, (uint32_t)lp };
+            regs[0] = callback_executor(wndproc, args, 4);
+        } else {
+            regs[0] = (uint32_t)DefWindowProcW(hw, umsg, wp, lp);
+        }
+        return true;
     });
     Thunk("ScrollWindowEx", 289, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0];

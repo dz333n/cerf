@@ -225,6 +225,14 @@ int main(int argc, char* argv[]) {
 
     thunks.callback_executor = [&cpu, &mem, &thunks, cb_sentinel](
             uint32_t arm_addr, uint32_t* args, int nargs) -> uint32_t {
+        static int cb_depth = 0;
+        cb_depth++;
+        if (cb_depth > 1) {
+            LOG(API, "[API] callback_executor NESTED depth=%d addr=0x%08X args=[0x%X,0x%X,0x%X,0x%X]\n",
+                cb_depth, arm_addr,
+                nargs > 0 ? args[0] : 0, nargs > 1 ? args[1] : 0,
+                nargs > 2 ? args[2] : 0, nargs > 3 ? args[3] : 0);
+        }
         /* Save CPU state */
         uint32_t saved_regs[16];
         memcpy(saved_regs, cpu.r, sizeof(saved_regs));
@@ -266,6 +274,11 @@ int main(int argc, char* argv[]) {
             cpu.Step();
         }
 
+        if (cpu.halted && cb_depth > 1) {
+            LOG(API, "[API] callback_executor HALTED at depth=%d PC=0x%08X R0=0x%X LR=0x%X\n",
+                cb_depth, cpu.r[REG_PC], cpu.r[0], cpu.r[REG_LR]);
+        }
+
         uint32_t result = cpu.r[0];
 
         /* Restore CPU state */
@@ -273,6 +286,10 @@ int main(int argc, char* argv[]) {
         cpu.cpsr = saved_cpsr;
         cpu.halted = saved_halted;
 
+        if (cb_depth > 1) {
+            LOG(API, "[API] callback_executor RETURN depth=%d result=0x%X\n", cb_depth, result);
+        }
+        cb_depth--;
         return result;
     };
 

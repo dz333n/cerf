@@ -120,6 +120,13 @@ void Win32Thunks::RegisterMessageHandlers() {
             LOG(API, "[API] SendMessageW(0x%p '%ls', msg=0x%X, wP=0x%X, lP=0x%X)\n",
                 hw, cls, umsg, (uint32_t)wp, (uint32_t)lp);
         }
+        /* TB_GETBUTTONINFOW: log the call and result for debugging menu bar issues */
+        if (umsg == 0x43F) {
+            wchar_t cls[64] = {};
+            if (hw) GetClassNameW(hw, cls, 64);
+            LOG(API, "[API] SendMessageW TB_GETBUTTONINFO(0x%p '%ls', id=%d, lP=0x%X)\n",
+                hw, cls, (int)wp, (uint32_t)lp);
+        }
         /* WM_SETFONT: wParam is an HFONT handle — must sign-extend for 64-bit */
         if (umsg == WM_SETFONT) {
             wp = (WPARAM)(intptr_t)(int32_t)regs[2];
@@ -159,6 +166,13 @@ void Win32Thunks::RegisterMessageHandlers() {
             if (umsg == WM_NOTIFY) {
                 LOG(API, "[API] SendMessageW WM_NOTIFY hwnd=%p wP=%d lP=0x%X -> ret=0x%X\n",
                     hw, (int)wp, (uint32_t)lp, regs[0]);
+            }
+            if (umsg == 0x43F) { /* TB_GETBUTTONINFOW result */
+                /* TBBUTTONINFOW: [0]=cbSize, [1]=dwMask, [2]=idCommand, [3]=iImage,
+                   [4]=fsState|fsStyle|cx, [5]=lParam, [6]=pszText, [7]=cchText */
+                uint32_t lp32 = (uint32_t)lp;
+                LOG(API, "[API] TB_GETBUTTONINFO result=%d lParam=0x%08X (at lp+20)\n",
+                    (int32_t)regs[0], mem.Read32(lp32 + 20));
             }
         }
         return true;

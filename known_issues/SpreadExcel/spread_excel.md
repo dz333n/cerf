@@ -24,9 +24,24 @@ Root cause: SM_CXEDGE returns 2 on desktop Windows vs 1 on WinCE. The ARM commct
 
 **Fix:** Override SM_CXEDGE and SM_CYEDGE to return 1 (WinCE value) in GetSystemMetrics thunk.
 
-### 3. Menu bar does not react to clicking - OPEN
-Clicking "File", "Edit", etc. in the bottom menu bar does not open popup menus.
-The WM_LBUTTONDOWN reaches the ARM ToolbarWindow32 WndProc, but the toolbar's internal modal message loop (SetCapture + GetMessage wait for WM_LBUTTONUP) doesn't work correctly. The WM_LBUTTONUP never arrives at the captured toolbar. Likely an issue with how the ARM emulation handles re-entrant message dispatch during modal loops inside WndProc handlers.
+### 3. Menu bar does not react to clicking - RESOLVED
+Clicking "File", "Edit", etc. in the bottom menu bar did not open popup menus.
+
+**Root cause found:** Multiple issues in the WndProc dispatch chain:
+1. **TempWndProc pattern**: aygshell.dll uses a TempWndProc (0xC960) during window creation that replaces itself with the real MenuWndProc (0xD868) via SetWindowLongW(GWL_WNDPROC) during WM_CREATE. Our SetWindowLongW thunk was silently failing on x64 (GWL_WNDPROC is deprecated), so TempWndProc stayed as the active WndProc.
+2. **CreateWindowExW overwrite**: After CreateWindowExW returned, our thunk unconditionally overwrote hwnd_wndproc_map, undoing any WM_CREATE changes.
+3. **TrackPopupMenuEx WinCE flags**: The flags contained 0x10000000 (WinCE-specific bit) invalid on desktop Windows.
+4. **UAH theme messages crash**: TrackPopupMenuEx's modal loop sends undocumented User32 Aero Handler messages (0x90-0x95) that contain 64-bit native pointers, crashing when truncated to 32 bits for ARM code.
+
+**Fixes applied:**
+- GetWindowLongW: intercept GWL_WNDPROC (-4) to return ARM WndProc from hwnd_wndproc_map
+- SetWindowLongW: intercept GWL_WNDPROC (-4) to update hwnd_wndproc_map instead of calling native
+- CreateWindowExW: only set hwnd_wndproc_map if entry doesn't already exist (preserve WM_CREATE changes)
+- CallWindowProcW: detect ARM addresses and use callback_executor instead of native call
+- TrackPopupMenuEx: mask WinCE flags with `flags &= 0x0000FFFF`
+- EmuWndProc: block UAH messages (0x90-0x95) and WM_ENTERMENULOOP/WM_EXITMENULOOP from reaching ARM code
+
+**Status:** Fully working. File, Edit, Insert, Format menus all open correctly with proper item rendering and enabled/disabled states.
 
 ### 4. Toolbar background color - OPEN
 The top toolbar (icon bar) has a dark/maroon background instead of light gray. May be related to how the ARM commctrl.dll toolbar paint code interacts with desktop Windows GDI (image list blitting, pattern brushes).

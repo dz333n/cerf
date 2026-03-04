@@ -67,8 +67,17 @@ void Win32Thunks::RegisterMenuHandlers() {
         return true;
     });
     Thunk("TrackPopupMenuEx", 845, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        regs[0] = TrackPopupMenuEx((HMENU)(intptr_t)(int32_t)regs[0], regs[1], regs[2], regs[3],
-            (HWND)(intptr_t)(int32_t)ReadStackArg(regs, mem, 0), NULL);
+        HMENU hMenu = (HMENU)(intptr_t)(int32_t)regs[0];
+        UINT flags = regs[1];
+        int x = (int)regs[2], y = (int)regs[3];
+        HWND hwnd = (HWND)(intptr_t)(int32_t)ReadStackArg(regs, mem, 0);
+        /* Mask off WinCE-specific high bits (0x10000000 etc.) that are invalid on desktop */
+        flags &= 0x0000FFFF;
+        int count = GetMenuItemCount(hMenu);
+        LOG(API, "[API] TrackPopupMenuEx(hMenu=0x%p items=%d, flags=0x%X, x=%d, y=%d, hwnd=0x%p)\n",
+            hMenu, count, flags, x, y, hwnd);
+        regs[0] = TrackPopupMenuEx(hMenu, flags, x, y, hwnd, NULL);
+        LOG(API, "[API] TrackPopupMenuEx -> %d\n", regs[0]);
         return true;
     });
     Thunk("InsertMenuW", 841, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {

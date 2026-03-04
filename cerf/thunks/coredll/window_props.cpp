@@ -100,6 +100,14 @@ void Win32Thunks::RegisterWindowPropsHandlers() {
     Thunk("GetWindowLongW", 259, [](uint32_t* regs, EmulatedMemory&) -> bool {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
         int idx = (int)regs[1];
+        /* GWL_WNDPROC: return the ARM WndProc from our map, not the native EmuWndProc.
+           On x64, GetWindowLongW(GWL_WNDPROC) doesn't work (need SetWindowLongPtrW),
+           and the ARM code expects an ARM function address, not EmuWndProc. */
+        if (idx == -4 /* GWL_WNDPROC */) {
+            auto it = hwnd_wndproc_map.find(hw);
+            regs[0] = (it != hwnd_wndproc_map.end()) ? it->second : 0;
+            return true;
+        }
         /* Translate WinCE 32-bit dialog extra data offsets to 64-bit.
            On WinCE: DWL_MSGRESULT=0, DWL_DLGPROC=4, DWL_USER=8.
            On x64:   DWLP_MSGRESULT=0, DWLP_DLGPROC=8, DWLP_USER=16.
@@ -121,6 +129,19 @@ void Win32Thunks::RegisterWindowPropsHandlers() {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
         int idx = (int)regs[1];
         LONG nv = (LONG)regs[2];
+        /* GWL_WNDPROC: ARM code is changing the window's WndProc to a new ARM address.
+           Update our map instead of calling native SetWindowLongW (which would corrupt
+           the native WndProc pointer on x64, and also fails for GWL_WNDPROC on x64). */
+        if (idx == -4 /* GWL_WNDPROC */) {
+            auto it = hwnd_wndproc_map.find(hw);
+            regs[0] = (it != hwnd_wndproc_map.end()) ? it->second : 0;
+            if (nv) {
+                hwnd_wndproc_map[hw] = (uint32_t)nv;
+                LOG(API, "[API] SetWindowLongW(0x%p, GWL_WNDPROC, 0x%08X) -> old=0x%08X\n",
+                    hw, (uint32_t)nv, regs[0]);
+            }
+            return true;
+        }
         if (idx == GWL_EXSTYLE) {
             if (nv & (LONG)0x80000000) {
                 if (captionok_hwnds.insert(hw).second) InstallCaptionOk(hw);
