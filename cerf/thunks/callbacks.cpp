@@ -48,12 +48,7 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     case WM_NCCALCSIZE:         /* lParam = NCCALCSIZE_PARAMS* */
     case WM_WINDOWPOSCHANGING:  /* lParam = WINDOWPOS* */
     case WM_WINDOWPOSCHANGED:   /* lParam = WINDOWPOS* */
-    case WM_STYLECHANGING:      /* lParam = STYLESTRUCT* */
-    case WM_STYLECHANGED:       /* lParam = STYLESTRUCT* */
     case WM_NCDESTROY:
-    case WM_SETTEXT:            /* lParam = LPCWSTR (native pointer) */
-    case WM_GETTEXT:            /* lParam = LPWSTR (native buffer) */
-    case WM_GETTEXTLENGTH:
     case WM_SETICON:            /* lParam = HICON (64-bit on x64) */
     case WM_GETICON:
     case WM_COPYDATA:           /* lParam = COPYDATASTRUCT* */
@@ -90,13 +85,108 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         }
         return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
+    case WM_STYLECHANGING:
+    case WM_STYLECHANGED: {
+        /* Marshal STYLESTRUCT (8 bytes: styleOld + styleNew) into ARM memory.
+           wParam = GWL_STYLE or GWL_EXSTYLE, lParam = STYLESTRUCT*.
+           ARM commctrl (ListView, TreeView, etc.) handles these to update
+           internal state when window styles change (e.g. view mode switching). */
+        if (!lParam) return DefWindowProcW(hwnd, msg, wParam, lParam);
+        STYLESTRUCT* ss = (STYLESTRUCT*)lParam;
+        static uint32_t ss_emu_addr = 0x3F002200;
+        EmulatedMemory& emem = s_instance->mem;
+        if (!emem.IsValid(ss_emu_addr)) emem.Alloc(ss_emu_addr, 0x1000);
+        emem.Write32(ss_emu_addr + 0, ss->styleOld);
+        emem.Write32(ss_emu_addr + 4, ss->styleNew);
+        lParam = (LPARAM)ss_emu_addr;
+        break;
+    }
+    case WM_SETTEXT: {
+        /* Marshal the string from native memory into ARM emulated memory.
+           ARM controls (e.g. RichEdit20W) need WM_SETTEXT to update their
+           internal text state and trigger repaint. */
+        if (!lParam) return DefWindowProcW(hwnd, msg, wParam, lParam);
+        const wchar_t* text = (const wchar_t*)lParam;
+        size_t len = wcslen(text);
+        static uint32_t st_emu_addr = 0x3F002400;
+        EmulatedMemory& emem = s_instance->mem;
+        uint32_t need = (uint32_t)((len + 1) * 2);
+        if (need > 0x1000) need = 0x1000; /* cap at 4KB */
+        if (!emem.IsValid(st_emu_addr)) emem.Alloc(st_emu_addr, 0x1000);
+        uint32_t copyLen = (need / 2) - 1;
+        for (uint32_t i = 0; i < copyLen; i++)
+            emem.Write16(st_emu_addr + i * 2, text[i]);
+        emem.Write16(st_emu_addr + copyLen * 2, 0);
+        lParam = (LPARAM)st_emu_addr;
+        break;
+    }
+    case WM_GETTEXT: {
+        /* Marshal WM_GETTEXT: ARM code writes to ARM buffer, we copy back to native.
+           wParam = max chars, lParam = native buffer pointer.
+           Give ARM code a temp ARM buffer, then copy result back. */
+        if (!lParam || !wParam) return DefWindowProcW(hwnd, msg, wParam, lParam);
+        static uint32_t gt_emu_addr = 0x3F002800;
+        EmulatedMemory& emem = s_instance->mem;
+        if (!emem.IsValid(gt_emu_addr)) emem.Alloc(gt_emu_addr, 0x1000);
+        uint32_t maxChars = (uint32_t)wParam;
+        if (maxChars > 2000) maxChars = 2000;
+        /* Zero the ARM buffer */
+        emem.Write16(gt_emu_addr, 0);
+        LPARAM saved_native_buf = lParam;
+        lParam = (LPARAM)gt_emu_addr;
+        wParam = maxChars;
+        /* Forward to ARM WndProc */
+        uint32_t arm_wndproc = it->second;
+        uint32_t args[4] = {
+            (uint32_t)(uintptr_t)hwnd, (uint32_t)msg,
+            (uint32_t)wParam, (uint32_t)lParam
+        };
+        uint32_t result = s_instance->callback_executor(arm_wndproc, args, 4);
+        /* Copy ARM buffer back to native */
+        wchar_t* native_buf = (wchar_t*)saved_native_buf;
+        for (uint32_t i = 0; i < maxChars; i++) {
+            native_buf[i] = (wchar_t)emem.Read16(gt_emu_addr + i * 2);
+            if (native_buf[i] == 0) break;
+        }
+        native_buf[maxChars - 1] = 0;
+        return (LRESULT)(intptr_t)(int32_t)result;
+    }
+    case WM_GETTEXTLENGTH:
+        break; /* No pointers, safe to forward */
     case WM_CREATE:
     case WM_NCCREATE: {
-        /* Marshal CREATESTRUCT into emulated memory (32-bit layout) */
+        /* Marshal CREATESTRUCT into emulated memory (32-bit layout).
+           Layout: lpCreateParams(0), hInstance(4), hMenu(8), hwndParent(12),
+           cy(16), cx(20), y(24), x(28), style(32), lpszName(36),
+           lpszClass(40), dwExStyle(44).
+           Strings at offsets 36/40 MUST be valid ARM pointers — ARM controls
+           (e.g. RichEdit) check lpszClass during Init and fail if NULL. */
         CREATESTRUCTW* cs = (CREATESTRUCTW*)lParam;
         static uint32_t cs_emu_addr = 0x3F000000;
         EmulatedMemory& emem = s_instance->mem;
         if (!emem.IsValid(cs_emu_addr)) emem.Alloc(cs_emu_addr, 0x1000);
+
+        /* Marshal lpszName string (window title) at cs_emu_addr + 0x100 */
+        uint32_t name_ptr = 0;
+        if (cs->lpszName) {
+            name_ptr = cs_emu_addr + 0x100;
+            const wchar_t* name = cs->lpszName;
+            uint32_t off = 0;
+            for (; name[off] && off < 200; off++)
+                emem.Write16(name_ptr + off * 2, name[off]);
+            emem.Write16(name_ptr + off * 2, 0);
+        }
+        /* Marshal lpszClass string at cs_emu_addr + 0x300 */
+        uint32_t class_ptr = 0;
+        if (cs->lpszClass) {
+            class_ptr = cs_emu_addr + 0x300;
+            const wchar_t* cls = cs->lpszClass;
+            uint32_t off = 0;
+            for (; cls[off] && off < 200; off++)
+                emem.Write16(class_ptr + off * 2, cls[off]);
+            emem.Write16(class_ptr + off * 2, 0);
+        }
+
         emem.Write32(cs_emu_addr + 0,  (uint32_t)(uintptr_t)cs->lpCreateParams);
         emem.Write32(cs_emu_addr + 4,  s_instance->emu_hinstance);
         emem.Write32(cs_emu_addr + 8,  0);
@@ -106,8 +196,8 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         emem.Write32(cs_emu_addr + 24, cs->y);
         emem.Write32(cs_emu_addr + 28, cs->x);
         emem.Write32(cs_emu_addr + 32, cs->style);
-        emem.Write32(cs_emu_addr + 36, 0);
-        emem.Write32(cs_emu_addr + 40, 0);
+        emem.Write32(cs_emu_addr + 36, name_ptr);
+        emem.Write32(cs_emu_addr + 40, class_ptr);
         emem.Write32(cs_emu_addr + 44, cs->dwExStyle);
         lParam = (LPARAM)cs_emu_addr;
         break;
@@ -151,6 +241,14 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     }
 
     uint32_t arm_wndproc = it->second;
+    /* Debug: log key messages to ARM windows */
+    if (msg == WM_CHAR || msg == WM_KEYDOWN || msg == WM_SETTEXT ||
+        msg == WM_LBUTTONDOWN || msg == WM_SETFOCUS || msg == WM_KILLFOCUS) {
+        wchar_t cls[64] = {};
+        GetClassNameW(hwnd, cls, 64);
+        LOG(API, "[API] EmuWndProc: msg=0x%04X hwnd=0x%p class='%ls' wP=0x%X lP=0x%X\n",
+            msg, hwnd, cls, (uint32_t)wParam, (uint32_t)lParam);
+    }
     uint32_t args[4] = {
         (uint32_t)(uintptr_t)hwnd,
         (uint32_t)msg,

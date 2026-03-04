@@ -70,10 +70,25 @@ void Win32Thunks::RegisterMiscHandlers() {
     Thunk("SetClipboardData", 671, stub0("SetClipboardData"));
     Thunk("IsClipboardFormatAvailable", 678, stub0("IsClipboardFormatAvailable"));
     Thunk("EnumClipboardFormats", 675, stub0("EnumClipboardFormats"));
-    /* Caret */
-    Thunk("CreateCaret", 658, stub1("CreateCaret"));
-    Thunk("HideCaret", 660, stub1("HideCaret"));
-    Thunk("ShowCaret", 661, stub1("ShowCaret"));
+    /* Caret — real implementations needed by RichEdit for the blinking cursor */
+    Thunk("CreateCaret", 658, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
+        HBITMAP hbm = (HBITMAP)(uintptr_t)regs[1];
+        regs[0] = CreateCaret(hw, hbm, (int)regs[2], (int)regs[3]);
+        return true;
+    });
+    Thunk("HideCaret", 660, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = HideCaret((HWND)(intptr_t)(int32_t)regs[0]);
+        return true;
+    });
+    Thunk("ShowCaret", 661, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = ShowCaret((HWND)(intptr_t)(int32_t)regs[0]);
+        return true;
+    });
+    Thunk("GetCaretBlinkTime", 664, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = GetCaretBlinkTime();
+        return true;
+    });
     /* Sound */
     Thunk("sndPlaySoundW", 377, stub1("sndPlaySoundW"));
     Thunk("waveOutSetVolume", 382, stub0("waveOutSetVolume"));
@@ -230,6 +245,15 @@ void Win32Thunks::RegisterMiscHandlers() {
     /* Keyboard */
     Thunk("GetKeyboardLayout", 1229, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = 0x04090409; /* US English */
+        return true;
+    });
+    /* Language */
+    Thunk("GetUserDefaultUILanguage", 1318, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = 0x0409; /* US English */
+        return true;
+    });
+    Thunk("MonitorFromPoint", 1522, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = 1; /* fake monitor handle */
         return true;
     });
     /* Ordinal-only entries */

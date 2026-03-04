@@ -253,14 +253,68 @@ void Win32Thunks::RegisterWindowHandlers() {
     Thunk("CallWindowProcW", 285, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         regs[0] = (uint32_t)DefWindowProcW((HWND)(intptr_t)(int32_t)regs[1], regs[2], regs[3], ReadStackArg(regs,mem,0)); return true;
     });
-    Thunk("ScrollWindowEx", 289, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
-    Thunk("SetScrollInfo", 279, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
-    ThunkOrdinal("SetScrollPos", 280);
-    ThunkOrdinal("SetScrollRange", 281);
-    ThunkOrdinal("GetScrollInfo", 282);
-    thunk_handlers["SetScrollPos"] = thunk_handlers["SetScrollInfo"];
-    thunk_handlers["SetScrollRange"] = thunk_handlers["SetScrollInfo"];
-    thunk_handlers["GetScrollInfo"] = thunk_handlers["SetScrollInfo"];
+    Thunk("ScrollWindowEx", 289, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
+        int dx = (int)regs[1], dy = (int)regs[2];
+        RECT rcScroll, rcClip, rcUpdate;
+        RECT *pScroll = NULL, *pClip = NULL, *pUpdate = NULL;
+        if (regs[3]) {
+            rcScroll.left=mem.Read32(regs[3]); rcScroll.top=mem.Read32(regs[3]+4);
+            rcScroll.right=mem.Read32(regs[3]+8); rcScroll.bottom=mem.Read32(regs[3]+12);
+            pScroll = &rcScroll;
+        }
+        uint32_t a4 = ReadStackArg(regs,mem,0); /* prcClip */
+        uint32_t a5 = ReadStackArg(regs,mem,1); /* hrgnUpdate */
+        uint32_t a6 = ReadStackArg(regs,mem,2); /* prcUpdate */
+        uint32_t a7 = ReadStackArg(regs,mem,3); /* flags */
+        if (a4) {
+            rcClip.left=mem.Read32(a4); rcClip.top=mem.Read32(a4+4);
+            rcClip.right=mem.Read32(a4+8); rcClip.bottom=mem.Read32(a4+12);
+            pClip = &rcClip;
+        }
+        if (a6) pUpdate = &rcUpdate;
+        regs[0] = ScrollWindowEx(hw, dx, dy, pScroll, pClip, (HRGN)(uintptr_t)a5, pUpdate, a7);
+        if (a6 && pUpdate) {
+            mem.Write32(a6, rcUpdate.left); mem.Write32(a6+4, rcUpdate.top);
+            mem.Write32(a6+8, rcUpdate.right); mem.Write32(a6+12, rcUpdate.bottom);
+        }
+        return true;
+    });
+    Thunk("SetScrollInfo", 279, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
+        int nBar = (int)regs[1];
+        SCROLLINFO si = {}; si.cbSize = sizeof(si);
+        if (regs[2]) {
+            si.fMask = mem.Read32(regs[2]+4); si.nMin = mem.Read32(regs[2]+8);
+            si.nMax = mem.Read32(regs[2]+12); si.nPage = mem.Read32(regs[2]+16);
+            si.nPos = mem.Read32(regs[2]+20);
+        }
+        regs[0] = SetScrollInfo(hw, nBar, &si, regs[3]);
+        return true;
+    });
+    Thunk("GetScrollInfo", 282, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
+        int nBar = (int)regs[1];
+        SCROLLINFO si = {}; si.cbSize = sizeof(si);
+        if (regs[2]) si.fMask = mem.Read32(regs[2]+4);
+        BOOL ret = GetScrollInfo(hw, nBar, &si);
+        if (regs[2] && ret) {
+            mem.Write32(regs[2]+8, si.nMin); mem.Write32(regs[2]+12, si.nMax);
+            mem.Write32(regs[2]+16, si.nPage); mem.Write32(regs[2]+20, si.nPos);
+            mem.Write32(regs[2]+24, si.nTrackPos);
+        }
+        regs[0] = ret;
+        return true;
+    });
+    Thunk("SetScrollPos", 280, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = SetScrollPos((HWND)(intptr_t)(int32_t)regs[0], (int)regs[1], (int)regs[2], regs[3]);
+        return true;
+    });
+    Thunk("SetScrollRange", 281, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
+        regs[0] = SetScrollRange(hw, (int)regs[1], (int)regs[2], (int)regs[3], 0);
+        return true;
+    });
     Thunk("EnumWindows", 291, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
     thunk_handlers["GetWindowThreadProcessId"] = thunk_handlers["EnumWindows"];
     Thunk("RegisterWindowMessageW", 891, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {

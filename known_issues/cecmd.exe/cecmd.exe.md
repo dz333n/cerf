@@ -102,16 +102,20 @@ cecmd.exe ships two bitmap versions: 105 is a low-color alternative and 155 is t
 
 ---
 
-## 9. Show menu view modes (Brief/Full/Large Icons) don't work properly; no radio selection
+## 9. Show menu view modes (Brief/Full/Large Icons) don't work — RESOLVED
 
-**Description**: In the "Show" menu, switching between "Brief", "Full", and "Large Icons" view modes does not affect the file list as expected. Additionally, no radio button circle is shown in the menu to indicate the currently active view mode.
+**Description**: In the "Show" menu, switching between "Brief", "Full", and "Large Icons" view modes did not affect the file list. Additionally, no radio button circle was shown in the menu to indicate the currently active view mode.
+
+**Root cause**: `WM_STYLECHANGING` and `WM_STYLECHANGED` were blocked in EmuWndProc (routed to DefWindowProcW instead of the ARM WndProc). ARM commctrl's ListView needs these messages to update its internal state when the parent changes the window style to switch view modes (LVS_ICON, LVS_LIST, LVS_REPORT).
+
+**Fix**: Added STYLESTRUCT marshaling in `callbacks.cpp` EmuWndProc — the native 64-bit STYLESTRUCT (styleOld + styleNew) is copied into ARM emulated memory at a fixed address, and the 32-bit ARM pointer is passed to the ARM WndProc. All three view modes (Brief, Full, Large Icons) now switch correctly.
+
+**Remaining**: Menu radio marks (bullet indicating current view) still don't show. This is a separate cosmetic issue — the view switching itself works.
 
 **Screenshots**: `screenshots/cecmd_chaning_views/`
 - `default full.png` — default Full view with Name/Ext, Size, Date/Time columns
-- `brief.png` — after selecting Brief mode
-- `big icons.png` — after selecting Large Icons mode
-
-**Status**: Open — needs investigation.
+- `brief.png` — after selecting Brief mode (now works)
+- `big icons.png` — after selecting Large Icons mode (now works)
 
 ---
 

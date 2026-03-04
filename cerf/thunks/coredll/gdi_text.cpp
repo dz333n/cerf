@@ -99,6 +99,7 @@ void Win32Thunks::RegisterGdiTextHandlers() {
        r0=hdc, r1=x, r2=y, r3=options, stack[0]=lprc, stack[1]=lpString,
        stack[2]=nCount, stack[3]=lpDx */
     Thunk("ExtTextOutW", 896, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        LOG(API, "[API] ExtTextOutW CALLED r0=0x%08X r1=%d r2=%d r3=0x%X\n", regs[0], regs[1], regs[2], regs[3]);
         HDC hdc = (HDC)(intptr_t)(int32_t)regs[0];
         int x = (int)regs[1], y = (int)regs[2];
         UINT options = regs[3];
@@ -131,6 +132,10 @@ void Win32Thunks::RegisterGdiTextHandlers() {
         }
         BOOL ret = ExtTextOutW(hdc, x, y, options, prc,
                                text.empty() ? NULL : text.c_str(), count, pdx);
+        if (!text.empty() && count > 0 && count < 200) {
+            LOG(API, "[API] ExtTextOutW(hdc=0x%p, x=%d, y=%d, opts=0x%X, count=%d, text='%ls') -> %d\n",
+                hdc, x, y, options, count, text.c_str(), ret);
+        }
         regs[0] = ret;
         return true;
     });
@@ -219,9 +224,21 @@ void Win32Thunks::RegisterGdiTextHandlers() {
         regs[0] = (uint32_t)result;
         return true;
     });
-    Thunk("GetTextFaceW", 967, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(API, "[API] GetTextFaceW(hdc=0x%08X, nCount=%d, lpFaceName=0x%08X) -> 0 (stub)\n",
-               regs[0], regs[1], regs[2]);
-        regs[0] = 0; return true;
+    Thunk("GetTextFaceW", 967, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HDC hdc = (HDC)(intptr_t)(int32_t)regs[0];
+        int nCount = (int)regs[1];
+        uint32_t buf_addr = regs[2];
+        wchar_t face[256] = {};
+        int ret = ::GetTextFaceW(hdc, 256, face);
+        LOG(API, "[API] GetTextFaceW(hdc=0x%08X, nCount=%d) -> '%ls' (%d)\n",
+               regs[0], nCount, face, ret);
+        if (buf_addr && nCount > 0) {
+            int copyLen = (ret < nCount) ? ret : nCount - 1;
+            for (int i = 0; i < copyLen; i++)
+                mem.Write16(buf_addr + i * 2, face[i]);
+            mem.Write16(buf_addr + copyLen * 2, 0);
+        }
+        regs[0] = (uint32_t)ret;
+        return true;
     });
 }

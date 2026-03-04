@@ -127,7 +127,9 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     RegisterGdiDcHandlers();
     RegisterGdiDrawHandlers();
     RegisterGdiTextHandlers();
-    InitWceSysFont();
+    /* InitWceSysFont() is deferred — it calls LoadRegistry() which needs
+       device_dir, but that isn't set until InitVFS() runs after construction.
+       It's called from InitVFS() instead. */
     RegisterGdiRegionHandlers();
     RegisterWindowHandlers();
     RegisterWindowPropsHandlers();

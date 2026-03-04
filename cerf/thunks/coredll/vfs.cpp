@@ -55,6 +55,10 @@ void Win32Thunks::InitVFS(const std::string& device_override) {
     /* Also set wince_sys_dir for ARM DLL loading compatibility —
        it now points to the Windows subdirectory of the device fs */
     wince_sys_dir = device_fs_root + "Windows\\";
+
+    /* Now that device_dir is set, initialize the WinCE system font from registry.
+       This was deferred from the constructor because LoadRegistry needs device_dir. */
+    InitWceSysFont();
 }
 
 /* Helper: check if a character is a drive letter */

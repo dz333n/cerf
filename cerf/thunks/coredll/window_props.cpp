@@ -75,9 +75,13 @@ void Win32Thunks::RegisterWindowPropsHandlers() {
         regs[0]=ret; return true;
     });
     Thunk("InvalidateRect", 250, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
         RECT*prc=NULL; RECT rc;
         if(regs[1]){rc.left=mem.Read32(regs[1]);rc.top=mem.Read32(regs[1]+4);rc.right=mem.Read32(regs[1]+8);rc.bottom=mem.Read32(regs[1]+12);prc=&rc;}
-        regs[0]=InvalidateRect((HWND)(intptr_t)(int32_t)regs[0],prc,regs[2]); return true;
+        BOOL ret = InvalidateRect(hw,prc,regs[2]);
+        LOG(API, "[API] InvalidateRect(0x%p, %s, %d) -> %d\n", hw,
+            prc ? "rect" : "NULL", regs[2], ret);
+        regs[0]=ret; return true;
     });
     Thunk("ValidateRect", 278, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0]=ValidateRect((HWND)(intptr_t)(int32_t)regs[0],NULL); return true; });
     Thunk("GetUpdateRect", 274, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {

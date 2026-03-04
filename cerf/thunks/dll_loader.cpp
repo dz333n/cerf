@@ -23,11 +23,17 @@ Win32Thunks::LoadedDll* Win32Thunks::LoadArmDll(const std::string& dll_name) {
     auto it = loaded_dlls.find(wlower);
     if (it != loaded_dlls.end()) return &it->second;
 
-    /* Try to find the ARM DLL file */
-    std::string dll_path = exe_dir + dll_name;
-    FILE* f = fopen(dll_path.c_str(), "rb");
-    if (!f && !wince_sys_dir.empty()) {
+    /* Try to find the ARM DLL file.
+       Search order: wince_sys_dir first (canonical system DLLs — guaranteed
+       to be standard PE, not UPX-packed), then exe_dir (app-bundled DLLs). */
+    std::string dll_path;
+    FILE* f = nullptr;
+    if (!wince_sys_dir.empty()) {
         dll_path = wince_sys_dir + dll_name;
+        f = fopen(dll_path.c_str(), "rb");
+    }
+    if (!f) {
+        dll_path = exe_dir + dll_name;
         f = fopen(dll_path.c_str(), "rb");
     }
     if (!f) {

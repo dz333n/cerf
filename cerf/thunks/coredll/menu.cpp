@@ -32,6 +32,12 @@ void Win32Thunks::RegisterMenuHandlers() {
         regs[0] = CheckMenuRadioItem((HMENU)(intptr_t)(int32_t)regs[0], regs[1], regs[2], regs[3], ReadStackArg(regs, mem, 0));
         return true;
     });
+    Thunk("GetMenuState", 843, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = GetMenuState((HMENU)(intptr_t)(int32_t)regs[0], regs[1], regs[2]); return true;
+    });
+    Thunk("GetMenuItemCount", 888, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        regs[0] = (uint32_t)GetMenuItemCount((HMENU)(intptr_t)(int32_t)regs[0]); return true;
+    });
     Thunk("DrawMenuBar", 856, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = DrawMenuBar((HWND)(intptr_t)(int32_t)regs[0]); return true;
     });
