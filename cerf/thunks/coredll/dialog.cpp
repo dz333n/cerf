@@ -122,16 +122,19 @@ void Win32Thunks::RegisterDialogHandlers() {
         /* Workaround: CreateDialogIndirectParamW on desktop Windows positions
            child controls at y=0 when WS_CHILD is in the template style.
            Strip WS_CHILD before creation (so DLU conversion works), then
-           reparent the window as a child afterwards. */
+           reparent the window as a child afterwards.
+           Use WS_POPUP to prevent WS_OVERLAPPED default (which adds a caption).
+           Strip WS_VISIBLE to prevent the popup from flashing on screen. */
         uint32_t tmpl_style = *(uint32_t*)&tmpl[0];
         bool was_child = (tmpl_style & WS_CHILD) != 0;
         if (was_child)
-            *(uint32_t*)&tmpl[0] = tmpl_style & ~(uint32_t)WS_CHILD;
+            *(uint32_t*)&tmpl[0] = (tmpl_style & ~(uint32_t)(WS_CHILD | WS_VISIBLE)) | WS_POPUP;
         HWND dlg = CreateDialogIndirectParamW(GetModuleHandleW(NULL),
             (LPCDLGTEMPLATEW)tmpl.data(), (HWND)(intptr_t)(int32_t)hwndParent, EmuDlgProc, initParam);
         if (dlg && was_child) {
-            SetWindowLongPtrW(dlg, GWL_STYLE,
-                GetWindowLongPtrW(dlg, GWL_STYLE) | WS_CHILD);
+            LONG_PTR style = GetWindowLongPtrW(dlg, GWL_STYLE);
+            style = (style & ~(LONG_PTR)(WS_POPUP | WS_CAPTION)) | WS_CHILD;
+            SetWindowLongPtrW(dlg, GWL_STYLE, style);
             SetParent(dlg, (HWND)(intptr_t)(int32_t)hwndParent);
         }
         pending_arm_dlgproc = 0;

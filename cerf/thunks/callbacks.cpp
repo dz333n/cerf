@@ -90,7 +90,9 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         /* Marshal STYLESTRUCT (8 bytes: styleOld + styleNew) into ARM memory.
            wParam = GWL_STYLE or GWL_EXSTYLE, lParam = STYLESTRUCT*.
            ARM commctrl (ListView, TreeView, etc.) handles these to update
-           internal state when window styles change (e.g. view mode switching). */
+           internal state when window styles change (e.g. view mode switching).
+           For WM_STYLECHANGING, the ARM WndProc may modify styleNew to reject
+           or alter proposed style changes — we must copy it back. */
         if (!lParam) return DefWindowProcW(hwnd, msg, wParam, lParam);
         STYLESTRUCT* ss = (STYLESTRUCT*)lParam;
         static uint32_t ss_emu_addr = 0x3F002200;
@@ -98,8 +100,15 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         if (!emem.IsValid(ss_emu_addr)) emem.Alloc(ss_emu_addr, 0x1000);
         emem.Write32(ss_emu_addr + 0, ss->styleOld);
         emem.Write32(ss_emu_addr + 4, ss->styleNew);
-        lParam = (LPARAM)ss_emu_addr;
-        break;
+        uint32_t arm_wndproc = it->second;
+        uint32_t args[4] = {
+            (uint32_t)(uintptr_t)hwnd, (uint32_t)msg,
+            (uint32_t)wParam, (uint32_t)ss_emu_addr
+        };
+        uint32_t result = s_instance->callback_executor(arm_wndproc, args, 4);
+        if (msg == WM_STYLECHANGING)
+            ss->styleNew = emem.Read32(ss_emu_addr + 4);
+        return (LRESULT)(intptr_t)(int32_t)result;
     }
     case WM_SETTEXT: {
         /* Marshal the string from native memory into ARM emulated memory.
@@ -166,9 +175,11 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         EmulatedMemory& emem = s_instance->mem;
         if (!emem.IsValid(cs_emu_addr)) emem.Alloc(cs_emu_addr, 0x1000);
 
-        /* Marshal lpszName string (window title) at cs_emu_addr + 0x100 */
+        /* Marshal lpszName string (window title) at cs_emu_addr + 0x100.
+           IS_INTRESOURCE: if the pointer is actually an ATOM (small integer
+           via MAKEINTRESOURCE), don't dereference it as a string. */
         uint32_t name_ptr = 0;
-        if (cs->lpszName) {
+        if (cs->lpszName && !IS_INTRESOURCE(cs->lpszName)) {
             name_ptr = cs_emu_addr + 0x100;
             const wchar_t* name = cs->lpszName;
             uint32_t off = 0;
@@ -178,7 +189,7 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         }
         /* Marshal lpszClass string at cs_emu_addr + 0x300 */
         uint32_t class_ptr = 0;
-        if (cs->lpszClass) {
+        if (cs->lpszClass && !IS_INTRESOURCE(cs->lpszClass)) {
             class_ptr = cs_emu_addr + 0x300;
             const wchar_t* cls = cs->lpszClass;
             uint32_t off = 0;
