@@ -160,8 +160,9 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
 
        KDataStruct layout (from nkarm.h):
          offset 0x000: lpvTls     — pointer to current thread's TLS slot array
-         offset 0x004: ahSys[0]   — SH_CURTHREAD (current thread handle)
-         offset 0x008: ahSys[1]   — SH_CURPROC (current process handle)
+         offset 0x004: ahSys[0]   — SH_WIN32
+         offset 0x008: ahSys[1]   — SH_CURTHREAD (current thread handle)
+         offset 0x00C: ahSys[2]   — SH_CURPROC (current process handle)
 
        TLS array layout: 7 pre-TLS DWORDs (negative indices) + 64 TLS slots.
        We place this at 0xFFFFC000 (start of the allocated page).
@@ -173,8 +174,9 @@ Win32Thunks::Win32Thunks(EmulatedMemory& mem)
     /* lpvTls → slot 0 of the TLS array */
     uint32_t emu_tls_slots = 0xFFFFC000 + 7 * 4;  /* 0xFFFFC01C */
     mem.Write32(0xFFFFC800 + 0x000, emu_tls_slots);  /* lpvTls */
-    mem.Write32(0xFFFFC800 + 0x004, GetCurrentThreadId());  /* SH_CURTHREAD */
-    mem.Write32(0xFFFFC800 + 0x008, GetCurrentProcessId()); /* SH_CURPROC */
+    mem.Write32(0xFFFFC800 + 0x004, GetCurrentThreadId());  /* ahSys[0] SH_WIN32 (compat) */
+    mem.Write32(0xFFFFC800 + 0x008, GetCurrentThreadId());  /* ahSys[1] SH_CURTHREAD */
+    mem.Write32(0xFFFFC800 + 0x00C, GetCurrentProcessId()); /* ahSys[2] SH_CURPROC */
     LOG(EMU, "[EMU] KData TLS array at 0x%08X, lpvTls at 0xFFFFC800 -> 0x%08X\n",
         0xFFFFC000, emu_tls_slots);
 
