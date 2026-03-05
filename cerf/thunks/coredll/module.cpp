@@ -54,20 +54,18 @@ void Win32Thunks::RegisterModuleHandlers() {
             LOG(API, "[API]   DLL not found: %s\n", narrow_name.c_str());
             regs[0] = 0; return true;
         }
-        /* Call DllMain(DLL_PROCESS_ATTACH) if loaded fresh and callback_executor available */
-        /* Note: LoadArmDll queues entry points, but for runtime loads we call immediately */
+        /* Call DllMain(DLL_PROCESS_ATTACH) for all pending DLLs (dependencies first, then the
+           loaded DLL itself). LoadArmDll queues entry points for the DLL and all its dependencies;
+           dependencies are queued before the DLL that imports them, so iterating in order gives
+           correct initialization sequence. */
         if (callback_executor) {
-            /* Check if there are pending inits for this DLL and call them now */
-            for (auto it2 = pending_dll_inits.begin(); it2 != pending_dll_inits.end(); ) {
-                if (it2->base_addr == dll->base_addr) {
-                    LOG(API, "[API]   Calling DllMain at 0x%08X\n", it2->entry_point);
-                    uint32_t args[3] = { it2->base_addr, 1 /* DLL_PROCESS_ATTACH */, 0 };
-                    uint32_t result = callback_executor(it2->entry_point, args, 3);
-                    LOG(API, "[API]   DllMain returned %d\n", result);
-                    it2 = pending_dll_inits.erase(it2);
-                } else {
-                    ++it2;
-                }
+            while (!pending_dll_inits.empty()) {
+                auto init = pending_dll_inits.front();
+                pending_dll_inits.erase(pending_dll_inits.begin());
+                LOG(API, "[API]   Calling DllMain at 0x%08X\n", init.entry_point);
+                uint32_t args[3] = { init.base_addr, 1 /* DLL_PROCESS_ATTACH */, 0 };
+                uint32_t result = callback_executor(init.entry_point, args, 3);
+                LOG(API, "[API]   DllMain returned %d\n", result);
             }
         }
         regs[0] = dll->base_addr;
@@ -207,15 +205,12 @@ void Win32Thunks::RegisterModuleHandlers() {
         /* LOAD_LIBRARY_AS_DATAFILE (0x2) — skip DllMain, just return handle for resources */
         bool as_datafile = (flags & 0x2) != 0;
         if (!as_datafile && callback_executor) {
-            for (auto it2 = pending_dll_inits.begin(); it2 != pending_dll_inits.end(); ) {
-                if (it2->base_addr == dll->base_addr) {
-                    LOG(API, "[API]   Calling DllMain at 0x%08X\n", it2->entry_point);
-                    uint32_t args[3] = { it2->base_addr, 1, 0 };
-                    callback_executor(it2->entry_point, args, 3);
-                    it2 = pending_dll_inits.erase(it2);
-                } else {
-                    ++it2;
-                }
+            while (!pending_dll_inits.empty()) {
+                auto init = pending_dll_inits.front();
+                pending_dll_inits.erase(pending_dll_inits.begin());
+                LOG(API, "[API]   Calling DllMain at 0x%08X\n", init.entry_point);
+                uint32_t args[3] = { init.base_addr, 1, 0 };
+                callback_executor(init.entry_point, args, 3);
             }
         }
         regs[0] = dll->base_addr;

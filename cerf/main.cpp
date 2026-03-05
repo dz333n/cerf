@@ -206,10 +206,27 @@ int main(int argc, char* argv[]) {
     cpu.r[0] = pe_info.image_base;  /* hInstance */
     cpu.r[1] = 0;                    /* hPrevInstance */
 
-    /* Allocate empty command line in emulated memory */
+    /* Build lpCmdLine from arguments after exe_path */
     uint32_t cmdline_addr = 0x60000000;
     mem.Alloc(cmdline_addr, 0x1000);
-    mem.Write16(cmdline_addr, 0); /* Empty wide string */
+    {
+        std::wstring cmdline_str;
+        bool found_exe = false;
+        for (int i = 1; i < argc; i++) {
+            if (!found_exe && argv[i] == exe_path) {
+                found_exe = true;
+                continue;
+            }
+            if (!found_exe) continue; /* skip options before exe_path */
+            if (!cmdline_str.empty()) cmdline_str += L' ';
+            for (const char* p = argv[i]; *p; p++)
+                cmdline_str += (wchar_t)*p;
+        }
+        /* Write wide string to emulated memory */
+        for (size_t j = 0; j < cmdline_str.size() && j < 0x7FE; j++)
+            mem.Write16(cmdline_addr + (uint32_t)(j * 2), (uint16_t)cmdline_str[j]);
+        mem.Write16(cmdline_addr + (uint32_t)(cmdline_str.size() * 2), 0);
+    }
     cpu.r[2] = cmdline_addr;
     cpu.r[3] = 1; /* SW_SHOWNORMAL */
 

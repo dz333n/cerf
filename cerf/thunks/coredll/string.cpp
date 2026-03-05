@@ -514,6 +514,22 @@ void Win32Thunks::RegisterStringHandlers() {
         return true;
     });
 
+    /* StringCbPrintfW(pszDest, cbDest, pszFormat, ...) — byte-count version */
+    Thunk("StringCbPrintfW", 1700, [this, wprintf_format](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t dst = regs[0], cb = regs[1];
+        uint32_t cch = cb / 2;
+        std::wstring fmt = ReadWStringFromEmu(mem, regs[2]);
+        uint32_t args[10];
+        args[0] = regs[3];
+        for (int i = 1; i < 10; i++) args[i] = ReadStackArg(regs, mem, i - 1);
+        std::wstring result = wprintf_format(mem, fmt, args, 10);
+        if (!dst || cch == 0) { regs[0] = 0x80070057; return true; }
+        uint32_t copy_len = std::min((uint32_t)result.size(), cch - 1);
+        for (uint32_t i = 0; i < copy_len; i++) mem.Write16(dst + i * 2, result[i]);
+        mem.Write16(dst + copy_len * 2, 0);
+        regs[0] = (result.size() >= cch) ? 0x8007007A : 0;
+        return true;
+    });
     Thunk("StringCchCopyW", 1689, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t dst = regs[0], cch = regs[1], src_ptr = regs[2];
         if (!dst || cch == 0) { regs[0] = 0x80070057; return true; } /* E_INVALIDARG */
@@ -535,6 +551,21 @@ void Win32Thunks::RegisterStringHandlers() {
         mem.Write16(dst + copy_len * 2, 0);
         if (ppEnd) mem.Write32(ppEnd, dst + copy_len * 2);
         if (pcchRemaining) mem.Write32(pcchRemaining, cch - copy_len);
+        regs[0] = (src.size() >= cch) ? 0x8007007A : 0;
+        return true;
+    });
+    /* StringCbCopyExW(dst, cbDest, src, ppszDestEnd, pcbRemaining, dwFlags) */
+    Thunk("StringCbCopyExW", 1692, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t dst = regs[0], cb = regs[1], src_ptr = regs[2], ppEnd = regs[3];
+        uint32_t pcbRemaining = ReadStackArg(regs, mem, 0);
+        uint32_t cch = cb / 2;
+        if (!dst || cch == 0) { regs[0] = 0x80070057; return true; }
+        std::wstring src = ReadWStringFromEmu(mem, src_ptr);
+        uint32_t copy_len = std::min((uint32_t)src.size(), cch - 1);
+        for (uint32_t i = 0; i < copy_len; i++) mem.Write16(dst + i * 2, src[i]);
+        mem.Write16(dst + copy_len * 2, 0);
+        if (ppEnd) mem.Write32(ppEnd, dst + copy_len * 2);
+        if (pcbRemaining) mem.Write32(pcbRemaining, (cch - copy_len) * 2);
         regs[0] = (src.size() >= cch) ? 0x8007007A : 0;
         return true;
     });
