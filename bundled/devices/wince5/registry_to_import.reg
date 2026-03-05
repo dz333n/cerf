@@ -4684,4 +4684,7 @@ REGEDIT4
 "00001005"=dword:00000010
 "0000101a"=dword:00000001
 
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Pocket Word\Directories]
+"Templates"="\\My Documents\\Templates"
+
 [HKEY_USERS]
