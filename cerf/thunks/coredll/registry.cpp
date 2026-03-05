@@ -3,6 +3,14 @@
 #include "../../log.h"
 #include <cstdio>
 
+/* WinCE registry value names are case-insensitive. Normalize to lowercase
+   so std::map lookups match regardless of caller casing. */
+static std::wstring NormalizeValueName(const std::wstring& name) {
+    std::wstring lower = name;
+    for (auto& c : lower) c = towlower(c);
+    return lower;
+}
+
 void Win32Thunks::RegisterRegistryHandlers() {
     Thunk("RegOpenKeyExW", 461, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
@@ -61,7 +69,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
             LOG(REG, "[REG] RegQueryValueExW('%ls', '%ls') -> KEY NOT FOUND\n", kit->second.c_str(), value_name.c_str());
             regs[0] = ERROR_FILE_NOT_FOUND; return true;
         }
-        auto vit = rit->second.values.find(value_name);
+        auto vit = rit->second.values.find(NormalizeValueName(value_name));
         if (vit == rit->second.values.end()) {
             LOG(REG, "[REG] RegQueryValueExW('%ls', '%ls') -> VALUE NOT FOUND\n", kit->second.c_str(), value_name.c_str());
             regs[0] = ERROR_FILE_NOT_FOUND; return true;
@@ -94,7 +102,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
             val.data.resize(cbData);
             for (uint32_t i = 0; i < cbData; i++) val.data[i] = mem.Read8(pData + i);
         }
-        registry[kit->second].values[value_name] = val;
+        registry[kit->second].values[NormalizeValueName(value_name)] = val;
         regs[0] = ERROR_SUCCESS; return true;
     });
     Thunk("RegDeleteKeyW", 457, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
@@ -113,7 +121,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
         auto kit = hkey_map.find(hkey);
         if (kit != hkey_map.end()) {
             auto rit = registry.find(kit->second);
-            if (rit != registry.end()) rit->second.values.erase(value_name);
+            if (rit != registry.end()) rit->second.values.erase(NormalizeValueName(value_name));
         }
         regs[0] = ERROR_SUCCESS; return true;
     });

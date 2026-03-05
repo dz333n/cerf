@@ -94,6 +94,8 @@ void Win32Thunks::LoadRegistry() {
                     val.data.push_back((uint8_t)strtoul(hex.substr(i, 2).c_str(), nullptr, 16));
                 }
             }
+            /* WinCE registry is case-insensitive for value names */
+            for (auto& c : name) c = towlower(c);
             registry[current_key].values[name] = val;
         }
         LOG(REG, "[REG] Loaded %zu keys\n", registry.size());
