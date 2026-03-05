@@ -94,8 +94,23 @@ void Win32Thunks::RegisterWindowHandlers() {
                Ensure WS_CAPTION is set so desktop Windows draws the title text. */
             style |= WS_CAPTION;
             int bw = GetSystemMetrics(SM_CXBORDER), bh = GetSystemMetrics(SM_CYBORDER);
-            x = -bw; y = -bh;
-            w = (int)screen_width+bw*2; h = (int)screen_height+bh*2;
+            if (x == (int)0x80000000 || y == (int)0x80000000 ||
+                w == (int)0x80000000 || h == (int)0x80000000 ||
+                (w == 0 && h == 0)) {
+                /* CW_USEDEFAULT or zero size — go fullscreen like WinCE */
+                x = -bw; y = -bh;
+                w = (int)screen_width+bw*2; h = (int)screen_height+bh*2;
+            } else {
+                /* App specified explicit dimensions.  On WinCE the window frame
+                   is drawn inside the client area (no non-client region), so
+                   w/h effectively describe the client area.  Desktop Windows
+                   has a non-client frame that shrinks the client area, so
+                   inflate to ensure the client area matches what WinCE gave. */
+                RECT rc = { 0, 0, w, h };
+                AdjustWindowRectEx(&rc, style, FALSE, exStyle);
+                w = rc.right - rc.left;
+                h = rc.bottom - rc.top;
+            }
             exStyle |= WS_EX_APPWINDOW;
         } else {
             if (x==(int)0x80000000) x=0; if (y==(int)0x80000000) y=0;
