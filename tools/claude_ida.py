@@ -121,6 +121,11 @@ def _discover_live_instances(force: bool = False) -> list[dict[str, Any]]:
     return instances
 
 
+def _instance_label(inst: dict[str, Any]) -> str:
+    """Format an instance record for display in error messages."""
+    return f"  - {inst['instance_id']} (port={inst.get('port')}, pid={inst.get('pid')})"
+
+
 def _resolve_target(target: Optional[str]) -> dict[str, Any]:
     """
     Resolve a target to a single instance record.
