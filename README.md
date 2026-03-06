@@ -1,6 +1,4 @@
-# CERF - Windows CE Runtime Foundation
-
-![Logo](logo.png)
+# <img src="gweslab.png" width="24" height="24" /> CERF - Windows CE Runtime Foundation
 
 Run original Windows CE ARM applications on modern desktop Windows.
 
