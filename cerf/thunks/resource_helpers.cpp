@@ -4,7 +4,7 @@
 #include "../log.h"
 
 /* Write WIN32_FIND_DATAW to emulated memory using WinCE struct layout.
-   WinCE layout (has dwOID, no dwReserved0/1, no cAlternateFileName):
+   WinCE CE_FIND_DATA layout (has dwOID, no dwReserved0/1, no cAlternateFileName):
      +0   DWORD  dwFileAttributes
      +4   FILETIME ftCreationTime
      +12  FILETIME ftLastAccessTime
@@ -25,7 +25,7 @@ void Win32Thunks::WriteFindDataToEmu(EmulatedMemory& mem, uint32_t addr, const W
     mem.Write32(addr + 28, fd.nFileSizeHigh);
     mem.Write32(addr + 32, fd.nFileSizeLow);
     mem.Write32(addr + 36, 0); /* dwOID — no real OID, just zero */
-    /* Write filename at offset 40 */
+    /* cFileName at offset 40 */
     for (int i = 0; i < MAX_PATH && fd.cFileName[i]; i++) {
         mem.Write16(addr + 40 + i * 2, fd.cFileName[i]);
     }

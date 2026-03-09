@@ -223,6 +223,22 @@ void Win32Thunks::RegisterSystemHandlers() {
     Thunk("ReleaseMutex", 556, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = ReleaseMutex((HANDLE)(intptr_t)(int32_t)regs[0]); return true;
     });
+    Thunk("CreateSemaphoreW", 1238, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        /* CreateSemaphoreW(lpSA, lInitialCount, lMaximumCount, lpName) */
+        HANDLE h = CreateSemaphoreW(NULL, (LONG)regs[1], (LONG)regs[2], NULL);
+        LOG(API, "[API] CreateSemaphoreW(init=%d, max=%d) -> 0x%p\n",
+            (int)regs[1], (int)regs[2], h);
+        regs[0] = (uint32_t)(uintptr_t)h;
+        return true;
+    });
+    Thunk("ReleaseSemaphore", 1239, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        LONG prev = 0;
+        BOOL ok = ReleaseSemaphore((HANDLE)(intptr_t)(int32_t)regs[0], (LONG)regs[1], &prev);
+        LOG(API, "[API] ReleaseSemaphore(0x%08X, count=%d) -> %d (prev=%d)\n",
+            regs[0], (int)regs[1], ok, prev);
+        regs[0] = ok;
+        return true;
+    });
     /* TLS — emulated via the KData page at 0xFFFFC800.
        WinCE ARM code can access TLS directly through memory:
          lpvTls = *(DWORD*)0xFFFFC800   (pointer to TLS slot array)
@@ -567,8 +583,37 @@ void Win32Thunks::RegisterSystemHandlers() {
     });
     /* Ordinal-only entries */
     ThunkOrdinal("GetTimeZoneInformation", 27);
-    ThunkOrdinal("CompareFileTime", 18);
-    ThunkOrdinal("SystemTimeToFileTime", 19);
+    Thunk("CompareFileTime", 18, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        /* CompareFileTime(lpFileTime1, lpFileTime2) -> -1, 0, or 1 */
+        uint32_t a1 = regs[0], a2 = regs[1];
+        FILETIME ft1 = { mem.Read32(a1), mem.Read32(a1 + 4) };
+        FILETIME ft2 = { mem.Read32(a2), mem.Read32(a2 + 4) };
+        regs[0] = (uint32_t)CompareFileTime(&ft1, &ft2);
+        return true;
+    });
+    Thunk("SystemTimeToFileTime", 19, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        uint32_t st_addr = regs[0], ft_addr = regs[1];
+        SYSTEMTIME st = {};
+        st.wYear = mem.Read16(st_addr);
+        st.wMonth = mem.Read16(st_addr + 2);
+        st.wDayOfWeek = mem.Read16(st_addr + 4);
+        st.wDay = mem.Read16(st_addr + 6);
+        st.wHour = mem.Read16(st_addr + 8);
+        st.wMinute = mem.Read16(st_addr + 10);
+        st.wSecond = mem.Read16(st_addr + 12);
+        st.wMilliseconds = mem.Read16(st_addr + 14);
+        FILETIME ft;
+        BOOL ok = SystemTimeToFileTime(&st, &ft);
+        if (ok && ft_addr) {
+            mem.Write32(ft_addr, ft.dwLowDateTime);
+            mem.Write32(ft_addr + 4, ft.dwHighDateTime);
+        }
+        LOG(API, "[API] SystemTimeToFileTime(%d/%d/%d %d:%d:%d) -> %s\n",
+            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond,
+            ok ? "TRUE" : "FALSE");
+        regs[0] = ok;
+        return true;
+    });
     ThunkOrdinal("SetLocalTime", 24);
     ThunkOrdinal("CreateThread", 492);
     ThunkOrdinal("TerminateThread", 491);

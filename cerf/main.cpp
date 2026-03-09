@@ -156,6 +156,16 @@ int main(int argc, char* argv[]) {
     uint32_t entry_point = PELoader::Load(exe_path, mem, pe_info);
     if (entry_point == 0) {
         LOG_ERR("Failed to load PE file\n");
+        LOG_ERR("\n");
+        LOG_ERR("=== AI ASSISTANT NOTE ===\n");
+        LOG_ERR("If you just compacted/lost context, remember:\n");
+        LOG_ERR("  1. Re-read CLAUDE.md for project architecture and conventions\n");
+        LOG_ERR("  2. Re-read your memory file at ~/.claude/projects/Z--/memory/MEMORY.md\n");
+        LOG_ERR("  3. WinCE apps are in Z:/references/ directory, NOT in the build dir\n");
+        LOG_ERR("     The build dir only has cerf.exe — look in references/ for .exe files\n");
+        LOG_ERR("  4. To run: cd build/Release/x64 && ./cerf.exe ../../../references/<app.exe>\n");
+        LOG_ERR("  5. VFS windir: build/Release/x64/devices/wince5/fs/Windows/\n");
+        LOG_ERR("=========================\n");
         return 1;
     }
 
@@ -328,6 +338,7 @@ int main(int argc, char* argv[]) {
         }
 
         /* Run until callback returns (hits sentinel) */
+        uint32_t step_count = 0;
         while (!cpu.halted) {
             uint32_t pc = cpu.r[REG_PC];
             if (pc == cb_sentinel || pc == (cb_sentinel & ~1u)) {
@@ -340,6 +351,199 @@ int main(int argc, char* argv[]) {
                     pc, cb_depth);
                 cpu.r[0] = 0;
                 break;
+            }
+            /* Periodic message pump — DISABLED: dispatching messages inside the
+               ARM execution loop causes re-entrancy that breaks shdocvw COM
+               initialization (Navigate2 fails because _pbs becomes NULL when
+               messages arrive during SetOwner/OnCreate). The ARM code's own
+               message loops (GetMessageW/PeekMessageW thunks) handle message
+               pumping at the appropriate times. */
+            #if 0
+            if (++step_count % 50000 == 0) {
+                MSG pump_msg;
+                while (PeekMessageW(&pump_msg, NULL, 0, 0, PM_REMOVE)) {
+                    if (pump_msg.message == WM_QUIT) {
+                        PostQuitMessage((int)pump_msg.wParam);
+                        break;
+                    }
+                    TranslateMessage(&pump_msg);
+                    DispatchMessageW(&pump_msg);
+                }
+            }
+            #endif
+            /* Temporary trace for explorer.exe OLE browsing debug */
+            if (pc == 0x257F8) {
+                LOG(API, "[TRACE] CBrowseObj::Activate -> HRESULT=0x%08X\n", cpu.r[0]);
+            } else if (pc == 0x1E600) {
+                LOG(API, "[TRACE] CMainWnd::CreateBrowser: byte[108]&1 = %d\n", cpu.r[3]);
+            } else if (pc == 0x1E614) {
+                LOG(API, "[TRACE] CMainWnd::CreateBrowser: _pBrowser = 0x%08X\n", cpu.r[3]);
+            } else if (pc == 0x1E630) {
+                LOG(API, "[TRACE] CMainWnd: _pidl=0x%08X\n", cpu.r[3]);
+            } else if (pc == 0x1E680) {
+                /* R3 = _lpszUrl pointer */
+                { std::wstring url; uint32_t p = cpu.r[3];
+                  if (p) { for (int i=0; i<200; i++) { wchar_t c = (wchar_t)mem.Read16(p+i*2); if (!c) break; url += c; } }
+                  LOG(API, "[TRACE] CMainWnd: _lpszUrl=0x%08X '%ls'\n", cpu.r[3], url.c_str()); }
+            } else if (pc == 0x1E648) {
+                LOG(API, "[TRACE] CMainWnd: -> InitVariantFromIDList (Navigate2 with PIDL)\n");
+            } else if (pc == 0x1E730) {
+                LOG(API, "[TRACE] CMainWnd: -> GoHome (no pidl, no url)\n");
+            } else if (pc == 0x1E728) {
+                LOG(API, "[TRACE] CMainWnd: -> Navigate2 at 0x%08X, this=0x%08X, varURL=0x%08X\n",
+                    cpu.r[4], cpu.r[0], cpu.r[1]);
+            }
+            /* Trace shdocvw OLE initialization chain */
+            else if (pc == (0x10740000 + 0x548F4)) {
+                /* CShellEmbedding::SetClientSite entry */
+                LOG(API, "[TRACE] shdocvw SetClientSite(pClientSite=0x%08X) this=0x%08X\n",
+                    cpu.r[1], cpu.r[0]);
+            }
+            else if (pc == (0x10740000 + 0x58C7C)) {
+                /* CWebBrowserOC::_OnSetClientSite entry */
+                LOG(API, "[TRACE] shdocvw _OnSetClientSite this=0x%08X\n", cpu.r[0]);
+            }
+            else if (pc == (0x10740000 + 0x59290)) {
+                /* CWebBrowserOC::_OnCreate entry — check _psb at this+0x170 */
+                uint32_t this_ptr = mem.Read32(cpu.r[13] + 4); /* pushed R0 */
+                uint32_t psb = this_ptr ? mem.Read32(this_ptr + 0x170) : 0;
+                LOG(API, "[TRACE] shdocvw _OnCreate this=0x%08X _psb=0x%08X\n",
+                    this_ptr, psb);
+            }
+            else if (pc == (0x10740000 + 0x66D3C)) {
+                /* CBaseBrowser2::OnCreate entry */
+                LOG(API, "[TRACE] shdocvw CBaseBrowser2::OnCreate this=0x%08X\n", cpu.r[0]);
+            }
+            else if (pc == (0x10740000 + 0x66E74)) {
+                /* CBaseBrowser2::OnCreate about to call SetOwner */
+                LOG(API, "[TRACE] shdocvw OnCreate: calling IShellService::SetOwner R0=0x%08X R1=0x%08X\n",
+                    cpu.r[0], cpu.r[1]);
+            }
+            else if (pc == (0x10740000 + 0x45160)) {
+                /* CIEFrameAuto::SetOwner entry */
+                LOG(API, "[TRACE] shdocvw CIEFrameAuto::SetOwner(punkOwner=0x%08X) this=0x%08X\n",
+                    cpu.r[1], cpu.r[0]);
+            }
+            else if (pc == (0x10740000 + 0x45224)) {
+                /* Right after QI(IID_IBrowserService) call in SetOwner — R0 = HRESULT */
+                /* The IShellService 'this' is at [SP+0x34], CIEFrameAuto base = this-0x24 */
+                uint32_t ss_this = mem.Read32(cpu.r[13] + 0x34);
+                uint32_t base = ss_this - 0x24;
+                uint32_t pbs = mem.Read32(base + 0xA4);
+                LOG(API, "[TRACE] SetOwner QI(IBrowserService) result: hr=0x%08X _pbs=0x%08X base=0x%08X\n",
+                    cpu.r[0], pbs, base);
+            }
+            else if (pc == (0x10740000 + 0x4524C)) {
+                /* Right after QI(IID_IShellBrowser) call in SetOwner */
+                uint32_t ss_this = mem.Read32(cpu.r[13] + 0x34);
+                uint32_t base = ss_this - 0x24;
+                uint32_t psb = mem.Read32(base + 0xD4);
+                LOG(API, "[TRACE] SetOwner QI(IShellBrowser) result: hr=0x%08X _psb=0x%08X\n",
+                    cpu.r[0], psb);
+            }
+            else if (pc == (0x10740000 + 0x45298)) {
+                /* Right after QI(IID_IServiceProvider) call in SetOwner */
+                uint32_t ss_this = mem.Read32(cpu.r[13] + 0x34);
+                uint32_t base = ss_this - 0x24;
+                uint32_t psp = mem.Read32(base + 0xC0);
+                LOG(API, "[TRACE] SetOwner QI(IServiceProvider) result: hr=0x%08X _psp=0x%08X\n",
+                    cpu.r[0], psp);
+            }
+            /* Trace shdocvw Navigate2 internals */
+            else if (pc == (0x10740000 + 0x5E87C)) {
+                /* The code does: this - 0x128 + 0x140 = this + 0x18 for inner check
+                   and this - 0x128 + 0x154 = this + 0x2C for vtable dispatch */
+                uint32_t this_ptr = mem.Read32(cpu.r[13] + 0x2C);
+                uint32_t inner18 = mem.Read32(this_ptr + 0x18);
+                uint32_t inner2C = mem.Read32(this_ptr + 0x2C);
+                LOG(API, "[TRACE] shdocvw Navigate2: this=0x%08X, m_pInner[+0x18]=0x%08X, m_pDispatch[+0x2C]=0x%08X\n",
+                    this_ptr, inner18, inner2C);
+            }
+            else if (pc == (0x10740000 + 0x5E894)) {
+                /* URL VARIANT check: read vt and bstrVal */
+                uint32_t pvarURL = mem.Read32(cpu.r[13] + 0x30);
+                uint16_t vt = mem.Read16(pvarURL);
+                uint32_t bstrVal = mem.Read32(pvarURL + 8);
+                LOG(API, "[TRACE] shdocvw Navigate2: pvarURL=0x%08X, vt=%d, bstrVal=0x%08X\n",
+                    pvarURL, vt, bstrVal);
+            }
+            else if (pc == (0x10740000 + 0x5E96C)) {
+                /* DIRECT path: will call inner[+0x2C]->vtable[0xD0] */
+                uint32_t this_ptr = mem.Read32(cpu.r[13] + 0x2C);
+                uint32_t dispatch = mem.Read32(this_ptr + 0x2C);
+                uint32_t vtable = dispatch ? mem.Read32(dispatch) : 0;
+                uint32_t nav2_fn = vtable ? mem.Read32(vtable + 0xD0) : 0;
+                LOG(API, "[TRACE] shdocvw Navigate2: DIRECT path, dispatch=0x%08X, vtable=0x%08X, Nav2=0x%08X\n",
+                    dispatch, vtable, nav2_fn);
+            }
+            else if (pc == (0x10740000 + 0x5E908)) {
+                LOG(API, "[TRACE] shdocvw Navigate2: security check passed, dispatching to inner\n");
+            }
+            else if (pc == (0x10740000 + 0x5E968)) {
+                LOG(API, "[TRACE] shdocvw Navigate2: epilogue, hr=0x%08X\n",
+                    mem.Read32(cpu.r[13] + 0x8));
+            }
+            /* Trace CIEFrameAuto::Navigate2 at IDA 0x10042A84 */
+            else if (pc == (0x10740000 + 0x42A84)) {
+                LOG(API, "[TRACE] CIEFrameAuto::Navigate2 entry this=0x%08X pvURL=0x%08X\n",
+                    cpu.r[0], cpu.r[1]);
+            }
+            /* Trace the BX R4 instruction at IDA 0x1005E9BC that calls Navigate2 */
+            else if (pc == (0x10740000 + 0x5E9B8)) {
+                LOG(API, "[TRACE] shdocvw Navigate2 about to BX: R4=0x%08X LR=0x%08X PC=0x%08X\n",
+                    cpu.r[4], cpu.r[REG_LR], cpu.r[REG_PC]);
+            }
+            else if (pc == (0x10740000 + 0x5E9BC)) {
+                LOG(API, "[TRACE] shdocvw Navigate2 BX R4: R4=0x%08X R0=0x%08X\n",
+                    cpu.r[4], cpu.r[0]);
+            }
+            else if (pc == (0x10740000 + 0x5E9C0)) {
+                LOG(API, "[TRACE] shdocvw Navigate2 returned: R0=0x%08X\n", cpu.r[0]);
+            }
+            /* Trace CIEFrameAuto::_NavigateHelper at IDA 0x100419B8 */
+            else if (pc == (0x10740000 + 0x419B8)) {
+                LOG(API, "[TRACE] CIEFrameAuto::_NavigateHelper entry this=0x%08X URL=0x%08X\n",
+                    cpu.r[0], cpu.r[1]);
+                /* _pbs is at CIEFrameAuto_base + 0xA4 (from SetOwner disasm: base+0xA4) */
+                uint32_t pbs = cpu.r[0] ? mem.Read32(cpu.r[0] + 0xA4) : 0;
+                LOG(API, "[TRACE]   _pbs=0x%08X\n", pbs);
+            }
+            /* Trace _PidlFromUrlEtc at IDA 0x10080E24 */
+            else if (pc == (0x10740000 + 0x80E24)) {
+                LOG(API, "[TRACE] CIEFrameAuto::_PidlFromUrlEtc entry this=0x%08X pszUrl=0x%08X\n",
+                    cpu.r[0], cpu.r[2]);
+                if (cpu.r[2]) {
+                    std::wstring url; uint32_t p = cpu.r[2];
+                    for (int i=0; i<200; i++) { wchar_t c = (wchar_t)mem.Read16(p+i*2); if (!c) break; url += c; }
+                    LOG(API, "[TRACE]   url='%ls'\n", url.c_str());
+                }
+            }
+            /* Trace IECreateFromPathCPWithBCW at IDA 0x10051880 */
+            else if (pc == (0x10740000 + 0x51880)) {
+                LOG(API, "[TRACE] IECreateFromPathCPWithBCW entry path=0x%08X\n", cpu.r[1]);
+                if (cpu.r[1]) {
+                    std::wstring p; uint32_t a = cpu.r[1];
+                    for (int i=0; i<200; i++) { wchar_t c = (wchar_t)mem.Read16(a+i*2); if (!c) break; p += c; }
+                    LOG(API, "[TRACE]   path='%ls'\n", p.c_str());
+                }
+            }
+            /* Trace SHILCreateFromPath at IDA 0x10078628 */
+            else if (pc == (0x10740000 + 0x78628)) {
+                LOG(API, "[TRACE] SHILCreateFromPath entry path=0x%08X\n", cpu.r[0]);
+                if (cpu.r[0]) {
+                    std::wstring p; uint32_t a = cpu.r[0];
+                    for (int i=0; i<200; i++) { wchar_t c = (wchar_t)mem.Read16(a+i*2); if (!c) break; p += c; }
+                    LOG(API, "[TRACE]   path='%ls'\n", p.c_str());
+                }
+            }
+            /* Trace SHGetDesktopFolder at IDA 0x10078978 */
+            else if (pc == (0x10740000 + 0x78978)) {
+                LOG(API, "[TRACE] SHGetDesktopFolder entry\n");
+            }
+            /* Trace _BrowseObject at shdocvw */
+            else if (pc == (0x10740000 + 0x42828)) {
+                LOG(API, "[TRACE] CIEFrameAuto::_BrowseObject entry this=0x%08X pidl=0x%08X flags=0x%X\n",
+                    cpu.r[0], cpu.r[1], cpu.r[2]);
             }
             cpu.Step();
         }

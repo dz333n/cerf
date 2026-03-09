@@ -8,27 +8,55 @@ void Win32Thunks::RegisterMessageHandlers() {
     Thunk("GetMessageW", 861, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         MSG msg;
         BOOL ret;
-        /* No pseudo-thread special case: let the thread's message loop run
-           normally as the app's real message loop. If CreateThread ran us inline,
-           the thread's GetMessageW blocks here and processes messages, preventing
-           the thread function from exiting and destroying its objects (e.g.
-           CTaskBar in explorer.exe). */
-        while (true) {
-            ret = GetMessageW(&msg, (HWND)(intptr_t)(int32_t)regs[1], regs[2], regs[3]);
-            if (ret <= 0) break; /* WM_QUIT or error */
-            /* WM_TIMER with native callbacks (non-ARM timers from toolbar, rebar, etc.):
-               lParam contains a 64-bit native TIMERPROC address. If we pass this to ARM code,
-               the address gets truncated to 32 bits and corrupted. Dispatch natively to call
-               the correct callback, then get the next message. This prevents native timer
-               messages from starving WM_PAINT and other low-priority messages. */
-            if (msg.message == WM_TIMER && msg.hwnd == NULL && msg.lParam != 0) {
-                UINT_PTR timerID = msg.wParam;
-                if (arm_timer_callbacks.find(timerID) == arm_timer_callbacks.end()) {
-                    DispatchMessageW(&msg);
+        if (pseudo_thread_depth >= 2) {
+            /* Nested pseudo-thread (depth 2+): use MsgWaitForMultipleObjectsEx
+               with a timeout so the thread can process async messages (e.g. COM/OLE
+               initialization, WebBrowser navigation) before exiting.
+               After max_empty_waits consecutive timeouts with no messages, inject WM_QUIT. */
+            LOG(API, "[API] GetMessageW depth=%d hwndFilter=0x%08X msgMin=0x%X msgMax=0x%X\n",
+                pseudo_thread_depth, regs[1], regs[2], regs[3]);
+            int empty_waits = 0;
+            const int max_empty_waits = 50; /* 50 * 100ms = 5 seconds max idle */
+            while (true) {
+                ret = PeekMessageW(&msg, (HWND)(intptr_t)(int32_t)regs[1], regs[2], regs[3], PM_REMOVE);
+                if (!ret) {
+                    if (++empty_waits >= max_empty_waits) {
+                        msg = {};
+                        msg.message = WM_QUIT;
+                        ret = 0;
+                        break;
+                    }
+                    /* Wait up to 100ms for new messages before trying again */
+                    MsgWaitForMultipleObjectsEx(0, NULL, 100, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
                     continue;
                 }
+                empty_waits = 0; /* Reset on any message received */
+                /* Filter native timer callbacks same as blocking path */
+                if (msg.message == WM_TIMER && msg.hwnd == NULL && msg.lParam != 0) {
+                    UINT_PTR timerID = msg.wParam;
+                    if (arm_timer_callbacks.find(timerID) == arm_timer_callbacks.end()) {
+                        DispatchMessageW(&msg);
+                        continue;
+                    }
+                }
+                break;
             }
-            break;
+        } else {
+            /* Normal or first pseudo-thread (depth 0 or 1): use blocking GetMessageW.
+               Depth 1 is the first inline thread whose message loop acts as the app's
+               main message pump (e.g. CTaskBar in explorer). */
+            while (true) {
+                ret = GetMessageW(&msg, (HWND)(intptr_t)(int32_t)regs[1], regs[2], regs[3]);
+                if (ret <= 0) break; /* WM_QUIT or error */
+                if (msg.message == WM_TIMER && msg.hwnd == NULL && msg.lParam != 0) {
+                    UINT_PTR timerID = msg.wParam;
+                    if (arm_timer_callbacks.find(timerID) == arm_timer_callbacks.end()) {
+                        DispatchMessageW(&msg);
+                        continue;
+                    }
+                }
+                break;
+            }
         }
         LOG(API, "[API] GetMessageW -> msg=0x%04X hwnd=0x%p wP=0x%X lP=0x%X ret=%d\n",
             msg.message, msg.hwnd, (uint32_t)msg.wParam, (uint32_t)msg.lParam, ret);
@@ -178,18 +206,41 @@ void Win32Thunks::RegisterMessageHandlers() {
                 for (int i = 0; i <= (int)len; i++) mem.Write16((uint32_t)lp + i * 2, buf[i]);
             }
             regs[0] = (uint32_t)len;
-        } else {
+        }
+        /* NOTE: No LVM_ marshaling needed — SysListView32 is ARM-controlled
+           (registered by ARM commctrl.dll with EmuWndProc). ARM 32-bit pointers
+           in lParam pass through native SendMessageW → EmuWndProc → ARM WndProc
+           intact (zero-extended to 64-bit, then truncated back to 32-bit). */
+        else {
+            /* Log LVM_ messages to track ListView item insertion */
+            if (umsg >= 0x1000 && umsg <= 0x10FF) {
+                wchar_t cls[64] = {};
+                GetClassNameW(hw, cls, 64);
+                LOG(API, "[API] SendMessageW LVM_0x%04X hwnd=%p class='%ls' wP=0x%X lP=0x%X\n",
+                    umsg, hw, cls, (uint32_t)wp, (uint32_t)lp);
+            }
             regs[0] = (uint32_t)SendMessageW(hw, umsg, wp, lp);
+            if (umsg >= 0x1000 && umsg <= 0x10FF) {
+                LOG(API, "[API] SendMessageW LVM_0x%04X -> result=%d (0x%X)\n",
+                    umsg, (int32_t)regs[0], regs[0]);
+            }
+            /* After LVM_SORTITEMS, query item positions for debugging. */
+            if (umsg == 0x1030 /* LVM_SORTITEMS */) {
+                int count = (int)SendMessageW(hw, 0x1004, 0, 0);
+                RECT rc; GetWindowRect(hw, &rc);
+                LOG(API, "[API] After LVM_SORTITEMS: hwnd=%p count=%d winRect=%ldx%ld\n",
+                    hw, count, rc.right-rc.left, rc.bottom-rc.top);
+                for (int i = 0; i < count && i < 5; i++) {
+                    DWORD pos = (DWORD)SendMessageW(hw, 0x1010 /* LVM_GETITEMPOSITION */, i, 0);
+                    /* LVM_GETITEMPOSITION with lParam=0 doesn't work. Need a POINT buffer.
+                       Use alternative: check via ARM thunk. Skip for now. */
+                }
+                /* Post deferred arrange for after resize completes */
+                PostMessageW(hw, 0x1016 /* LVM_ARRANGE */, 0, 0);
+            }
             if (umsg == WM_NOTIFY) {
                 LOG(API, "[API] SendMessageW WM_NOTIFY hwnd=%p wP=%d lP=0x%X -> ret=0x%X\n",
                     hw, (int)wp, (uint32_t)lp, regs[0]);
-            }
-            if (umsg == 0x43F) { /* TB_GETBUTTONINFOW result */
-                /* TBBUTTONINFOW: [0]=cbSize, [1]=dwMask, [2]=idCommand, [3]=iImage,
-                   [4]=fsState|fsStyle|cx, [5]=lParam, [6]=pszText, [7]=cchText */
-                uint32_t lp32 = (uint32_t)lp;
-                LOG(API, "[API] TB_GETBUTTONINFO result=%d lParam=0x%08X (at lp+20)\n",
-                    (int32_t)regs[0], mem.Read32(lp32 + 20));
             }
         }
         return true;
@@ -201,6 +252,28 @@ void Win32Thunks::RegisterMessageHandlers() {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0]; UINT umsg = regs[1];
         if ((umsg == WM_CREATE || umsg == WM_NCCREATE) && regs[3] != 0) {
             regs[0] = (umsg == WM_NCCREATE) ? 1 : 0;
+        } else if ((umsg == WM_WINDOWPOSCHANGED || umsg == WM_WINDOWPOSCHANGING) && regs[3] != 0) {
+            /* ARM lParam points to 32-bit WINDOWPOS in emulated memory.
+               Marshal to native 64-bit WINDOWPOS for DefWindowProcW.
+               ARM layout: hwnd(4) hwndInsertAfter(4) x(4) y(4) cx(4) cy(4) flags(4) */
+            uint32_t a = regs[3];
+            WINDOWPOS wp = {};
+            wp.hwnd = (HWND)(intptr_t)(int32_t)mem.Read32(a + 0);
+            wp.hwndInsertAfter = (HWND)(intptr_t)(int32_t)mem.Read32(a + 4);
+            wp.x = (int)mem.Read32(a + 8);
+            wp.y = (int)mem.Read32(a + 12);
+            wp.cx = (int)mem.Read32(a + 16);
+            wp.cy = (int)mem.Read32(a + 20);
+            wp.flags = mem.Read32(a + 24);
+            regs[0] = (uint32_t)DefWindowProcW(hw, umsg, regs[2], (LPARAM)&wp);
+            /* Copy back for WM_WINDOWPOSCHANGING */
+            if (umsg == WM_WINDOWPOSCHANGING) {
+                mem.Write32(a + 8, wp.x);
+                mem.Write32(a + 12, wp.y);
+                mem.Write32(a + 16, wp.cx);
+                mem.Write32(a + 20, wp.cy);
+                mem.Write32(a + 24, wp.flags);
+            }
         } else if (umsg == WM_SETTEXT && regs[3] != 0) {
             /* ARM lParam is an emulated memory pointer to a wchar string.
                Read it and pass a native pointer to DefWindowProcW. */

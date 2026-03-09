@@ -18,8 +18,44 @@ void Win32Thunks::RegisterModuleHandlers() {
             LOG(API, "[API] GetModuleHandleW('%ls')\n", name.c_str());
             std::wstring lower = name;
             std::transform(lower.begin(), lower.end(), lower.begin(), ::towlower);
+            /* Check thunked system DLLs first (coredll is always thunked) */
             auto* info = FindThunkedDllW(lower);
-            regs[0] = info ? info->fake_handle : emu_hinstance;
+            if (info) {
+                regs[0] = info->fake_handle;
+            } else {
+                /* Check loaded ARM DLLs — ole32, commctrl, ceshell etc. are
+                   real ARM DLLs with base addresses, not thunked. */
+                /* Strip path prefix if present (e.g. "\Windows\ole32.dll" → "ole32.dll") */
+                std::wstring search_name = lower;
+                auto slash = search_name.rfind(L'\\');
+                if (slash != std::wstring::npos) search_name = search_name.substr(slash + 1);
+                auto fslash = search_name.rfind(L'/');
+                if (fslash != std::wstring::npos) search_name = search_name.substr(fslash + 1);
+                /* Try with and without .dll extension */
+                bool found = false;
+                for (const auto& [dll_name, dll] : loaded_dlls) {
+                    std::wstring dll_lower = dll_name;
+                    std::transform(dll_lower.begin(), dll_lower.end(), dll_lower.begin(), ::towlower);
+                    if (dll_lower == search_name) {
+                        regs[0] = dll.base_addr;
+                        found = true;
+                        break;
+                    }
+                    /* Also try matching without .dll extension */
+                    auto dot = dll_lower.rfind(L'.');
+                    std::wstring dll_stem = (dot != std::wstring::npos) ? dll_lower.substr(0, dot) : dll_lower;
+                    auto dot2 = search_name.rfind(L'.');
+                    std::wstring name_stem = (dot2 != std::wstring::npos) ? search_name.substr(0, dot2) : search_name;
+                    if (dll_stem == name_stem) {
+                        regs[0] = dll.base_addr;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    regs[0] = emu_hinstance;
+            }
+            LOG(API, "[API] GetModuleHandleW('%ls') -> 0x%08X\n", name.c_str(), regs[0]);
         }
         return true;
     });

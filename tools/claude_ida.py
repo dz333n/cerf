@@ -150,6 +150,26 @@ def _resolve_target(target: Optional[str]) -> dict[str, Any]:
             + "\n".join(_instance_label(i) for i in instances)
         )
 
+    # Match by port number (e.g. "port=58013")
+    if target.startswith("port="):
+        try:
+            port_num = int(target[5:])
+            for inst in instances:
+                if inst.get("port") == port_num:
+                    return inst
+        except ValueError:
+            pass
+
+    # Match by pid (e.g. "pid=12420")
+    if target.startswith("pid="):
+        try:
+            pid_num = int(target[4:])
+            for inst in instances:
+                if inst.get("pid") == pid_num:
+                    return inst
+        except ValueError:
+            pass
+
     # Exact match on instance_id (full path)
     for inst in instances:
         if inst["instance_id"] == target:

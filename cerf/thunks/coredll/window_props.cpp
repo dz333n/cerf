@@ -64,6 +64,11 @@ void Win32Thunks::RegisterWindowPropsHandlers() {
     Thunk("GetWindowRect", 248, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
         RECT rc; BOOL ret=GetWindowRect(hw,&rc);
+        { wchar_t _c[64]={}; GetClassNameW(hw,_c,64);
+          if (wcsstr(_c, L"SysListView32"))
+              LOG(API, "[API] GetWindowRect(SysListView32 %p) -> (%ld,%ld,%ld,%ld) %dx%d\n",
+                  hw, rc.left, rc.top, rc.right, rc.bottom, rc.right-rc.left, rc.bottom-rc.top);
+        }
         /* For top-level WS_CAPTION windows, return a WinCE-equivalent rect
            (1px border + caption) instead of the desktop rect with thick frame.
            This prevents apps from seeing inflated dimensions — e.g. calc.exe
@@ -120,7 +125,8 @@ void Win32Thunks::RegisterWindowPropsHandlers() {
         RECT*prc=NULL; RECT rc;
         if(regs[1]){rc.left=mem.Read32(regs[1]);rc.top=mem.Read32(regs[1]+4);rc.right=mem.Read32(regs[1]+8);rc.bottom=mem.Read32(regs[1]+12);prc=&rc;}
         BOOL ret = InvalidateRect(hw,prc,regs[2]);
-        LOG(API, "[API] InvalidateRect(0x%p, %s, %d) -> %d\n", hw,
+        wchar_t _irc[64]={}; if(hw) GetClassNameW(hw,_irc,64);
+        LOG(API, "[API] InvalidateRect(0x%p '%ls', %s, %d) -> %d\n", hw, _irc,
             prc ? "rect" : "NULL", regs[2], ret);
         regs[0]=ret; return true;
     });

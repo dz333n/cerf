@@ -4,6 +4,7 @@
    C runtime */
 #include "../win32_thunks.h"
 #include "../../log.h"
+#include "../../loader/pe_loader.h"
 #include <cstdio>
 #include <objbase.h>
 void Win32Thunks::RegisterMiscHandlers() {
@@ -190,17 +191,41 @@ void Win32Thunks::RegisterMiscHandlers() {
     Thunk("GetGestureInfo", 2925, stub0("GetGestureInfo"));
     Thunk("GetGestureExtraArguments", stub0("GetGestureExtraArguments"));
     Thunk("CloseGestureInfoHandle", 2924, stub0("CloseGestureInfoHandle"));
-    /* COM — WinCE coredll re-exports COM functions from ole32. Both DLLs resolve
-       to the same handler here since our dispatch is name-based (flat map). */
-    Thunk("CoInitializeEx", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        HRESULT hr = CoInitializeEx(NULL, regs[1]);
-        LOG(API, "[API] CoInitializeEx(0x%X) -> 0x%08X\n", regs[1], (uint32_t)hr);
-        regs[0] = (uint32_t)hr;
+    /* COM — WinCE coredll re-exports COM functions from ole32. We forward these
+       to the real ARM ole32.dll so its internal state (TLS, apartments) is correct. */
+    /* Helper: resolve an export from the loaded ARM ole32.dll and cache it */
+    auto resolveOle32 = [this](EmulatedMemory& mem, const char* func_name) -> uint32_t {
+        static std::map<std::string, uint32_t> cache;
+        auto it = cache.find(func_name);
+        if (it != cache.end()) return it->second;
+        auto dll_it = loaded_dlls.find(L"ole32.dll");
+        if (dll_it == loaded_dlls.end()) return 0;
+        uint32_t addr = PELoader::ResolveExportName(mem, dll_it->second.pe_info, func_name);
+        cache[func_name] = addr;
+        return addr;
+    };
+    Thunk("CoInitializeEx", [this, resolveOle32](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        LOG(API, "[API] CoInitializeEx(pMalloc=0x%08X, flags=0x%X)\n", regs[0], regs[1]);
+        /* Also init native COM for any host-side operations */
+        CoInitializeEx(NULL, regs[1]);
+        uint32_t arm_func = resolveOle32(mem, "CoInitializeEx");
+        if (arm_func && callback_executor) {
+            uint32_t args[2] = { regs[0], regs[1] };
+            regs[0] = callback_executor(arm_func, args, 2);
+            LOG(API, "[API] CoInitializeEx -> 0x%08X (ARM ole32)\n", regs[0]);
+        } else {
+            regs[0] = 0; /* S_OK */
+        }
         return true;
     });
-    Thunk("CoUninitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("CoUninitialize", [this, resolveOle32](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LOG(API, "[API] CoUninitialize()\n");
-        CoUninitialize(); regs[0] = 0; return true;
+        uint32_t arm_func = resolveOle32(mem, "CoUninitialize");
+        if (arm_func && callback_executor) {
+            callback_executor(arm_func, nullptr, 0);
+        }
+        CoUninitialize();
+        return true;
     });
     /* IMM stubs */
     Thunk("ImmAssociateContext", 770, stub0("ImmAssociateContext"));
@@ -399,24 +424,57 @@ void Win32Thunks::RegisterMiscHandlers() {
     ThunkOrdinal("GetOwnerProcess", 606);
     ThunkOrdinal("Random", 80);
     /* COM — WinCE coredll re-exports some COM functions */
-    Thunk("CoInitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(API, "[API] CoInitialize(pvReserved=0x%08X) -> S_OK\n", regs[0]);
-        HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-        regs[0] = (uint32_t)hr;
+    Thunk("CoInitialize", [this, resolveOle32](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        LOG(API, "[API] CoInitialize(pvReserved=0x%08X)\n", regs[0]);
+        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        uint32_t arm_func = resolveOle32(mem, "CoInitialize");
+        if (arm_func && callback_executor) {
+            uint32_t args[1] = { regs[0] };
+            regs[0] = callback_executor(arm_func, args, 1);
+            LOG(API, "[API] CoInitialize -> 0x%08X (ARM ole32)\n", regs[0]);
+        } else {
+            regs[0] = 0;
+        }
         return true;
     });
-    Thunk("OleInitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(API, "[API] OleInitialize(pvReserved=0x%08X) -> S_OK (stub)\n", regs[0]);
-        regs[0] = 0; /* S_OK */
+    Thunk("OleInitialize", [this, resolveOle32](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        LOG(API, "[API] OleInitialize(pvReserved=0x%08X)\n", regs[0]);
+        uint32_t arm_func = resolveOle32(mem, "OleInitialize");
+        if (arm_func && callback_executor) {
+            uint32_t args[1] = { regs[0] };
+            regs[0] = callback_executor(arm_func, args, 1);
+            LOG(API, "[API] OleInitialize -> 0x%08X (ARM ole32)\n", regs[0]);
+        } else {
+            regs[0] = 0;
+        }
         return true;
     });
-    Thunk("OleUninitialize", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(API, "[API] OleUninitialize() -> stub\n");
+    Thunk("OleUninitialize", [this, resolveOle32](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        LOG(API, "[API] OleUninitialize()\n");
+        uint32_t arm_func = resolveOle32(mem, "OleUninitialize");
+        if (arm_func && callback_executor) {
+            callback_executor(arm_func, nullptr, 0);
+        }
         return true;
     });
-    Thunk("CoCreateInstance", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        LOG(API, "[API] CoCreateInstance(rclsid=0x%08X, ...) -> E_NOTIMPL (stub)\n", regs[0]);
-        regs[0] = 0x80004001; /* E_NOTIMPL */
+    Thunk("CoCreateInstance", [this, resolveOle32](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        /* CoCreateInstance(REFCLSID rclsid, IUnknown* pUnkOuter, DWORD dwClsCtx,
+                            REFIID riid, void** ppv)
+           5 args: R0-R3 + 1 on stack. The 5th arg (ppv) is at the caller's SP. */
+        uint32_t rclsid = regs[0], pUnkOuter = regs[1], dwClsCtx = regs[2], riid = regs[3];
+        /* 5th arg (ppv) is on the ARM stack */
+        uint32_t ppv = ReadStackArg(regs, mem, 0);
+        LOG(API, "[API] CoCreateInstance(rclsid=0x%08X, pUnk=0x%08X, ctx=0x%X, riid=0x%08X, ppv=0x%08X)\n",
+               rclsid, pUnkOuter, dwClsCtx, riid, ppv);
+        uint32_t arm_func = resolveOle32(mem, "CoCreateInstance");
+        if (arm_func && callback_executor) {
+            uint32_t args[5] = { rclsid, pUnkOuter, dwClsCtx, riid, ppv };
+            regs[0] = callback_executor(arm_func, args, 5);
+            LOG(API, "[API] CoCreateInstance -> 0x%08X (ARM ole32)\n", regs[0]);
+        } else {
+            LOG(API, "[API] CoCreateInstance -> E_NOTIMPL (ole32 not loaded)\n");
+            regs[0] = 0x80004001; /* E_NOTIMPL */
+        }
         return true;
     });
     Thunk("CoTaskMemAlloc", [this](uint32_t* regs, EmulatedMemory& mem) -> bool {

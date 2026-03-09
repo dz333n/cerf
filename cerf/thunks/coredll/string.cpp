@@ -224,13 +224,42 @@ void Win32Thunks::RegisterStringHandlers() {
         return true;
     });
     Thunk("FormatMessageW", 234, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
-    Thunk("CompareStringW", 198, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = CSTR_EQUAL; return true; });
+    Thunk("CompareStringW", 198, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        /* CompareStringW(Locale, dwCmpFlags, lpString1, cchCount1, lpString2, cchCount2) */
+        LCID locale = regs[0];
+        DWORD flags = regs[1];
+        uint32_t str1_ptr = regs[2];
+        int cch1 = (int)regs[3];
+        uint32_t str2_ptr = ReadStackArg(regs, mem, 0);
+        int cch2 = (int)ReadStackArg(regs, mem, 1);
+        std::wstring s1, s2;
+        if (str1_ptr) {
+            if (cch1 == -1) { for (int i=0; i<4096; i++) { wchar_t c = (wchar_t)mem.Read16(str1_ptr+i*2); if (!c) break; s1 += c; } }
+            else { for (int i=0; i<cch1; i++) s1 += (wchar_t)mem.Read16(str1_ptr+i*2); }
+        }
+        if (str2_ptr) {
+            if (cch2 == -1) { for (int i=0; i<4096; i++) { wchar_t c = (wchar_t)mem.Read16(str2_ptr+i*2); if (!c) break; s2 += c; } }
+            else { for (int i=0; i<cch2; i++) s2 += (wchar_t)mem.Read16(str2_ptr+i*2); }
+        }
+        int result = CompareStringW(locale, flags, s1.c_str(), (int)s1.size(), s2.c_str(), (int)s2.size());
+        if (result == 0) result = CSTR_EQUAL; /* fallback on error */
+        LOG(API, "[API] CompareStringW(locale=0x%X, flags=0x%X, '%ls', '%ls') -> %d\n",
+            locale, flags, s1.c_str(), s2.c_str(), result);
+        regs[0] = result;
+        return true;
+    });
     Thunk("GetStringTypeW", 216, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 0; return true; });
     Thunk("CharLowerW", 221, [](uint32_t* regs, EmulatedMemory&) -> bool {
         if ((regs[0] & 0xFFFF0000) == 0) regs[0] = (uint32_t)towlower(regs[0]); return true;
     });
     Thunk("CharUpperW", 224, [](uint32_t* regs, EmulatedMemory&) -> bool {
         if ((regs[0] & 0xFFFF0000) == 0) regs[0] = (uint32_t)towupper(regs[0]); return true;
+    });
+    Thunk("CharPrevW", 225, [](uint32_t* regs, EmulatedMemory&) -> bool {
+        /* CharPrevW(lpszStart, lpszCurrent) — return pointer to prev char or start */
+        if (regs[1] > regs[0]) regs[0] = regs[1] - 2;
+        else regs[0] = regs[0]; /* already at start */
+        return true;
     });
     Thunk("CharNextW", 226, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         if (regs[0] && mem.Read16(regs[0]) != 0) regs[0] += 2; return true;

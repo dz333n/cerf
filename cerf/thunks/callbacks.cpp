@@ -38,7 +38,30 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
             hwnd_wndproc_map[hwnd] = cls_it->second;
             it = hwnd_wndproc_map.find(hwnd);
         } else {
+            if (msg == WM_CREATE || msg == WM_NCCREATE) {
+                LOG(API, "[API] EmuWndProc: MISS class='%ls' msg=0x%04X hwnd=0x%p -> DefWindowProc\n",
+                    cls_name, msg, hwnd);
+            }
             return DefWindowProcW(hwnd, msg, wParam, lParam);
+        }
+    }
+
+    /* One-time deferred arrange fix for SysListView32.
+       ARM commctrl defers item positioning via PostMessage(WM_USER), but those
+       messages get dispatched by the pseudo-thread message loop while the window
+       is still at its initial small size. On the first WM_PAINT with items present
+       (window is at final size, all items inserted/sorted), force LVM_ARRANGE
+       to recompute positions using the correct dimensions. */
+    if (msg == WM_PAINT && !GetPropW(hwnd, L"CerfLVArr")) {
+        wchar_t cls_chk[64] = {};
+        GetClassNameW(hwnd, cls_chk, 64);
+        if (wcsstr(cls_chk, L"SysListView32")) {
+            int count = (int)::SendMessageW(hwnd, 0x1004 /* LVM_GETITEMCOUNT */, 0, 0);
+            if (count > 0) {
+                SetPropW(hwnd, L"CerfLVArr", (HANDLE)1);
+                LOG(API, "[API] SysListView32 first WM_PAINT: %d items, sending LVM_ARRANGE\n", count);
+                ::SendMessageW(hwnd, 0x1016 /* LVM_ARRANGE */, 0, 0);
+            }
         }
     }
 
@@ -51,8 +74,6 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
        directly to DefWindowProcW to avoid pointer truncation. */
     case WM_GETMINMAXINFO:      /* lParam = MINMAXINFO* */
     case WM_NCCALCSIZE:         /* lParam = NCCALCSIZE_PARAMS* */
-    case WM_WINDOWPOSCHANGING:  /* lParam = WINDOWPOS* */
-    case WM_WINDOWPOSCHANGED:   /* lParam = WINDOWPOS* */
     case WM_NCDESTROY:
     case WM_SETICON:            /* lParam = HICON (64-bit on x64) */
     case WM_GETICON:
@@ -75,11 +96,122 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     case WM_NOTIFY: {
         /* WM_NOTIFY from ARM commctrl: lParam is a pointer to NMHDR in ARM memory.
            Check if it's an ARM pointer (fits in 32 bits) and forward to ARM WndProc.
-           Native WM_NOTIFY (rare for ARM-registered windows) gets DefWindowProcW. */
+           Native WM_NOTIFY (from real Win32 controls like SysListView32) has a
+           64-bit lParam pointing to native NMHDR. Marshal it to ARM memory. */
         if (lParam > 0 && (lParam >> 32) == 0) {
-            break; /* Forward to ARM WndProc */
+            /* ARM pointer — peek at LVN_GETDISPINFO before/after for debugging */
+            EmulatedMemory& emem = s_instance->mem;
+            uint32_t arm_lp = (uint32_t)lParam;
+            int32_t code_peek = (int32_t)emem.Read32(arm_lp + 8);
+            if (code_peek == LVN_GETDISPINFOW || code_peek == LVN_GETDISPINFOA) {
+                /* ARM LVITEMW at arm_lp+12: mask(+0) iItem(+4) iSubItem(+8) state(+12)
+                   stateMask(+16) pszText(+20) cchTextMax(+24) iImage(+28) lParam(+32) */
+                uint32_t mask = emem.Read32(arm_lp + 12);
+                int iItem = (int)emem.Read32(arm_lp + 16);
+                int iImage = (int)emem.Read32(arm_lp + 40);
+                uint32_t pszText = emem.Read32(arm_lp + 32);
+                LOG(API, "[DISP] LVN_GETDISPINFO(ARM) BEFORE: iItem=%d mask=0x%X iImage=%d pszText=0x%08X\n",
+                    iItem, mask, iImage, pszText);
+                /* Forward to ARM WndProc */
+                uint32_t arm_wndproc = it->second;
+                uint32_t args[4] = {
+                    (uint32_t)(uintptr_t)hwnd, WM_NOTIFY,
+                    (uint32_t)wParam, arm_lp
+                };
+                uint32_t result = s_instance->callback_executor(arm_wndproc, args, 4);
+                /* Read back results */
+                iImage = (int)emem.Read32(arm_lp + 40);
+                pszText = emem.Read32(arm_lp + 32);
+                std::wstring disp_text;
+                if (pszText && (mask & 0x0001 /*LVIF_TEXT*/)) {
+                    for (int i = 0; i < 64; i++) {
+                        wchar_t c = (wchar_t)emem.Read16(pszText + i * 2);
+                        if (!c) break;
+                        disp_text += c;
+                    }
+                }
+                LOG(API, "[DISP] LVN_GETDISPINFO(ARM) AFTER: iItem=%d iImage=%d text='%ls'\n",
+                    iItem, iImage, disp_text.c_str());
+                return (LRESULT)(intptr_t)(int32_t)result;
+            }
+            break; /* Already an ARM pointer — forward directly */
         }
-        return DefWindowProcW(hwnd, msg, wParam, lParam);
+        if (!lParam) return DefWindowProcW(hwnd, msg, wParam, lParam);
+        /* Native NMHDR at lParam. Marshal to ARM emulated memory. */
+        NMHDR* pnm = (NMHDR*)lParam;
+        EmulatedMemory& emem = s_instance->mem;
+        static uint32_t nm_emu_base = 0x3F003000;
+        if (!emem.IsValid(nm_emu_base)) emem.Alloc(nm_emu_base, 0x1000);
+        int code = pnm->code;
+        /* LVN_GETDISPINFOW = LVN_FIRST - 77 = -177, LVN_GETDISPINFOA = -150
+           Marshal NMLVDISPINFOW: NMHDR(12) + LVITEMW(36 on ARM) = 48 bytes */
+        if (code == LVN_GETDISPINFOW || code == LVN_GETDISPINFOA) {
+            NMLVDISPINFOW* pdi = (NMLVDISPINFOW*)lParam;
+            uint32_t a = nm_emu_base;
+            /* NMHDR: hwndFrom(4), idFrom(4), code(4) */
+            emem.Write32(a + 0, (uint32_t)(uintptr_t)pdi->hdr.hwndFrom);
+            emem.Write32(a + 4, (uint32_t)pdi->hdr.idFrom);
+            emem.Write32(a + 8, (uint32_t)pdi->hdr.code);
+            /* ARM LVITEMW at offset 12: mask(4) iItem(4) iSubItem(4) state(4) stateMask(4) pszText(4) cchTextMax(4) iImage(4) lParam(4) */
+            emem.Write32(a + 12, pdi->item.mask);
+            emem.Write32(a + 16, pdi->item.iItem);
+            emem.Write32(a + 20, pdi->item.iSubItem);
+            emem.Write32(a + 24, pdi->item.state);
+            emem.Write32(a + 28, pdi->item.stateMask);
+            /* Allocate text buffer in emu memory for ARM to fill */
+            uint32_t text_buf_emu = nm_emu_base + 0x100;
+            int text_max = pdi->item.cchTextMax > 0 ? pdi->item.cchTextMax : 260;
+            if (text_max > 400) text_max = 400;
+            emem.Write32(a + 32, text_buf_emu); /* pszText */
+            emem.Write32(a + 36, text_max);     /* cchTextMax */
+            emem.Write32(a + 40, pdi->item.iImage);
+            emem.Write32(a + 44, (uint32_t)(int32_t)pdi->item.lParam);
+            emem.Write16(text_buf_emu, 0); /* clear text buffer */
+            /* Call ARM WndProc with marshaled data */
+            uint32_t arm_wndproc = it->second;
+            uint32_t args[4] = {
+                (uint32_t)(uintptr_t)hwnd, WM_NOTIFY,
+                (uint32_t)wParam, a
+            };
+            uint32_t result = s_instance->callback_executor(arm_wndproc, args, 4);
+            /* Copy results back to native struct */
+            pdi->item.state = emem.Read32(a + 24);
+            pdi->item.iImage = (int)emem.Read32(a + 40);
+            pdi->item.lParam = (LPARAM)(int32_t)emem.Read32(a + 44);
+            /* Read back text if ARM code filled it in */
+            if (pdi->item.mask & LVIF_TEXT) {
+                uint32_t arm_text_ptr = emem.Read32(a + 32);
+                if (arm_text_ptr && pdi->item.pszText && pdi->item.cchTextMax > 0) {
+                    int i;
+                    for (i = 0; i < pdi->item.cchTextMax - 1; i++) {
+                        wchar_t c = (wchar_t)emem.Read16(arm_text_ptr + i * 2);
+                        pdi->item.pszText[i] = c;
+                        if (!c) break;
+                    }
+                    pdi->item.pszText[i] = 0;
+                }
+            }
+            return (LRESULT)(intptr_t)(int32_t)result;
+        }
+        /* For other native WM_NOTIFY codes, marshal basic NMHDR to ARM */
+        {
+            uint32_t a = nm_emu_base;
+            emem.Write32(a + 0, (uint32_t)(uintptr_t)pnm->hwndFrom);
+            emem.Write32(a + 4, (uint32_t)pnm->idFrom);
+            emem.Write32(a + 8, (uint32_t)pnm->code);
+            /* Copy extra data after NMHDR (up to 128 bytes) for notifications
+               that carry additional fields (NM_CUSTOMDRAW, etc.) */
+            uint8_t* src = (uint8_t*)pnm + 12;
+            for (int i = 0; i < 128; i++)
+                emem.Write8(a + 12 + i, src[i]);
+            uint32_t arm_wndproc = it->second;
+            uint32_t args[4] = {
+                (uint32_t)(uintptr_t)hwnd, WM_NOTIFY,
+                (uint32_t)wParam, a
+            };
+            uint32_t result = s_instance->callback_executor(arm_wndproc, args, 4);
+            return (LRESULT)(intptr_t)(int32_t)result;
+        }
     }
     case WM_NCHITTEST:
         /* lParam = MAKELPARAM(x, y) — no pointers, safe to forward to ARM WndProc.
@@ -99,6 +231,42 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
             break;
         }
         return DefWindowProcW(hwnd, msg, wParam, lParam);
+    }
+    case WM_WINDOWPOSCHANGING:
+    case WM_WINDOWPOSCHANGED: {
+        /* Marshal WINDOWPOS (x64: 36 bytes with 8-byte handles → ARM: 28 bytes with 4-byte handles).
+           ARM layout: hwnd(4) hwndInsertAfter(4) x(4) y(4) cx(4) cy(4) flags(4).
+           ARM commctrl (ListView etc.) handles WM_WINDOWPOSCHANGED to update
+           sizeClient, trigger auto-arrange, and update scrollbars. */
+        if (!lParam) return DefWindowProcW(hwnd, msg, wParam, lParam);
+        WINDOWPOS* wp = (WINDOWPOS*)lParam;
+        static uint32_t wp_emu_addr = 0x3F002100;
+        EmulatedMemory& emem = s_instance->mem;
+        if (!emem.IsValid(wp_emu_addr)) emem.Alloc(wp_emu_addr, 0x1000);
+        emem.Write32(wp_emu_addr + 0, (uint32_t)(uintptr_t)wp->hwnd);
+        emem.Write32(wp_emu_addr + 4, (uint32_t)(uintptr_t)wp->hwndInsertAfter);
+        emem.Write32(wp_emu_addr + 8, wp->x);
+        emem.Write32(wp_emu_addr + 12, wp->y);
+        emem.Write32(wp_emu_addr + 16, wp->cx);
+        emem.Write32(wp_emu_addr + 20, wp->cy);
+        emem.Write32(wp_emu_addr + 24, wp->flags);
+        uint32_t arm_wndproc = it->second;
+        uint32_t args[4] = {
+            (uint32_t)(uintptr_t)hwnd, (uint32_t)msg,
+            (uint32_t)wParam, (uint32_t)wp_emu_addr
+        };
+        uint32_t result = s_instance->callback_executor(arm_wndproc, args, 4);
+        /* For WM_WINDOWPOSCHANGING, ARM code may modify the struct — copy back */
+        if (msg == WM_WINDOWPOSCHANGING) {
+            wp->x = (int)emem.Read32(wp_emu_addr + 8);
+            wp->y = (int)emem.Read32(wp_emu_addr + 12);
+            wp->cx = (int)emem.Read32(wp_emu_addr + 16);
+            wp->cy = (int)emem.Read32(wp_emu_addr + 20);
+            wp->flags = emem.Read32(wp_emu_addr + 24);
+        }
+        /* Don't call DefWindowProcW here — the ARM WndProc already calls it
+           through its own DefWindowProcW thunk. */
+        return (LRESULT)(intptr_t)(int32_t)result;
     }
     case WM_STYLECHANGING:
     case WM_STYLECHANGED: {
@@ -251,7 +419,7 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     }
     case WM_MEASUREITEM: {
         /* Marshal MEASUREITEMSTRUCT into emulated memory (64-bit -> 32-bit) */
-        static uint32_t wmi_emu_addr = 0x3F002100;
+        static uint32_t wmi_emu_addr = 0x3F002500;
         EmulatedMemory& emem = s_instance->mem;
         if (!emem.IsValid(wmi_emu_addr)) emem.Alloc(wmi_emu_addr, 0x1000);
         MEASUREITEMSTRUCT* mis = (MEASUREITEMSTRUCT*)lParam;
@@ -280,6 +448,18 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
     uint32_t arm_wndproc = it->second;
     /* Debug: log key messages to ARM windows */
+    if (msg == WM_PAINT || msg == WM_ERASEBKGND) {
+        wchar_t cls[64] = {};
+        GetClassNameW(hwnd, cls, 64);
+        LOG(API, "[API] EmuWndProc: msg=0x%04X (%s) hwnd=0x%p class='%ls'\n",
+            msg, msg == WM_PAINT ? "WM_PAINT" : "WM_ERASEBKGND", hwnd, cls);
+    }
+    if (msg == WM_CREATE || msg == WM_NCCREATE) {
+        wchar_t cls[64] = {};
+        GetClassNameW(hwnd, cls, 64);
+        LOG(API, "[API] EmuWndProc: msg=0x%04X (%s) hwnd=0x%p class='%ls' arm_wndproc=0x%08X lP=0x%X\n",
+            msg, msg == WM_CREATE ? "WM_CREATE" : "WM_NCCREATE", hwnd, cls, arm_wndproc, (uint32_t)lParam);
+    }
     if (msg == WM_CLOSE || msg == WM_SYSCOMMAND || msg == WM_DESTROY) {
         wchar_t cls[64] = {};
         GetClassNameW(hwnd, cls, 64);
@@ -321,7 +501,7 @@ LRESULT CALLBACK Win32Thunks::EmuWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
 
     /* Copy back results from WM_MEASUREITEM */
     if (msg == WM_MEASUREITEM && native_lParam) {
-        static uint32_t wmi_emu_addr = 0x3F002100;
+        static uint32_t wmi_emu_addr = 0x3F002500;
         MEASUREITEMSTRUCT* mis = (MEASUREITEMSTRUCT*)native_lParam;
         EmulatedMemory& emem = s_instance->mem;
         mis->itemWidth = emem.Read32(wmi_emu_addr + 12);

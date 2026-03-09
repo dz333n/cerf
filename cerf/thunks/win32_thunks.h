@@ -120,10 +120,10 @@ public:
     typedef std::function<uint32_t(uint32_t addr, uint32_t* args, int nargs)> CallbackExecutor;
     CallbackExecutor callback_executor;
 
-    /* When true, we are inside a pseudo-thread (CreateThread inline execution).
-       GetMessageW uses this to drain pending messages then return WM_QUIT
-       instead of blocking, so the thread function's message loop exits cleanly. */
-    bool in_pseudo_thread = false;
+    /* Pseudo-thread depth counter: 0=normal, 1=first pseudo-thread (blocking
+       GetMessageW as main loop), 2+=nested pseudo-threads (non-blocking GetMessageW
+       so they exit their message loops and let the parent continue). */
+    int pseudo_thread_depth = 0;
 
     /* Store ARM WndProc addresses per class name */
     std::map<std::wstring, uint32_t> arm_wndprocs;

@@ -7,6 +7,8 @@ void Win32Thunks::RegisterInputHandlers() {
     Thunk("SetTimer", 875, [this](uint32_t* regs, EmulatedMemory&) -> bool {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
         UINT_PTR nIDEvent = regs[1]; UINT uElapse = regs[2]; uint32_t arm_timerproc = regs[3];
+        LOG(API, "[API] SetTimer(hwnd=0x%p, id=0x%X, elapse=%u, timerproc=0x%08X)\n",
+            hw, (uint32_t)nIDEvent, uElapse, arm_timerproc);
         if (arm_timerproc != 0) arm_timer_callbacks[nIDEvent] = arm_timerproc;
         regs[0] = (uint32_t)(uintptr_t)SetTimer(hw, nIDEvent, uElapse, NULL);
         return true;
@@ -37,7 +39,9 @@ void Win32Thunks::RegisterInputHandlers() {
         regs[0] = ShowCursor(regs[0]); return true;
     });
     Thunk("SetFocus", 704, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        regs[0] = (uint32_t)(uintptr_t)SetFocus((HWND)(intptr_t)(int32_t)regs[0]); return true;
+        HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
+        LOG(API, "[API] SetFocus(0x%p)\n", hw);
+        regs[0] = (uint32_t)(uintptr_t)SetFocus(hw); return true;
     });
     Thunk("GetFocus", 705, [](uint32_t* regs, EmulatedMemory&) -> bool {
         regs[0] = (uint32_t)(uintptr_t)GetFocus(); return true;

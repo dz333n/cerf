@@ -67,7 +67,21 @@ void Win32Thunks::RegisterWindowHandlers() {
     });
     Thunk("CreateWindowExW", 246, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         uint32_t exStyle = regs[0];
-        std::wstring className = ReadWStringFromEmu(mem, regs[1]);
+        /* Class name can be a string pointer or an ATOM (MAKEINTATOM: high word=0, low word=atom).
+           In WinCE 32-bit, ATOM is passed as a uint32_t where high 16 bits are 0. */
+        uint32_t class_raw = regs[1];
+        bool class_is_atom = (class_raw != 0 && class_raw <= 0xFFFF);
+        std::wstring className;
+        LPCWSTR lpClassName;
+        if (class_is_atom) {
+            lpClassName = MAKEINTRESOURCEW(class_raw);
+            wchar_t buf[32];
+            swprintf(buf, 32, L"#ATOM:%u", class_raw);
+            className = buf;
+        } else {
+            className = ReadWStringFromEmu(mem, class_raw);
+            lpClassName = className.c_str();
+        }
         std::wstring windowName = ReadWStringFromEmu(mem, regs[2]);
         uint32_t style = regs[3];
         int x=(int)ReadStackArg(regs,mem,0), y=(int)ReadStackArg(regs,mem,1);
@@ -149,13 +163,18 @@ void Win32Thunks::RegisterWindowHandlers() {
                 if (h == 0) h = 240;
             }
         }
+        /* WinCE shell creates SysListView32 without LVS_AUTOARRANGE. The ARM commctrl
+           code auto-arranges icons on WM_WINDOWPOSCHANGED only if this flag is set. */
+        if (className == L"SysListView32") {
+            style |= 0x0100; /* LVS_AUTOARRANGE */
+        }
         LOG(API, "[API] CreateWindowExW: class='%ls' title='%ls' style=0x%08X exStyle=0x%08X parent=0x%p size=(%dx%d) lpParam=0x%08X\n", className.c_str(), windowName.c_str(), style, exStyle, parent, w, h, arm_lpParam);
-        HWND hwnd = CreateWindowExW(exStyle, className.c_str(), windowName.c_str(), style, x, y, w, h, parent, menu_h, GetModuleHandleW(NULL), (LPVOID)(uintptr_t)arm_lpParam);
+        HWND hwnd = CreateWindowExW(exStyle, lpClassName, windowName.c_str(), style, x, y, w, h, parent, menu_h, GetModuleHandleW(NULL), (LPVOID)(uintptr_t)arm_lpParam);
         if (!hwnd) {
             DWORD err = GetLastError();
             WNDCLASSEXW probe = {}; probe.cbSize = sizeof(probe);
-            BOOL found = GetClassInfoExW(GetModuleHandleW(NULL), className.c_str(), &probe);
-            BOOL foundGlobal = found ? TRUE : GetClassInfoExW(NULL, className.c_str(), &probe);
+            BOOL found = GetClassInfoExW(GetModuleHandleW(NULL), lpClassName, &probe);
+            BOOL foundGlobal = found ? TRUE : GetClassInfoExW(NULL, lpClassName, &probe);
             LOG(API, "[API]   CreateWindowExW FAILED (error=%d, classFound=%d/%d)\n", err, found, foundGlobal);
         }
         if (hwnd) {
@@ -171,6 +190,7 @@ void Win32Thunks::RegisterWindowHandlers() {
                during WM_CREATE — as done by aygshell's TempWndProc pattern) */
             if (arm_wndproc && hwnd_wndproc_map.find(hwnd) == hwnd_wndproc_map.end())
                 hwnd_wndproc_map[hwnd] = arm_wndproc;
+
             if (is_toplevel) {
                 if (!windowName.empty()) SetWindowTextW(hwnd, windowName.c_str());
                 HICON hIcon = LoadIconW(NULL, IDI_APPLICATION);
@@ -208,11 +228,24 @@ void Win32Thunks::RegisterWindowHandlers() {
         }
         regs[0] = (uint32_t)(uintptr_t)hwnd; return true;
     });
-    Thunk("ShowWindow", 266, [](uint32_t* regs, EmulatedMemory&) -> bool {
+    Thunk("ShowWindow", 266, [this](uint32_t* regs, EmulatedMemory&) -> bool {
         HWND hw = (HWND)(intptr_t)(int32_t)regs[0];
         LOG(API, "[API] ShowWindow(0x%p, %d)\n", hw, regs[1]);
         if (hw == NULL && regs[1] == 5) { regs[0] = 0; return true; }
         regs[0] = ShowWindow(hw, regs[1]);
+        /* Force synchronous repaint of this window and all children.
+           In pseudo-threading mode, the normal WM_PAINT delivery via GetMessage
+           may never happen if nested threads block the main message loop.
+           UpdateWindow sends WM_PAINT directly through SendMessage (synchronous),
+           which goes through EmuWndProc for ARM-controlled windows. */
+        if (pseudo_thread_depth >= 2 && regs[1] != SW_HIDE) {
+            UpdateWindow(hw);
+            /* Also update visible children (e.g. SysListView32 inside DefShellView) */
+            EnumChildWindows(hw, [](HWND child, LPARAM) -> BOOL {
+                if (IsWindowVisible(child)) UpdateWindow(child);
+                return TRUE;
+            }, 0);
+        }
         return true;
     });
     Thunk("UpdateWindow", 267, [](uint32_t* regs, EmulatedMemory&) -> bool {

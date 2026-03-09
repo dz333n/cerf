@@ -88,6 +88,8 @@ void Win32Thunks::RegisterGdiTextHandlers() {
         uint32_t format = ReadStackArg(regs, mem, 0);
         RECT rc; rc.left = (int32_t)mem.Read32(rect_addr); rc.top = (int32_t)mem.Read32(rect_addr+4);
         rc.right = (int32_t)mem.Read32(rect_addr+8); rc.bottom = (int32_t)mem.Read32(rect_addr+12);
+        LOG(API, "[API] DrawTextW(hdc=%p, '%ls', count=%d, {%ld,%ld,%ld,%ld}, fmt=0x%X)\n",
+            hdc, text.c_str(), count, rc.left, rc.top, rc.right, rc.bottom, format);
         int ret = ::DrawTextW(hdc, text.c_str(), count, &rc, format);
         mem.Write32(rect_addr, (uint32_t)rc.left); mem.Write32(rect_addr+4, (uint32_t)rc.top);
         mem.Write32(rect_addr+8, (uint32_t)rc.right); mem.Write32(rect_addr+12, (uint32_t)rc.bottom);

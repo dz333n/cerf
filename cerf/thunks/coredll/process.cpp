@@ -30,14 +30,17 @@ void Win32Thunks::RegisterProcessHandlers() {
         bool is_exe_code = (lpStartAddress >= 0x10000 && lpStartAddress < 0x100000);
         if (lpStartAddress && callback_executor && is_exe_code) {
             /* Run thread function synchronously (inline pseudo-thread).
-               The thread function typically creates windows, signals an event,
-               then enters a message loop. The in_pseudo_thread flag makes
-               GetMessageW non-blocking so the loop exits cleanly. */
-            in_pseudo_thread = true;
+               Depth 1 = first pseudo-thread (blocking GetMessageW, acts as main loop).
+               Depth 2+ = nested pseudo-threads (non-blocking GetMessageW so they exit
+               their message loops and let the parent continue its work). */
+            pseudo_thread_depth++;
+            LOG(API, "[API]   CreateThread: running inline (pseudo_thread_depth=%d)\n",
+                pseudo_thread_depth);
             uint32_t args[1] = { lpParameter };
             uint32_t ret = callback_executor(lpStartAddress, args, 1);
-            in_pseudo_thread = false;
-            LOG(API, "[API]   CreateThread: thread function returned 0x%X\n", ret);
+            pseudo_thread_depth--;
+            LOG(API, "[API]   CreateThread: thread function returned 0x%X (depth now %d)\n",
+                ret, pseudo_thread_depth);
         } else {
             LOG(API, "[API]   CreateThread: skipping DLL thread at 0x%08X (not inline-safe)\n",
                 lpStartAddress);

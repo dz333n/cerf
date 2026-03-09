@@ -75,10 +75,19 @@ void Win32Thunks::RegisterImageListHandlers() {
         return true;
     });
     Thunk("ImageList_DrawEx", 749, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
-        regs[0] = ImageList_DrawEx((HIMAGELIST)UnwrapHandle(regs[0]), regs[1],
-            (HDC)(uintptr_t)regs[2], regs[3],
-            ReadStackArg(regs, mem, 0), ReadStackArg(regs, mem, 1), ReadStackArg(regs, mem, 2),
-            ReadStackArg(regs, mem, 3), ReadStackArg(regs, mem, 4), ReadStackArg(regs, mem, 5));
+        HIMAGELIST himl = (HIMAGELIST)UnwrapHandle(regs[0]);
+        int i = (int)regs[1];
+        HDC hdc = (HDC)(uintptr_t)regs[2];
+        int x = (int)regs[3];
+        int y = (int)ReadStackArg(regs, mem, 0);
+        int dx = (int)ReadStackArg(regs, mem, 1);
+        int dy = (int)ReadStackArg(regs, mem, 2);
+        COLORREF rgbBk = ReadStackArg(regs, mem, 3);
+        COLORREF rgbFg = ReadStackArg(regs, mem, 4);
+        UINT fStyle = ReadStackArg(regs, mem, 5);
+        LOG(API, "[API] ImageList_DrawEx(himl=%p, i=%d, hdc=%p, x=%d, y=%d, dx=%d, dy=%d, style=0x%X)\n",
+            himl, i, hdc, x, y, dx, dy, fStyle);
+        regs[0] = ImageList_DrawEx(himl, i, hdc, x, y, dx, dy, rgbBk, rgbFg, fStyle);
         return true;
     });
     Thunk("ImageList_GetImageCount", 756, [this](uint32_t* regs, EmulatedMemory&) -> bool {
