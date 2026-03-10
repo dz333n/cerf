@@ -166,7 +166,7 @@ void Win32Thunks::RegisterWindowHandlers() {
 
         /* Per-class fixups */
         if (className == L"SysListView32")
-            style |= 0x0100 | 0x0800; /* LVS_AUTOARRANGE | LVS_ALIGNLEFT */
+            style |= 0x0100; /* LVS_AUTOARRANGE */
         if (className == L"Shell Embedding" || className == L"DefShellView")
             style |= WS_VISIBLE;
 
