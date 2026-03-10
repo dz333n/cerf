@@ -1,6 +1,7 @@
 #define NOMINMAX
 #define _CRT_SECURE_NO_WARNINGS
 #include "win32_thunks.h"
+#include "thread_context.h"
 #include "../log.h"
 
 /* Write WIN32_FIND_DATAW to emulated memory using WinCE struct layout.
@@ -111,8 +112,18 @@ HMODULE Win32Thunks::GetNativeModuleForResources(uint32_t emu_handle) {
             return pair.second.native_rsrc_handle;
         }
     }
-    /* Check main exe */
+    /* Check main exe (or child process exe if running in a ProcessSlot) */
     if (emu_handle == emu_hinstance) {
+        /* Child process threads have their own exe_path in ThreadContext.
+           Use a per-thread cached HMODULE so each child loads its own resources. */
+        if (t_ctx && t_ctx->exe_path[0] != '\0') {
+            static thread_local HMODULE child_exe_rsrc = NULL;
+            if (!child_exe_rsrc) {
+                child_exe_rsrc = LoadLibraryExA(t_ctx->exe_path, NULL,
+                    LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
+            }
+            return child_exe_rsrc;
+        }
         static HMODULE exe_rsrc = NULL;
         if (!exe_rsrc) {
             std::string narrow_exe;

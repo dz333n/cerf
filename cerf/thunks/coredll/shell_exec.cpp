@@ -145,9 +145,10 @@ void Win32Thunks::RegisterShellExecHandler() {
             }
             LOG(API, "[API]   -> ctlpnl.exe: loading CPL '%ls' applet=%d tab=%d\n",
                 cpl_name.c_str(), applet_idx, tab_idx);
-            /* Convert to narrow for LoadArmDll */
+            /* LoadArmDll expects a bare filename, not a full WinCE path */
+            std::wstring cpl_basename = GetLowerBasename(cpl_name);
             std::string narrow_cpl;
-            for (auto c : cpl_name) narrow_cpl += (char)c;
+            for (auto c : cpl_basename) narrow_cpl += (char)c;
             LoadedDll* cpl = LoadArmDll(narrow_cpl.c_str());
             if (cpl) {
                 CallDllEntryPoints();

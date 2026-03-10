@@ -47,13 +47,14 @@ void Win32Thunks::RegisterChildProcessHandler() {
                     ctx.marshal_base = 0x3F000000 + (thread_idx + 1) * 0x10000;
                     t_ctx = &ctx;
 
-                    /* Set process name for log lines */
+                    /* Set process name and exe path for log lines and resources */
                     {
                         const char* p = cpi->path.c_str();
                         const char* fname = strrchr(p, '/');
                         if (!fname) fname = strrchr(p, '\\');
                         fname = fname ? fname + 1 : p;
                         snprintf(ctx.process_name, sizeof(ctx.process_name), "%s", fname);
+                        snprintf(ctx.exe_path, sizeof(ctx.exe_path), "%s", cpi->path.c_str());
                         Log::SetProcessName(ctx.process_name, GetCurrentThreadId());
                     }
 
