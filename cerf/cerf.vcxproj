@@ -141,6 +141,8 @@
   <ItemGroup>
     <ClInclude Include="cpu\arm_cpu.h" />
     <ClInclude Include="cpu\mem.h" />
+    <ClInclude Include="cpu\process_slot.h" />
+    <ClInclude Include="patches.h" />
     <ClInclude Include="loader\pe_loader.h" />
     <ClInclude Include="thunks\win32_thunks.h" />
     <ClInclude Include="thunks\thread_context.h" />
@@ -157,6 +159,8 @@
     <ClCompile Include="loader\pe_loader_exports.cpp" />
     <!-- Logging -->
     <ClCompile Include="log.cpp" />
+    <!-- Runtime patches -->
+    <ClCompile Include="patches.cpp" />
     <!-- Entry point -->
     <ClCompile Include="main.cpp" />
     <ClCompile Include="cli_helpers.cpp" />
@@ -198,6 +202,7 @@
     <ClCompile Include="thunks\coredll\sync.cpp" />
     <ClCompile Include="thunks\coredll\resource.cpp" />
     <ClCompile Include="thunks\coredll\process.cpp" />
+    <ClCompile Include="thunks\coredll\child_process.cpp" />
     <ClCompile Include="thunks\coredll\filemapping.cpp" />
     <ClCompile Include="thunks\coredll\misc.cpp" />
     <ClCompile Include="thunks\coredll\com.cpp" />
@@ -207,6 +212,7 @@
     <ClCompile Include="thunks\coredll\module.cpp" />
     <ClCompile Include="thunks\coredll\shell.cpp" />
     <ClCompile Include="thunks\coredll\shell_exec.cpp" />
+    <ClCompile Include="thunks\coredll\shell_exec_launch.cpp" />
     <ClCompile Include="thunks\coredll\vfs.cpp" />
     <ClCompile Include="thunks\theme.cpp" />
     <ClCompile Include="thunks\thread_context.cpp" />

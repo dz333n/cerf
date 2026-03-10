@@ -6,6 +6,7 @@
 #include <cstring>
 #include <cstdio>
 #include <mutex>
+#include "process_slot.h"
 
 /* Emulated memory manager for ARM address space.
    Uses VirtualAlloc on the host to back emulated memory regions. */
@@ -17,50 +18,6 @@ struct MemRegion {
     DWORD    protect;
     bool     is_stack;
     bool     is_external = false; /* True for externally-owned buffers (don't free) */
-};
-
-/* Per-process virtual address space overlay (WinCE slot 0: 0x00000000-0x01FFFFFF).
-   DLLs above 0x02000000 are shared and not overlaid. */
-struct ProcessSlot {
-    static const uint32_t SLOT_SIZE = 0x02000000;
-    static const uint32_t IDENTITY_BASE = 0x00010000;
-    uint8_t* buffer = nullptr;
-    uint32_t committed = 0;
-    bool identity_mapped = false;
-    ProcessSlot() {
-        void* p = VirtualAlloc((void*)(uintptr_t)IDENTITY_BASE,
-                               SLOT_SIZE - IDENTITY_BASE,
-                               MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-        if (p == (void*)(uintptr_t)IDENTITY_BASE) {
-            buffer = (uint8_t*)p; identity_mapped = true;
-        } else {
-            if (p) VirtualFree(p, 0, MEM_RELEASE);
-            buffer = (uint8_t*)VirtualAlloc(NULL, SLOT_SIZE,
-                                             MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-        }
-    }
-    ~ProcessSlot() { if (buffer) VirtualFree(buffer, 0, MEM_RELEASE); }
-    bool Commit(uint32_t offset, uint32_t size) {
-        if (identity_mapped) {
-            if (offset < IDENTITY_BASE) {
-                if (offset + size <= IDENTITY_BASE) return true;
-                size -= (IDENTITY_BASE - offset); offset = IDENTITY_BASE;
-            }
-            return offset + size <= SLOT_SIZE;
-        }
-        if (!buffer || offset + size > SLOT_SIZE) return false;
-        uint32_t page_off = offset & ~0xFFFu;
-        uint32_t page_end = (offset + size + 0xFFF) & ~0xFFFu;
-        return VirtualAlloc(buffer + page_off, page_end - page_off, MEM_COMMIT, PAGE_READWRITE) != nullptr;
-    }
-    uint8_t* Translate(uint32_t addr) const {
-        if (identity_mapped) {
-            if (addr < IDENTITY_BASE || addr >= SLOT_SIZE) return nullptr;
-            return (uint8_t*)(uintptr_t)addr;
-        }
-        if (!buffer || addr >= SLOT_SIZE) return nullptr;
-        return buffer + addr;
-    }
 };
 
 class EmulatedMemory {

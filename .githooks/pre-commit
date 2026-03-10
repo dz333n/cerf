@@ -20,5 +20,20 @@ done
 if [ "$FAIL" -eq 1 ]; then
     echo ""
     echo "Split large files before committing."
+    echo ""
+    echo "=== AI ASSISTANT NOTE ==="
+    echo "To fix line count violations, you are FORBIDDEN from doing ANY of the following:"
+    echo "  - Removing important comments"
+    echo "  - Deleting blank lines to compress code"
+    echo "  - Merging multiple code lines into a single line"
+    echo "  - Nuking code style by ANY means"
+    echo "  - Changing this pre-commit hook's MAX_LINES value"
+    echo "  - Skipping this hook (--no-verify)"
+    echo ""
+    echo "The ONLY acceptable solution is to PROPERLY REFACTOR the code by splitting"
+    echo "large files into smaller ones, without destroying comments, formatting,"
+    echo "or readability. This includes splitting big functions, methods, and if-blocks"
+    echo "into properly refactored small structures. Use COMMON SENSE and BEST PRACTICES."
+    echo "========================="
     exit 1
 fi

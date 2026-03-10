@@ -226,6 +226,7 @@ private:
     void RegisterResourceHandlers();
     void RegisterShellHandlers();
     void RegisterProcessHandlers();
+    void RegisterChildProcessHandler();
     void RegisterFileMappingHandlers();
     void RegisterMiscHandlers();
     void RegisterComHandlers();
@@ -236,4 +237,6 @@ private:
     void RegisterStdioHandlers();
     void RegisterVfsHandlers();
     void RegisterShellExecHandler();
+    bool LaunchArmChildProcess(const std::wstring& mapped_file, const std::wstring& params,
+                               uint32_t sei_addr, uint32_t* regs, EmulatedMemory& mem);
 };

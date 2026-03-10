@@ -15,6 +15,7 @@
 #include "loader/pe_loader.h"
 #include "thunks/win32_thunks.h"
 #include "cli_helpers.h"
+#include "patches.h"
 
 int main(int argc, char* argv[]) {
     const char* exe_path = nullptr;
@@ -239,11 +240,14 @@ int main(int argc, char* argv[]) {
     t_ctx = &main_ctx;
     EmulatedMemory::kdata_override = main_ctx.kdata;
 
-    { const char* fname = strrchr(exe_path, '/');
-      if (!fname) fname = strrchr(exe_path, '\\');
-      fname = fname ? fname + 1 : exe_path;
-      snprintf(main_ctx.process_name, sizeof(main_ctx.process_name), "%s", fname);
-      Log::SetProcessName(main_ctx.process_name, GetCurrentThreadId()); }
+    /* Set process name for log lines (extract filename from path) */
+    {
+        const char* fname = strrchr(exe_path, '/');
+        if (!fname) fname = strrchr(exe_path, '\\');
+        fname = fname ? fname + 1 : exe_path;
+        snprintf(main_ctx.process_name, sizeof(main_ctx.process_name), "%s", fname);
+        Log::SetProcessName(main_ctx.process_name, GetCurrentThreadId());
+    }
 
     /* Set up the trampoline: thunk handlers use this->callback_executor which
        delegates to the current thread's real callback_executor via t_ctx. */
@@ -255,33 +259,16 @@ int main(int argc, char* argv[]) {
     /* Call DllMain for any loaded ARM DLLs (must happen after callback_executor is set up) */
     thunks.CallDllEntryPoints();
 
-    /* Patch OLE32: AssertValid, GetTreatAs, CDllCache corrupted linked lists */
-    constexpr uint32_t ARM_BX_LR = 0xE12FFF1E;
-    constexpr uint32_t ARM_MVN_R0_0 = 0xE3E00000; /* MVN R0,#0 → R0=-1 */
-    if (mem.IsValid(0x100944DC)) {
-        mem.Write32(0x100944DC, ARM_BX_LR); /* AssertValid */
-        const uint32_t gt[] = { 0xE5902000, 0xE5812000, 0xE5902004, 0xE5812004,
-            0xE5902008, 0xE5812008, 0xE590200C, 0xE581200C, 0xE3A00000, ARM_BX_LR };
-        for (int i = 0; i < 10; i++) mem.Write32(0x10088DFC + i * 4, gt[i]);
-        /* CDllCache: Search* return -1, rest BX LR */
-        for (auto a : {0x10065218u,0x10065364u,0x10065440u}) { mem.Write32(a, ARM_MVN_R0_0); mem.Write32(a+4, ARM_BX_LR); }
-        for (auto a : {0x10063DB8u,0x10064510u,0x10064628u,0x10064CB8u,0x10064E80u,0x10064FFCu,0x10065B20u,0x10065ED8u}) mem.Write32(a, ARM_BX_LR);
-        LOG(EMU, "[EMU] Patched OLE32: AssertValid+GetTreatAs+CDllCache(11 funcs)\n");
-    }
-    for (auto a : {0x10146464u, 0x101880A0u, 0x10187E78u}) /* RPCRT4 stubs */
-        if (mem.IsValid(a)) mem.Write32(a, ARM_BX_LR);
-    if (mem.IsValid(0x100239FC)) { /* OLE32 CoMarshalInterThreadInterface: fail cleanly */
-        mem.Write32(0x100239FC, 0xE3A03000); mem.Write32(0x10023A00, 0xE5823000);
-        mem.Write32(0x10023A04, ARM_MVN_R0_0); mem.Write32(0x10023A08, ARM_BX_LR);
-    }
-    if (mem.IsValid(0x00021EF4)) /* Explorer: skip corrupt _pIPActiveObj block */
-        mem.Write32(0x00021EF4, 0xEA00001B);
+    ApplyRuntimePatches(mem);
     LOG(EMU, "\n[EMU] Starting at 0x%08X (%s), SP=0x%08X hInst=0x%08X\n",
            cpu.r[REG_PC], cpu.IsThumb() ? "Thumb" : "ARM", cpu.r[REG_SP], cpu.r[0]);
 
     /* Run the emulator */
     cpu.Run();
 
+    /* If we get here, main CPU halted. If WinMain returned 0 (success),
+       child threads may still be running (e.g. explorer.exe shell threads).
+       Keep the process alive with a message pump so child threads can work. */
     LOG(EMU, "\n[EMU] CPU halted (code=%d) after %llu instructions\n", cpu.halt_code, cpu.insn_count);
     if (cpu.halt_code == 0) {
         LOG(EMU, "[EMU] Main entry returned 0 — pumping messages for child threads\n");
