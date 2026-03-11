@@ -155,13 +155,20 @@ void Win32Thunks::RegisterWindowPropsHandlers() {
            the native WndProc pointer on x64, and also fails for GWL_WNDPROC on x64). */
         if (idx == -4 /* GWL_WNDPROC */) {
             auto it = hwnd_wndproc_map.find(hw);
-            regs[0] = (it != hwnd_wndproc_map.end()) ? it->second : 0;
+            uint32_t old_arm = (it != hwnd_wndproc_map.end()) ? it->second : 0;
+            /* First time subclassing a native control: save its native WndProc
+               so CallWindowProcW can chain to it, and return a sentinel token
+               that ARM code will store as the "old" WndProc. */
+            if (it == hwnd_wndproc_map.end() && nv) {
+                WNDPROC orig = (WNDPROC)GetWindowLongPtrW(hw, GWLP_WNDPROC);
+                if (orig && orig != EmuWndProc) {
+                    hwnd_native_wndproc_map[hw] = orig;
+                    old_arm = 0xFFFE0000; /* sentinel: "native WndProc" */
+                }
+            }
+            regs[0] = old_arm;
             if (nv) {
                 hwnd_wndproc_map[hw] = (uint32_t)nv;
-                /* If this HWND was a dialog (native WNDPROC = DefDlgProc), switch its
-                   native WNDPROC to EmuWndProc so messages route through the ARM WndProc
-                   chain instead of the dialog proc chain.  MFC does this to subclass
-                   dialog-based main windows. */
                 SetWindowLongPtrW(hw, GWLP_WNDPROC, (LONG_PTR)EmuWndProc);
                 LOG(API, "[API] SetWindowLongW(0x%p, GWL_WNDPROC, 0x%08X) -> old=0x%08X\n",
                     hw, (uint32_t)nv, regs[0]);

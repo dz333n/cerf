@@ -126,7 +126,32 @@ void Win32Thunks::RegisterWindowLayoutHandlers() {
             uint32_t args[4] = { (uint32_t)(uintptr_t)hw, umsg, (uint32_t)wp, (uint32_t)lp };
             regs[0] = callback_executor(wndproc, args, 4);
         } else {
-            regs[0] = (uint32_t)DefWindowProcW(hw, umsg, wp, lp);
+            /* Chain to saved native WndProc (e.g. edit control subclassed by ARM code).
+               Reverse-marshal messages whose wParam/lParam are ARM pointers. */
+            auto nit = hwnd_native_wndproc_map.find(hw);
+            if (nit != hwnd_native_wndproc_map.end()) {
+                WNDPROC np = nit->second;
+                if (umsg == WM_SETTEXT && lp) {
+                    std::wstring s = ReadWStringFromEmu(mem, (uint32_t)lp);
+                    regs[0] = (uint32_t)CallWindowProcW(np, hw, umsg, wp, (LPARAM)s.c_str());
+                } else if (umsg == WM_GETTEXT && lp && wp > 0) {
+                    std::vector<wchar_t> buf((size_t)wp + 1);
+                    LRESULT len = CallWindowProcW(np, hw, umsg, wp, (LPARAM)buf.data());
+                    for (LRESULT i = 0; i <= len && i < (LRESULT)wp; i++)
+                        mem.Write16((uint32_t)lp + (uint32_t)i * 2, buf[i]);
+                    regs[0] = (uint32_t)len;
+                } else if (umsg == 0x00B0 /* EM_GETSEL */) {
+                    DWORD selStart = 0, selEnd = 0;
+                    regs[0] = (uint32_t)CallWindowProcW(np, hw, umsg,
+                        wp ? (WPARAM)&selStart : 0, lp ? (LPARAM)&selEnd : 0);
+                    if (wp) mem.Write32((uint32_t)wp, selStart);
+                    if (lp) mem.Write32((uint32_t)lp, selEnd);
+                } else {
+                    regs[0] = (uint32_t)CallWindowProcW(np, hw, umsg, wp, lp);
+                }
+            } else {
+                regs[0] = (uint32_t)DefWindowProcW(hw, umsg, wp, lp);
+            }
         }
         return true;
     });

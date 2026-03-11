@@ -65,6 +65,7 @@ public:
 
     std::map<std::wstring, uint32_t> arm_wndprocs;             /* class name -> ARM WndProc */
     static std::map<HWND, uint32_t> hwnd_wndproc_map;          /* HWND -> ARM WndProc */
+    static std::map<HWND, WNDPROC> hwnd_native_wndproc_map;   /* HWND -> saved native WndProc before EmuWndProc subclass */
     static std::map<UINT_PTR, uint32_t> arm_timer_callbacks;   /* timer ID -> ARM TIMERPROC */
     static std::map<HWND, uint32_t> hwnd_dlgproc_map;          /* HWND -> ARM DlgProc */
     static uint32_t pending_arm_dlgproc;   /* stashed for CreateDialogIndirectParamW */

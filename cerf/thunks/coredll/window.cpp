@@ -265,6 +265,7 @@ void Win32Thunks::RegisterWindowHandlers() {
         BOOL ret = DestroyWindow(hw);
         LOG(API, "[API] DestroyWindow result=%d, error=%d\n", ret, GetLastError());
         hwnd_wndproc_map.erase(hw);
+        hwnd_native_wndproc_map.erase(hw);
         hwnd_wce_style_map.erase(hw);
         hwnd_wce_exstyle_map.erase(hw);
         regs[0] = ret;

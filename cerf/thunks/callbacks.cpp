@@ -10,6 +10,7 @@
 
 /* Static member definitions for callback infrastructure */
 std::map<HWND, uint32_t> Win32Thunks::hwnd_wndproc_map;
+std::map<HWND, WNDPROC> Win32Thunks::hwnd_native_wndproc_map;
 std::map<UINT_PTR, uint32_t> Win32Thunks::arm_timer_callbacks;
 std::map<HWND, uint32_t> Win32Thunks::hwnd_dlgproc_map;
 uint32_t Win32Thunks::pending_arm_dlgproc = 0;
