@@ -272,3 +272,9 @@ __pycache__/
 *.pyc
 
 run_claude.md
+
+# IDA Pro database files (only in bundled/ directory)
+bundled/**/*.i64
+bundled/**/*.id*
+bundled/**/*.nam
+bundled/**/*.til
