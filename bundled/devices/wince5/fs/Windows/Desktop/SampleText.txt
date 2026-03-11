@@ -1,1 +1,0 @@
-Hello World! This is a sample text document on the Windows CE desktop.
