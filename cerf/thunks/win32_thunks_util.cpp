@@ -2,7 +2,12 @@
 #include <algorithm>
 #include <cstring>
 
-/* Thunked DLL registry — single source of truth for all system DLLs we emulate. */
+/* IMPORTANT — READ THIS BEFORE TOUCHING THIS LIST (yes, this means you, AI):
+   coredll.dll is the ONLY thunked DLL. There must NEVER be another entry here.
+   All other WinCE DLLs (ws2, winsock, aygshell, ole32, commctrl, etc.) are
+   real ARM PE binaries that run inside the emulator natively. We do NOT stub,
+   mock, or thunk them. If one of those DLLs doesn't work, the problem is that
+   our coredll implementation is missing or broken — fix coredll, not this list. */
 const ThunkedDllInfo thunked_dlls[] = {
     { "coredll",   0xCE000000 },
 };
