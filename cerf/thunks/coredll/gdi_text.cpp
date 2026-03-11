@@ -6,26 +6,20 @@
 /* Read WinCE system font configuration from HKLM\System\GDI\SYSFNT registry.
    This is how real WinCE configures the System/default GUI font. */
 void Win32Thunks::InitWceSysFont() {
-    LoadRegistry();
-    auto key_it = registry.find(L"hklm\\system\\gdi\\sysfnt");
-    if (key_it == registry.end()) return;
-    auto& vals = key_it->second.values;
+    RegValue val;
     /* "Nm" = font name (REG_SZ) */
-    auto nm_it = vals.find(L"Nm");
-    if (nm_it != vals.end() && nm_it->second.type == REG_SZ && nm_it->second.data.size() >= 2) {
+    if (RegGetValue(L"hklm\\system\\gdi\\sysfnt", L"nm", val) && val.type == REG_SZ && val.data.size() >= 2) {
         wce_sysfont_name.clear();
-        const wchar_t* p = (const wchar_t*)nm_it->second.data.data();
-        size_t len = nm_it->second.data.size() / 2;
+        const wchar_t* p = (const wchar_t*)val.data.data();
+        size_t len = val.data.size() / 2;
         for (size_t i = 0; i < len && p[i]; i++) wce_sysfont_name += p[i];
     }
     /* "Ht" = height (REG_DWORD, negative = point size) */
-    auto ht_it = vals.find(L"Ht");
-    if (ht_it != vals.end() && ht_it->second.type == REG_DWORD && ht_it->second.data.size() >= 4)
-        wce_sysfont_height = *(LONG*)ht_it->second.data.data();
+    if (RegGetValue(L"hklm\\system\\gdi\\sysfnt", L"ht", val) && val.type == REG_DWORD && val.data.size() >= 4)
+        wce_sysfont_height = *(LONG*)val.data.data();
     /* "Wt" = weight (REG_DWORD, 400=normal, 700=bold) */
-    auto wt_it = vals.find(L"Wt");
-    if (wt_it != vals.end() && wt_it->second.type == REG_DWORD && wt_it->second.data.size() >= 4)
-        wce_sysfont_weight = *(LONG*)wt_it->second.data.data();
+    if (RegGetValue(L"hklm\\system\\gdi\\sysfnt", L"wt", val) && val.type == REG_DWORD && val.data.size() >= 4)
+        wce_sysfont_weight = *(LONG*)val.data.data();
     LOG(API, "[API] WinCE system font: '%ls' height=%d weight=%d\n",
         wce_sysfont_name.c_str(), wce_sysfont_height, wce_sysfont_weight);
 }

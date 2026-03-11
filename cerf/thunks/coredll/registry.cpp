@@ -14,6 +14,7 @@ static std::wstring NormalizeValueName(const std::wstring& name) {
 void Win32Thunks::RegisterRegistryHandlers() {
     Thunk("RegOpenKeyExW", 461, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t parent_hkey = regs[0];
         std::wstring subkey;
         if (regs[1]) subkey = ReadWStringFromEmu(mem, regs[1]);
@@ -32,6 +33,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
     });
     Thunk("RegCreateKeyExW", 456, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t parent_hkey = regs[0];
         std::wstring subkey;
         if (regs[1]) subkey = ReadWStringFromEmu(mem, regs[1]);
@@ -48,11 +50,14 @@ void Win32Thunks::RegisterRegistryHandlers() {
         regs[0] = ERROR_SUCCESS; return true;
     });
     Thunk("RegCloseKey", 455, [this](uint32_t* regs, EmulatedMemory&) -> bool {
-        hkey_map.erase(regs[0]); SaveRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
+        hkey_map.erase(regs[0]);
+        SaveRegistry();
         regs[0] = ERROR_SUCCESS; return true;
     });
     Thunk("RegQueryValueExW", 463, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t hkey = regs[0];
         std::wstring value_name;
         if (regs[1]) value_name = ReadWStringFromEmu(mem, regs[1]);
@@ -89,6 +94,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
     });
     Thunk("RegSetValueExW", 464, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t hkey = regs[0];
         std::wstring value_name;
         if (regs[1]) value_name = ReadWStringFromEmu(mem, regs[1]);
@@ -106,6 +112,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
         regs[0] = ERROR_SUCCESS; return true;
     });
     Thunk("RegDeleteKeyW", 457, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t hkey = regs[0];
         std::wstring subkey;
         if (regs[1]) subkey = ReadWStringFromEmu(mem, regs[1]);
@@ -115,6 +122,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
         regs[0] = ERROR_SUCCESS; return true;
     });
     Thunk("RegDeleteValueW", 458, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t hkey = regs[0];
         std::wstring value_name;
         if (regs[1]) value_name = ReadWStringFromEmu(mem, regs[1]);
@@ -127,6 +135,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
     });
     Thunk("RegEnumValueW", 459, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t hkey = regs[0], index = regs[1], pName = regs[2], pcchName = regs[3];
         uint32_t pType = ReadStackArg(regs, mem, 1);
         uint32_t pData = ReadStackArg(regs, mem, 2);
@@ -158,6 +167,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
     });
     Thunk("RegEnumKeyExW", 460, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t hkey = regs[0], index = regs[1], pName = regs[2], pcchName = regs[3];
         auto kit = hkey_map.find(hkey);
         if (kit == hkey_map.end()) { regs[0] = ERROR_INVALID_HANDLE; return true; }
@@ -178,6 +188,7 @@ void Win32Thunks::RegisterRegistryHandlers() {
     });
     Thunk("RegQueryInfoKeyW", 462, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
         LoadRegistry();
+        std::lock_guard<std::recursive_mutex> lock(registry_mutex);
         uint32_t hkey = regs[0];
         uint32_t pcSubKeys = ReadStackArg(regs, mem, 0);
         uint32_t pcValues = ReadStackArg(regs, mem, 3);

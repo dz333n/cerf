@@ -154,30 +154,19 @@ void Win32Thunks::InitWceTheme() {
             g_original_colors[i] = GetSysColor(i);
         memset(g_original_brushes, 0, sizeof(g_original_brushes));
 
-        /* Ensure registry is loaded */
-        LoadRegistry();
-
         /* Read HKLM\SYSTEM\GWE\SysColor from emulated registry.
            Format: 27 x 4-byte COLORREFs (R,G,B,0 per entry = 108 bytes total). */
         bool loaded_from_reg = false;
-        std::wstring key = L"hklm\\system\\gwe";
-        auto it = registry.find(key);
-        if (it != registry.end()) {
-            std::wstring valname = L"syscolor";
-            auto vit = it->second.values.find(valname);
-            if (vit != it->second.values.end() && vit->second.type == REG_BINARY) {
-                const auto& data = vit->second.data;
-                size_t count = data.size() / 4;
-                if (count > WCE_NUM_SYSCOLORS) count = WCE_NUM_SYSCOLORS;
-                for (size_t i = 0; i < count; i++) {
-                    uint8_t r = data[i * 4 + 0];
-                    uint8_t g = data[i * 4 + 1];
-                    uint8_t b = data[i * 4 + 2];
-                    g_wce_colors[i] = RGB(r, g, b);
-                }
-                loaded_from_reg = true;
-                LOG(THEME, "[THEME] Loaded %zu system colors from registry\n", count);
+        RegValue syscolor_val;
+        if (RegGetValue(L"hklm\\system\\gwe", L"syscolor", syscolor_val) && syscolor_val.type == REG_BINARY) {
+            const auto& data = syscolor_val.data;
+            size_t count = data.size() / 4;
+            if (count > WCE_NUM_SYSCOLORS) count = WCE_NUM_SYSCOLORS;
+            for (size_t i = 0; i < count; i++) {
+                g_wce_colors[i] = RGB(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
             }
+            loaded_from_reg = true;
+            LOG(THEME, "[THEME] Loaded %zu system colors from registry\n", count);
         }
 
         if (!loaded_from_reg) {
@@ -194,9 +183,7 @@ void Win32Thunks::InitWceTheme() {
             RegValue val;
             val.type = REG_BINARY;
             val.data = std::move(blob);
-            registry[key].values[L"syscolor"] = val;
-            EnsureParentKeys(key);
-            SaveRegistry();
+            RegSetValue(L"hklm\\system\\gwe", L"syscolor", val);
         }
 
         /* Initialize brush cache */

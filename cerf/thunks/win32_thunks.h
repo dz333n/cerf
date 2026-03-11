@@ -188,11 +188,15 @@ private:
     uint32_t next_fake_hkey = 0xAE000000;
     bool registry_loaded = false;
     std::string registry_path;
+    std::recursive_mutex registry_mutex; /* Protects registry, hkey_map, next_fake_hkey */
     void LoadRegistry();
     void SaveRegistry();
     void ImportRegFile(const std::string& path);
     std::wstring ResolveHKey(uint32_t hkey, const std::wstring& subkey);
     void EnsureParentKeys(const std::wstring& path);
+    /* Internal registry helpers — handle locking + LoadRegistry internally */
+    bool RegGetValue(const std::wstring& key, const std::wstring& name, RegValue& out);
+    void RegSetValue(const std::wstring& key, const std::wstring& name, const RegValue& val);
     void WriteFindDataToEmu(EmulatedMemory& mem, uint32_t addr, const WIN32_FIND_DATAW& fd);
 
     /* Map-based thunk dispatch */

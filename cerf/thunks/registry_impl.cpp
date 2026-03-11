@@ -28,6 +28,7 @@ static std::string WideToNarrow(const std::wstring& w) {
 }
 
 void Win32Thunks::LoadRegistry() {
+    std::lock_guard<std::recursive_mutex> lock(registry_mutex);
     if (registry_loaded) return;
     registry_loaded = true;
 
@@ -148,6 +149,7 @@ post_load:
 }
 
 void Win32Thunks::SaveRegistry() {
+    std::lock_guard<std::recursive_mutex> lock(registry_mutex);
     if (registry_path.empty()) return;
 
     std::ofstream f(registry_path);
@@ -225,4 +227,27 @@ void Win32Thunks::EnsureParentKeys(const std::wstring& path) {
         if (next != std::wstring::npos) child_name = child_name.substr(0, next);
         registry[parent].subkeys.insert(child_name);
     }
+}
+
+bool Win32Thunks::RegGetValue(const std::wstring& key, const std::wstring& name, RegValue& out) {
+    LoadRegistry();
+    std::lock_guard<std::recursive_mutex> lock(registry_mutex);
+    auto kit = registry.find(key);
+    if (kit == registry.end()) return false;
+    std::wstring lower = name;
+    for (auto& c : lower) c = towlower(c);
+    auto vit = kit->second.values.find(lower);
+    if (vit == kit->second.values.end()) return false;
+    out = vit->second;
+    return true;
+}
+
+void Win32Thunks::RegSetValue(const std::wstring& key, const std::wstring& name, const RegValue& val) {
+    LoadRegistry();
+    std::lock_guard<std::recursive_mutex> lock(registry_mutex);
+    std::wstring lower = name;
+    for (auto& c : lower) c = towlower(c);
+    registry[key].values[lower] = val;
+    EnsureParentKeys(key);
+    SaveRegistry();
 }
