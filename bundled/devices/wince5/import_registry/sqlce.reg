@@ -1,0 +1,186 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+;
+
+; @CESYSGEN IF SQLCE_MODULES_SQLCE20
+; @CESYSGEN IF NETCF_MODULES_DOTNET
+; NETCF GAC entries (Global Assembly Cache)
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\Global]
+"System.Data.Common, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.Common_v1_0_5000_0_cneutral_1.dll","System.Data.Common.dll"
+"System.Data.SqlServerCe, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.SqlServerCe_v1_0_5000_0_cneutral_1.dll","System.Data.SqlServerCe.dll"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\ROM]
+"System.Data.Common, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.Common_v1_0_5000_0_cneutral_1.dll","System.Data.Common.dll"
+"System.Data.SqlServerCe, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.SqlServerCe_v1_0_5000_0_cneutral_1.dll","System.Data.SqlServerCe.dll"
+; @CESYSGEN ENDIF NETCF_MODULES_DOTNET
+
+; SSCE ISAM Registry
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSSQLServerCE\2.0\Engines\MSISAM 1.x]
+"PageTimeout"=dword:00001388
+"LockRetry"=dword:00000014
+"MaxBufferSize"=dword:00000000
+"Threads"=dword:00000003
+"ExclusiveAsyncDelay"=dword:000007d0
+"SharedAsyncDelay"=dword:00000032
+"FlushTransactionTimeout"=dword:000001f4
+"MaxLocksPerFile"=dword:0000251c
+"LockDelay"=dword:00000064
+"RecycleLVs"=dword:00000000
+"PagesLockedToTableLock"=dword:00000000
+"UserCommitSync"="yes"
+"ImplicitCommitSync"="no"
+
+; SSCE Engine Object Registry
+[HKEY_CLASSES_ROOT\SSCE.Engine.2.0]
+@="Active SSCE Engine Object"
+[HKEY_CLASSES_ROOT\SSCE.Engine.2.0\CLSID]
+@="{A4138508-7379-4698-88B7-49132C702184}"
+[HKEY_CLASSES_ROOT\CLSID\{A4138508-7379-4698-88B7-49132C702184}]
+@="Active SSCE Engine Object"
+[HKEY_CLASSES_ROOT\CLSID\{A4138508-7379-4698-88B7-49132C702184}\InprocServer32]
+@="\\Windows\\ssceca20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{A4138508-7379-4698-88B7-49132C702184}\ProgID]
+@="SSCE.Engine.2.0"
+
+; SSCE Errors Object Registry
+[HKEY_CLASSES_ROOT\SSCE.Errors.2.0]
+@="SSCE Error Object"
+[HKEY_CLASSES_ROOT\SSCE.Errors.2.0\CLSID]
+@="{08505AEA-F293-4750-98AF-3C1B0077FE3F}"
+[HKEY_CLASSES_ROOT\CLSID\{08505AEA-F293-4750-98AF-3C1B0077FE3F}]
+@="SSCE Error Object"
+[HKEY_CLASSES_ROOT\CLSID\{08505AEA-F293-4750-98AF-3C1B0077FE3F}\InprocServer32]
+@="\\Windows\\ssceca20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{08505AEA-F293-4750-98AF-3C1B0077FE3F}\ProgID]
+@="SSCE.Error.2.0"
+[HKEY_CLASSES_ROOT\CLSID\{08505AEA-F293-4750-98AF-3C1B0077FE3F}\SSCE Error Object]
+@=""
+
+; SSCE Errors Collection Registry
+[HKEY_CLASSES_ROOT\SSCE.Errors.2.0]
+@="SSCE Error Collection"
+[HKEY_CLASSES_ROOT\SSCE.Errors.2.0\CLSID]
+@="{444C03B3-490A-48C2-81B6-E77366CB62F9}"
+[HKEY_CLASSES_ROOT\CLSID\{444C03B3-490A-48C2-81B6-E77366CB62F9}]
+@="SSCE Errors Collection"
+[HKEY_CLASSES_ROOT\CLSID\{444C03B3-490A-48C2-81B6-E77366CB62F9}\InprocServer32]
+@="\\Windows\\ssceca20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{444C03B3-490A-48C2-81B6-E77366CB62F9}\ProgID]
+@="SSCE.Errors.2.0"
+[HKEY_CLASSES_ROOT\CLSID\{444C03B3-490A-48C2-81B6-E77366CB62F9}\SSCE Errors Collection]
+@=""
+
+; SSCE Param Object Registry
+[HKEY_CLASSES_ROOT\SSCE.Param.2.0]
+@="SSCE Param Object"
+[HKEY_CLASSES_ROOT\SSCE.Param.2.0\CLSID]
+@="{3CF68253-1219-48DE-975A-FBF161E50EE4}"
+[HKEY_CLASSES_ROOT\CLSID\{3CF68253-1219-48DE-975A-FBF161E50EE4}]
+@="SSCE Param Object"
+[HKEY_CLASSES_ROOT\CLSID\{3CF68253-1219-48DE-975A-FBF161E50EE4}\InprocServer32]
+@="\\Windows\\ssceca20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{3CF68253-1219-48DE-975A-FBF161E50EE4}\ProgID]
+@="SSCE.Param.2.0"
+[HKEY_CLASSES_ROOT\CLSID\{3CF68253-1219-48DE-975A-FBF161E50EE4}\SSCE Param Object]
+@=""
+
+; SSCE Param Object Registry
+[HKEY_CLASSES_ROOT\SSCE.Params.2.0]
+@="SSCE Params Collection"
+[HKEY_CLASSES_ROOT\SSCE.Params.2.0\CLSID]
+@="{474E7D08-67F7-4433-877D-61AC4F2B5879}"
+[HKEY_CLASSES_ROOT\CLSID\{474E7D08-67F7-4433-877D-61AC4F2B5879}]
+@="SSCE Params Collection"
+[HKEY_CLASSES_ROOT\CLSID\{474E7D08-67F7-4433-877D-61AC4F2B5879}\InprocServer32]
+@="\\Windows\\ssceca20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{474E7D08-67F7-4433-877D-61AC4F2B5879}\ProgID]
+@="SSCE.Params.2.0"
+[HKEY_CLASSES_ROOT\CLSID\{474E7D08-67F7-4433-877D-61AC4F2B5879}\SSCE Params Collection]
+@=""
+
+; SSCE RDA Object Registry
+[HKEY_CLASSES_ROOT\SSCE.RemoteDataAccess.2.0]
+@="Active SSCE remote data access Object"
+[HKEY_CLASSES_ROOT\SSCE.RemoteDataAccess.2.0\CLSID]
+@="{114E00DD-C185-419E-9610-F4F9126559A7}"
+[HKEY_CLASSES_ROOT\CLSID\{114E00DD-C185-419E-9610-F4F9126559A7}]
+@="Active SSCE remote data access Object"
+[HKEY_CLASSES_ROOT\CLSID\{114E00DD-C185-419E-9610-F4F9126559A7}\InprocServer32]
+@="\\Windows\\ssceca20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{114E00DD-C185-419E-9610-F4F9126559A7}\ProgID]
+@="SSCE.RemoteDataAccess.2.0"
+
+; SSCE Replication Object Registry
+[HKEY_CLASSES_ROOT\SSCE.Replication.2.0]
+@="Active SSCE Replication Object"
+[HKEY_CLASSES_ROOT\SSCE.Replication.2.0\CLSID]
+@="{4BF456A0-3B51-4E62-AA9E-7127A84551D0}"
+[HKEY_CLASSES_ROOT\CLSID\{4BF456A0-3B51-4E62-AA9E-7127A84551D0}]
+@="Active SSCE Replication Object"
+[HKEY_CLASSES_ROOT\CLSID\{4BF456A0-3B51-4E62-AA9E-7127A84551D0}\InprocServer32]
+@="\\Windows\\ssceca20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{4BF456A0-3B51-4E62-AA9E-7127A84551D0}\ProgID]
+@="SSCE.Replication.2.0"
+[HKEY_CLASSES_ROOT\CLSID\{4BF456A0-3B51-4E62-AA9E-7127A84551D0}\SSCE Replication Control]
+@=""
+
+; SSCE OLEDB Provider Registry
+[HKEY_CLASSES_ROOT\Microsoft.SQLSERVER.OLEDB.CE.2.0]
+@="Microsoft.SQLSERVER.OLEDB.CE.2.0"
+[HKEY_CLASSES_ROOT\Microsoft.SQLSERVER.OLEDB.CE.2.0\CLSID]
+@="{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}"
+[HKEY_CLASSES_ROOT\CLSID\{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}]
+@="Microsoft.SQLSERVER.OLEDB.CE.2.0"
+"OLEDB_SERVICES"=dword:fffffffe
+[HKEY_CLASSES_ROOT\CLSID\{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}\ExtendedErrors]
+@="Microsoft SQLServer 2.0 OLE DB Provider for WinCE Error Lookup"
+[HKEY_CLASSES_ROOT\CLSID\{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}\ExtendedErrors\{B07F90AF-54B6-41A5-8C93-253870A5B434}]
+@="Microsoft SQLServer 2.0 OLE DB Provider for WinCEError Lookup"
+[HKEY_CLASSES_ROOT\CLSID\{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}\InprocServer32]
+@="\\Windows\\ssce20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}\OLE DB Provider]
+@="Microsoft OLED DB Provider for SQL Server CE"
+[HKEY_CLASSES_ROOT\CLSID\{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}\ProgID]
+@="Microsoft.SQLSERVER.OLEDB.CE.2.0"
+[HKEY_CLASSES_ROOT\CLSID\{76A85B2E-9DE0-4DED-8E69-4DEFDB9C0917}\VersionIndependentProgID]
+@="Microsoft.SQLSERVER.OLEDB.CE"
+
+; SSCE OLEDB Provider Errors Lookup Registry
+[HKEY_CLASSES_ROOT\Microsoft.SQLSERVER.OLEDB.CE.2.0Errors]
+@="Microsoft SQLServer 2.0 OLE DB Provider for WinCE Error Lookup"
+[HKEY_CLASSES_ROOT\Microsoft.SQLSERVER.OLEDB.CE.2.0Errors\Clsid]
+@="{B07F90AF-54B6-41A5-8C93-253870A5B434}"
+[HKEY_CLASSES_ROOT\CLSID\{B07F90AF-54B6-41A5-8C93-253870A5B434}]
+@="Microsoft SQLServer 2.0 OLE DB Provider for WinCE Error Lookup"
+[HKEY_CLASSES_ROOT\CLSID\{B07F90AF-54B6-41A5-8C93-253870A5B434}\InprocServer32]
+@="\\Windows\\ssce20.dll"
+"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{B07F90AF-54B6-41A5-8C93-253870A5B434}\ProgID]
+@="Microsoft.SQLSERVER.OLEDB.CE.ErrorLookup.2.0"
+[HKEY_CLASSES_ROOT\CLSID\{B07F90AF-54B6-41A5-8C93-253870A5B434}\VersionIndependentProgID]
+@="Microsoft.SQLSERVER.OLEDB.CE.ErrorLookup"
+
+; Typelib info
+[HKEY_CLASSES_ROOT\TypeLib\{A32F7BE0-A13E-11D3-BDDF-00C04FA312F8}]
+[HKEY_CLASSES_ROOT\TypeLib\{A32F7BE0-A13E-11D3-BDDF-00C04FA312F8}\2.0]
+[HKEY_CLASSES_ROOT\TypeLib\{A32F7BE0-A13E-11D3-BDDF-00C04FA312F8}\2.0\0]
+@="\\Windows\\ssceca20.dll"
+[HKEY_CLASSES_ROOT\TypeLib\{A32F7BE0-A13E-11D3-BDDF-00C04FA312F8}\2.0\0\win32]
+@="\\Windows\\ssceca20.dll"
+
+; @CESYSGEN ENDIF SQLCE_MODULES_SQLCE20

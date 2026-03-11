@@ -1,0 +1,87 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include SMBFILE##
+##include ROOTDIRS##
+##include PASSWORD##
+##include HOSTNAME##
+##include NETWORK##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script language="javascript">
+
+function UpdateAdapters()
+{
+	var Sels = document.getElementsByTagName("*");
+	var HiddenList = FindObject("SMBFILE_AdapterList");
+
+	HiddenList.value = "";
+
+	for(var i=0; i<Sels.length; i++) {
+		if(Sels[i].name) {
+			if(true == Sels[i].checked) {
+				HiddenList.value += (Sels[i].name + ";");
+			}
+		}
+	}
+}
+
+function ShowAdapters() 
+{
+		// Adapters
+		BuildBoxHeader();
+		document.write("<table class=boxInside><form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+		document.write("<TR><TD COLSPAN=2 class=cellLtColor>Adapters enabled for File Server:</TD></TR>");
+		if(window.g_SMBFILE_AdapterList) {
+			initValue = g_SMBFILE_AdapterList;
+		} else {
+			initValue = "";
+		}
+		document.write("<TR><TD COLSPAN=2><input type=hidden name=SMBFILE_AdapterList value=" + initValue + "></TD></TR>");	
+	
+		var HiddenList = FindObject("SMBFILE_AdapterList");
+		for(Adapter in g_NETWORK_IPAddress) {	
+			putChk = "";						
+			if(window.g_SMBFILE_AdapterList) {
+				var AllowedAdapters = String(g_SMBFILE_AdapterList).split(";");
+				
+				for(i=0; i<AllowedAdapters.length; i++) {					
+					if(AllowedAdapters[i] == Adapter || HiddenList.value=="*") {						
+						putChk = "CHECKED";
+						break;
+					}						
+				}
+			}
+			document.write("<TR><TD><input type=checkbox onClick=UpdateAdapters() name=\""+ Adapter + "\"" + putChk + ">" + Adapter + "</TD><TD>(" + g_NETWORK_IPAddress[Adapter] + ")</TD></TR>");					
+		}
+		
+		document.write("<TR><TD COLSPAN=2><input type=\"submit\" value=\"Submit Query\" name=\"B1\"></TD></TR>");
+		document.write("</table></form>");
+		BuildBoxFooter();
+}
+
+
+function ShowPage()
+{	
+	ShowAdapters();
+}
+</script>
+
+
+<html>
+	<head>
+		<title>NAS Admin</title>		
+	</head>
+	<body>	
+		<script>BuildMainTable("Use this page to add and remove shares", "", "ShowPage()");</script>	
+	</body>
+</html>
+

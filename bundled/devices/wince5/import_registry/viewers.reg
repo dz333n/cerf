@@ -1,0 +1,134 @@
+;
+; Copyright (c) WESTTEK, LLC and Portions  Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+
+
+
+;----- File type settings --------
+; @CESYSGEN IF VIEWERS_MODULES_DOCVIEWER
+[HKEY_CLASSES_ROOT\.doc]
+@="docfile"
+[HKEY_CLASSES_ROOT\doc]
+@="docfile"
+[HKEY_CLASSES_ROOT\.rtf]
+@="docfile"
+[HKEY_CLASSES_ROOT\rtf]
+@="docfile"
+[HKEY_CLASSES_ROOT\docfile]
+@="LOC_DOC"
+[HKEY_CLASSES_ROOT\docfile\DefaultIcon]
+@="\\Windows\\docviewer.exe,-12008"
+[HKEY_CLASSES_ROOT\docfile\Shell\Open\Command]
+@="docviewer.exe %1"
+; @CESYSGEN ENDIF VIEWERS_MODULES_DOCVIEWER
+
+
+; @CESYSGEN IF VIEWERS_MODULES_PDFVIEWER
+[HKEY_CLASSES_ROOT\.pdf]
+@="pdffile"
+[HKEY_CLASSES_ROOT\pdf]
+@="pdffile"
+[HKEY_CLASSES_ROOT\pdffile]
+@="LOC_ACROBAT"
+[HKEY_CLASSES_ROOT\pdffile\DefaultIcon]
+@="\\Windows\\pdfviewer.exe,-101"
+[HKEY_CLASSES_ROOT\pdffile\Shell\Open\Command]
+@="pdfviewer.exe %1"
+; @CESYSGEN ENDIF VIEWERS_MODULES_PDFVIEWER
+
+
+; @CESYSGEN IF VIEWERS_MODULES_XLS
+[HKEY_CLASSES_ROOT\.xls]
+@="xlsfile"
+[HKEY_CLASSES_ROOT\xlsfile]
+@="LOC_XLS"
+[HKEY_CLASSES_ROOT\xlsfile\DefaultIcon]
+@="\\Windows\\xls.exe,-11016"
+[HKEY_CLASSES_ROOT\xlsfile\Shell\Open\Command]
+@="xls.exe %1"
+; @CESYSGEN ENDIF VIEWERS_MODULES_XLS
+
+
+; @CESYSGEN IF VIEWERS_MODULES_PRESVIEWER
+[HKEY_CLASSES_ROOT\.ppt]
+@="pptfile"
+[HKEY_CLASSES_ROOT\ppt]
+@="pptfile"
+[HKEY_CLASSES_ROOT\.pps]
+@="pptfile"
+[HKEY_CLASSES_ROOT\pps]
+@="pptfile"
+[HKEY_CLASSES_ROOT\pptfile]
+@="LOC_PPT"
+[HKEY_CLASSES_ROOT\pptfile\DefaultIcon]
+@="\\Windows\\presviewer.exe,-104"
+[HKEY_CLASSES_ROOT\pptfile\Shell\Open\Command]
+@="presviewer.exe %1"
+; @CESYSGEN ENDIF VIEWERS_MODULES_PRESVIEWER
+
+; @CESYSGEN IF VIEWERS_MODULES_IMAGEVIEWER
+
+; @CESYSGEN IF VIEWERS_MODULES_DCDGIF
+[HKEY_CLASSES_ROOT\.gif]
+@="gifimage"
+[HKEY_CLASSES_ROOT\gifimage]
+@="LOC_VGIFIMAGE"
+[HKEY_CLASSES_ROOT\gifimage\DefaultIcon]
+@="imageviewer.exe, 0"
+[HKEY_CLASSES_ROOT\gifimage\Shell\Open\Command]
+@="imageviewer.exe %1"
+; @CESYSGEN ENDIF VIEWERS_MODULES_DCDGIF
+
+[HKEY_CLASSES_ROOT\.jpg]
+@="jpegimage"
+[HKEY_CLASSES_ROOT\.jpeg]
+@="jpegimage"
+[HKEY_CLASSES_ROOT\jpegimage]
+@="LOC_VJPEGIMAGE"
+[HKEY_CLASSES_ROOT\jpegimage\DefaultIcon]
+@="imageviewer.exe, 0"
+[HKEY_CLASSES_ROOT\jpegfile\DefaultIcon]
+@="imageviewer.exe, 0"
+[HKEY_CLASSES_ROOT\jpegimage\Shell\Open\Command]
+@="imageviewer.exe %1"
+[HKEY_CLASSES_ROOT\jpegfile\Shell\Open\Command]
+@="imageviewer.exe %1"
+
+[HKEY_CLASSES_ROOT\.png]
+@="pngimage"
+[HKEY_CLASSES_ROOT\pngimage]
+@="LOC_VPNGIMAGE"
+[HKEY_CLASSES_ROOT\pngimage\DefaultIcon]
+@="imageviewer.exe, 0"
+[HKEY_CLASSES_ROOT\pngimage\Shell\Open\Command]
+@="imageviewer.exe %1"
+[HKEY_CLASSES_ROOT\pngfile]
+@="pngimage"
+[HKEY_CLASSES_ROOT\pngfile\DefaultIcon]
+;@="iexplore.exe,-1004"
+@="imageviewer.exe, 0"
+[HKEY_CLASSES_ROOT\pngfile\Shell\Open\Command]
+@="imageviewer.exe %1"
+
+; Bitmap registry values
+;[HKEY_CLASSES_ROOT\.2bp]
+;@="bmpimage"
+[HKEY_CLASSES_ROOT\.bmp]
+@="bmpimage"
+[HKEY_CLASSES_ROOT\bmp]
+@="bmpimage"
+[HKEY_CLASSES_ROOT\bmpimage]
+@="LOC_VBMPIMAGE"
+[HKEY_CLASSES_ROOT\bmpimage\DefaultIcon]
+@="imageviewer.exe, 0"
+[HKEY_CLASSES_ROOT\bmpimage\Shell\Open\Command]
+@="imageviewer.exe %1"
+; @CESYSGEN ENDIF VIEWERS_MODULES_IMAGEVIEWER
+

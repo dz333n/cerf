@@ -1,0 +1,170 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include HOSTNAME##
+##include NETWORK##
+##include PASSWORD##
+##include NAT##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+
+<script language="javascript">
+function UpdatePublic(o) 
+{
+	input = FindObject("NAT_Public");
+	
+	if(input) {
+		// Enable the old private adapter with this name
+		priv = FindObject(input.value);
+		
+		if(priv) {
+			priv.disabled = false;			
+		}
+		input.value = o;
+	}
+	
+	// Disable the private adapter with this name
+	priv = FindObject(o);
+	
+	if(priv) {
+		priv.disabled = true;
+		priv.checked = false;
+	}	
+}
+
+function UpdatePrivate()
+{
+	privates = "";
+	for(Interface in g_NETWORK_IPAddress) {	
+		check = FindObject(Interface);
+		
+		if(check && true == check.checked) {
+			if(privates != "") {
+				privates += ";";
+			}
+			privates += Interface;
+		}
+	}	
+	
+	input = FindObject("NAT_Private");
+	if(input) {
+		input.value = privates;
+	}
+}
+
+
+function ShowNatAdapters()
+{		
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");	
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor>Public Interface</TD></TR>");
+
+	// put in hidden
+	document.write("<input type=hidden name=NAT_Private value=" + g_NAT_Private + ">");
+	document.write("<input type=hidden name=NAT_Public value=" + g_NAT_Public + ">");
+	
+	// put in public
+	for(Interface in g_NETWORK_IPAddress) {	
+		fChecked="";
+		if(g_NAT_Public == Interface) {
+			fChecked = "CHECKED";
+		}
+		document.write("<TR><TD><input type=radio name=Public value="+Interface+" onClick=UpdatePublic(this.value) " + fChecked +">" + Interface + "</TD><TD>(" + g_NETWORK_IPAddress[Interface]+ ")</TD></TR>");
+	}
+	
+	// put in private
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor>Private Interface(s)</TD></TR>");
+	for(Interface in g_NETWORK_IPAddress) {	
+		pubInterface = new String(g_NAT_Private).split(";");
+		
+		fChecked = "";
+		for(i=0;i<pubInterface.length; i++) {			
+			if(Interface == pubInterface[i]) {
+				fChecked = "CHECKED";
+				break;
+			}
+		}
+		document.write("<TR><TD><input type=checkbox name=" + Interface + " onClick=UpdatePrivate() " + fChecked + ">" + Interface + "</TD><TD>(" + g_NETWORK_IPAddress[Interface] + ")</TD></TR>");
+	}	
+	UpdatePublic(g_NAT_Public);
+	UpdatePrivate();
+	document.write("<TR><TD><input type=submit></TD></TR>");	
+	document.write("</form>");
+	document.write("</table>");
+	BuildBoxFooter();
+}
+
+function ShowPage()
+{
+	ShowNatAdapters();
+	ShowSettings();
+}
+
+function UpdateNATChecks()
+{
+	o = FindObject("EnableAddressTranslation");
+	o2 = FindObject("NAT_EnableAddressTranslation");
+	if(o.checked) {		
+		o2.value = "ENABLED";
+	} else {
+		o2.value = "DISABLED";
+	}
+
+	o = FindObject("EnableDnsProxy");
+	o2 = FindObject("NAT_EnableDnsProxy");
+	if(o.checked) {		
+		o2.value = "ENABLED";
+	} else {
+		o2.value = "DISABLED";
+	}
+
+	o = FindObject("EnableDhcpAllocator");
+	o2 = FindObject("NAT_EnableDhcpAllocator");
+	if(o.checked) {		
+		o2.value = "ENABLED";
+	} else {
+		o2.value = "DISABLED";
+	}
+}
+
+function ShowSettings()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");	
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor>NAT Settings</TD></TR>");
+
+	fAddress = (g_NAT_EnableAddressTranslation?"CHECKED":"");
+	fDNS     = (g_NAT_EnableDnsProxy?"CHECKED":"");
+	fDHCP    = (g_NAT_EnableDhcpAllocator?"CHECKED":"");
+	
+	document.write("<TR><TD><input type=hidden name=NAT_EnableAddressTranslation></TD></TR>");
+	document.write("<TR><TD><input type=hidden name=NAT_EnableDnsProxy></TD></TR>");
+	document.write("<TR><TD><input type=hidden name=NAT_EnableDhcpAllocator></TD></TR>");
+
+	document.write("<TR><TD><input type=checkbox onClick=UpdateNATChecks() name=EnableAddressTranslation "+fAddress+"> Enable Address Translation </TD></TR>");
+	document.write("<TR><TD><input type=checkbox onClick=UpdateNATChecks() name=EnableDnsProxy "+fDNS+"> Enable DNS Proxy </TD></TR>");
+	document.write("<TR><TD><input type=checkbox onClick=UpdateNATChecks() name=EnableDhcpAllocator "+fDHCP+"> Enable DHCP Allocator </TD></TR>");
+	document.write("<TR><TD><input type=submit></TD></TR>");
+	UpdateNATChecks();
+	
+	document.write("</form>");
+	document.write("</table>");
+	BuildBoxFooter();
+}
+
+</script>
+
+
+<html>
+	<script>BuildPage("NAT Admin", "Use this page to configure the NAT", "ShowPage()");</script>
+</html>

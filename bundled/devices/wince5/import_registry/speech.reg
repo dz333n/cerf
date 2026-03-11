@@ -1,0 +1,908 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+;@CESYSGEN IF SPEECH_MODULES_SAPI
+; -------------------------------------------------------------------------
+; Automatically generated from audioenum.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioEnum.1]
+	@="SpMMAudioEnum Class"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioEnum.1\CLSID]
+	@="{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioEnum]
+	@="SpMMAudioEnum Class"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioEnum\CLSID]
+	@="{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioEnum\CurVer]
+	@="SAPI.SpMMAudioEnum.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}]
+	@="SpMMAudioEnum Class"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}\ProgID]
+	@="SAPI.SpMMAudioEnum.1"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}\VersionIndependentProgID]
+	@="SAPI.SpMMAudioEnum"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+[HKEY_LOCAL_MACHINE]
+[HKEY_LOCAL_MACHINE\SOFTWARE]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioInput]
+	"DefaultDefaultTokenId"="HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\AudioInput\\TokenEnums\\MMAudioIn\\"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioInput\TokenEnums]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioInput\TokenEnums\MMAudioIn]
+	"CLSID"="{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioOutput]
+	"DefaultDefaultTokenId"="HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\AudioOutput\\TokenEnums\\MMAudioOut\\"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioOutput\TokenEnums]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioOutput\TokenEnums\MMAudioOut]
+	"CLSID"="{AB1890A0-E91F-11D2-BB91-00C04F8EE6C0}"
+; End audioenum.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from audioin.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioIn.1]
+	@="SpMMAudioIn Class"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioIn.1\CLSID]
+	@="{CF3D2E50-53F2-11D2-960C-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioIn]
+	@="SpMMAudioIn Class"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioIn\CLSID]
+	@="{CF3D2E50-53F2-11D2-960C-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioIn\CurVer]
+	@="SAPI.SpMMAudioIn.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{CF3D2E50-53F2-11D2-960C-00C04F8EE628}]
+	@="SpMMAudioIn Class"
+[HKEY_CLASSES_ROOT\CLSID\{CF3D2E50-53F2-11D2-960C-00C04F8EE628}\ProgID]
+	@="SAPI.SpMMAudioIn.1"
+[HKEY_CLASSES_ROOT\CLSID\{CF3D2E50-53F2-11D2-960C-00C04F8EE628}\VersionIndependentProgID]
+	@="SAPI.SpMMAudioIn"
+[HKEY_CLASSES_ROOT\CLSID\{CF3D2E50-53F2-11D2-960C-00C04F8EE628}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{CF3D2E50-53F2-11D2-960C-00C04F8EE628}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End audioin.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from audioout.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioOut.1]
+	@="SpMMAudioOut Class"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioOut.1\CLSID]
+	@="{A8C680EB-3D32-11D2-9EE7-00C04F797396}"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioOut]
+	@="SpMMAudioOut Class"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioOut\CLSID]
+	@="{A8C680EB-3D32-11D2-9EE7-00C04F797396}"
+[HKEY_CLASSES_ROOT\SAPI.SpMMAudioOut\CurVer]
+	@="SAPI.SpMMAudioOut.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{A8C680EB-3D32-11D2-9EE7-00C04F797396}]
+	@="SpMMAudioOut Class"
+[HKEY_CLASSES_ROOT\CLSID\{A8C680EB-3D32-11D2-9EE7-00C04F797396}\ProgID]
+	@="SAPI.SpMMAudioOut.1"
+[HKEY_CLASSES_ROOT\CLSID\{A8C680EB-3D32-11D2-9EE7-00C04F797396}\VersionIndependentProgID]
+	@="SAPI.SpMMAudioOut"
+[HKEY_CLASSES_ROOT\CLSID\{A8C680EB-3D32-11D2-9EE7-00C04F797396}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{A8C680EB-3D32-11D2-9EE7-00C04F797396}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End audioout.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from audioui.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{364D8E0B-67CB-4547-9948-9E7F1B1743ED}]
+	@="SpAudioUI Class"
+[HKEY_CLASSES_ROOT\CLSID\{364D8E0B-67CB-4547-9948-9E7F1B1743ED}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+; End audioui.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from backend.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpGramCompBackEnd.1]
+	@="SpGramCompBackEnd Class"
+[HKEY_CLASSES_ROOT\SAPI.SpGramCompBackEnd.1\CLSID]
+	@="{DA93E903-C843-11D2-A084-00C04F8EF9B5}"
+[HKEY_CLASSES_ROOT\SAPI.SpGramCompBackEnd]
+	@="SpGramCompBackEnd Class"
+[HKEY_CLASSES_ROOT\SAPI.SpGramCompBackEnd\CLSID]
+	@="{DA93E903-C843-11D2-A084-00C04F8EF9B5}"
+[HKEY_CLASSES_ROOT\SAPI.SpGramCompBackEnd\CurVer]
+	@="SAPI.SpGramCompBackEnd"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{DA93E903-C843-11D2-A084-00C04F8EF9B5}]
+	@="SpGramCompBackEnd Class"
+[HKEY_CLASSES_ROOT\CLSID\{DA93E903-C843-11D2-A084-00C04F8EF9B5}\ProgID]
+	@="SAPI.SpGramCompBackEnd.1"
+[HKEY_CLASSES_ROOT\CLSID\{DA93E903-C843-11D2-A084-00C04F8EF9B5}\VersionIndependentProgID]
+	@="SAPI.SpGramCompBackEnd.1"
+[HKEY_CLASSES_ROOT\CLSID\{DA93E903-C843-11D2-A084-00C04F8EF9B5}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{DA93E903-C843-11D2-A084-00C04F8EF9B5}\TypeLib]
+	@="{9903F14C-12CE-4c99-9986-2EE3D7D588A8}"
+; End backend.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from cfgengine.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{F3D3F924-11FC-11D3-BB97-00C04F8EE6C0}]
+	@="SpCFGEngine Class"
+[HKEY_CLASSES_ROOT\CLSID\{F3D3F924-11FC-11D3-BB97-00C04F8EE6C0}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+; End cfgengine.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from compressedlexicon.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpCompressedLexicon.1]
+	@="SpCompressedLexicon Class"
+[HKEY_CLASSES_ROOT\SAPI.SpCompressedLexicon.1\CLSID]
+	@="{90903716-2F42-11D3-9C26-00C04F8EF87C}"
+[HKEY_CLASSES_ROOT\SAPI.SpCompressedLexicon]
+	@="SpCompressedLexicon Class"
+[HKEY_CLASSES_ROOT\SAPI.SpCompressedLexicon\CLSID]
+	@="{90903716-2F42-11D3-9C26-00C04F8EF87C}"
+[HKEY_CLASSES_ROOT\SAPI.SpCompressedLexicon\CurVer]
+	@="SAPI.SpCompressedLexicon.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{90903716-2F42-11D3-9C26-00C04F8EF87C}]
+	@="SpCompressedLexicon Class"
+[HKEY_CLASSES_ROOT\CLSID\{90903716-2F42-11D3-9C26-00C04F8EF87C}\ProgID]
+	@="SAPI.SpCompressedLexicon.1"
+[HKEY_CLASSES_ROOT\CLSID\{90903716-2F42-11D3-9C26-00C04F8EF87C}\VersionIndependentProgID]
+	@="SAPI.SpCompressedLexicon"
+[HKEY_CLASSES_ROOT\CLSID\{90903716-2F42-11D3-9C26-00C04F8EF87C}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{90903716-2F42-11D3-9C26-00C04F8EF87C}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End compressedlexicon.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from dsaudioenum.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioEnum.1]
+	@="SpDSAudioEnum Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioEnum.1\CLSID]
+	@="{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioEnum]
+	@="SpDSAudioEnum Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioEnum\CLSID]
+	@="{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioEnum\CurVer]
+	@="SAPI.SpDSAudioEnum.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}]
+	@="SpDSAudioEnum Class"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}\ProgID]
+	@="SAPI.SpDSAudioEnum.1"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}\VersionIndependentProgID]
+	@="SAPI.SpDSAudioEnum"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}\TypeLib]
+	@="{264FC6E5-26BE-428a-9185-1FB6DAD1928C}"
+[HKEY_LOCAL_MACHINE]
+[HKEY_LOCAL_MACHINE\SOFTWARE]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioInput]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioInput\TokenEnums]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioInput\TokenEnums\DSoundAudioIn]
+	"CLSID"="{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioOutput]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioOutput\TokenEnums]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AudioOutput\TokenEnums\DSoundAudioOut]
+	"CLSID"="{AB1890A1-E91F-11D2-BB91-00C04F8EE6C0}"
+; End dsaudioenum.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from dsaudioin.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioIn.1]
+	@="SpDSAudioIn Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioIn.1\CLSID]
+	@="{A75C5B7A-1C50-4E52-BA21-197A4579B024}"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioIn]
+	@="SpDSAudioIn Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioIn\CLSID]
+	@="{A75C5B7A-1C50-4E52-BA21-197A4579B024}"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioIn\CurVer]
+	@="SAPI.SpDSAudioIn.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{A75C5B7A-1C50-4E52-BA21-197A4579B024}]
+	@="SpDSAudioIn Class"
+[HKEY_CLASSES_ROOT\CLSID\{A75C5B7A-1C50-4E52-BA21-197A4579B024}\ProgID]
+	@="SAPI.SpDSAudioIn.1"
+[HKEY_CLASSES_ROOT\CLSID\{A75C5B7A-1C50-4E52-BA21-197A4579B024}\VersionIndependentProgID]
+	@="SAPI.SpDSAudioIn"
+[HKEY_CLASSES_ROOT\CLSID\{A75C5B7A-1C50-4E52-BA21-197A4579B024}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{A75C5B7A-1C50-4E52-BA21-197A4579B024}\TypeLib]
+	@="{264FC6E5-26BE-428a-9185-1FB6DAD1928C}"
+; End dsaudioin.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from dsaudioout.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioOut.1]
+	@="SpDSAudioOut Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioOut.1\CLSID]
+	@="{731C35DE-E39A-40E4-B110-948F91510A85}"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioOut]
+	@="SpDSAudioOut Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioOut\CLSID]
+	@="{731C35DE-E39A-40E4-B110-948F91510A85}"
+[HKEY_CLASSES_ROOT\SAPI.SpDSAudioOut\CurVer]
+	@="SAPI.SpDSAudioOut.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{731C35DE-E39A-40E4-B110-948F91510A85}]
+	@="SpDSAudioOut Class"
+[HKEY_CLASSES_ROOT\CLSID\{731C35DE-E39A-40E4-B110-948F91510A85}\ProgID]
+	@="SAPI.SpDSAudioOut.1"
+[HKEY_CLASSES_ROOT\CLSID\{731C35DE-E39A-40E4-B110-948F91510A85}\VersionIndependentProgID]
+	@="SAPI.SpDSAudioOut"
+[HKEY_CLASSES_ROOT\CLSID\{731C35DE-E39A-40E4-B110-948F91510A85}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{731C35DE-E39A-40E4-B110-948F91510A85}\TypeLib]
+	@="{264FC6E5-26BE-428a-9185-1FB6DAD1928C}"
+; End dsaudioout.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from fmtconv.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpStreamFormatConverter.1]
+	@="SpStreamFormatConverter Class"
+[HKEY_CLASSES_ROOT\SAPI.SpStreamFormatConverter.1\CLSID]
+	@="{7013943A-E2EC-11D2-A086-00C04F8EF9B5}"
+[HKEY_CLASSES_ROOT\SAPI.SpStreamFormatConverter]
+	@="SpStreamFormatConverter Class"
+[HKEY_CLASSES_ROOT\SAPI.SpStreamFormatConverter\CLSID]
+	@="{7013943A-E2EC-11D2-A086-00C04F8EF9B5}"
+[HKEY_CLASSES_ROOT\SAPI.SpStreamFormatConverter\CurVer]
+	@="SAPI.SpStreamFormatConverter.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{7013943A-E2EC-11D2-A086-00C04F8EF9B5}]
+	@="SpStreamFormatConverter Class"
+[HKEY_CLASSES_ROOT\CLSID\{7013943A-E2EC-11D2-A086-00C04F8EF9B5}\ProgID]
+	@="SAPI.SpStreamFormatConverter.1"
+[HKEY_CLASSES_ROOT\CLSID\{7013943A-E2EC-11D2-A086-00C04F8EF9B5}\VersionIndependentProgID]
+	@="SAPI.SpStreamFormatConverter"
+[HKEY_CLASSES_ROOT\CLSID\{7013943A-E2EC-11D2-A086-00C04F8EF9B5}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{7013943A-E2EC-11D2-A086-00C04F8EF9B5}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End fmtconv.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from frontend.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpGrammarCompiler.1]
+	@="SpGrammarCompiler Class"
+[HKEY_CLASSES_ROOT\SAPI.SpGrammarCompiler.1\CLSID]
+	@="{B1E29D59-A675-11D2-8302-00C04F8EE6C0}"
+[HKEY_CLASSES_ROOT\SAPI.SpGrammarCompiler]
+	@="SpGrammarCompiler Class"
+[HKEY_CLASSES_ROOT\SAPI.SpGrammarCompiler\CLSID]
+	@="{B1E29D59-A675-11D2-8302-00C04F8EE6C0}"
+[HKEY_CLASSES_ROOT\SAPI.SpGrammarCompiler\CurVer]
+	@="SAPI.SpGrammarCompiler.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{B1E29D59-A675-11D2-8302-00C04F8EE6C0}]
+	@="SpGrammarCompiler Class"
+[HKEY_CLASSES_ROOT\CLSID\{B1E29D59-A675-11D2-8302-00C04F8EE6C0}\ProgID]
+	@="SAPI.SpGrammarCompiler.1"
+[HKEY_CLASSES_ROOT\CLSID\{B1E29D59-A675-11D2-8302-00C04F8EE6C0}\VersionIndependentProgID]
+	@="SAPI.SpGrammarCompiler"
+[HKEY_CLASSES_ROOT\CLSID\{B1E29D59-A675-11D2-8302-00C04F8EE6C0}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{B1E29D59-A675-11D2-8302-00C04F8EE6C0}\TypeLib]
+	@="{9903F14C-12CE-4c99-9986-2EE3D7D588A8}"
+; End frontend.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from itnprocessor.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpITNProcessor.1]
+	@="SpITNProcessor Class"
+[HKEY_CLASSES_ROOT\SAPI.SpITNProcessor.1\CLSID]
+	@="{12D73610-A1C9-11D3-BC90-00C04F72DF9F}"
+[HKEY_CLASSES_ROOT\SAPI.SpITNProcessor]
+	@="SpITNProcessor Class"
+[HKEY_CLASSES_ROOT\SAPI.SpITNProcessor\CLSID]
+	@="{12D73610-A1C9-11D3-BC90-00C04F72DF9F}"
+[HKEY_CLASSES_ROOT\SAPI.SpITNProcessor\CurVer]
+	@="SAPI.SpITNProcessor.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{12D73610-A1C9-11D3-BC90-00C04F72DF9F}]
+	@="SpITNProcessor Class"
+[HKEY_CLASSES_ROOT\CLSID\{12D73610-A1C9-11D3-BC90-00C04F72DF9F}\ProgID]
+	@="SAPI.SpITNProcessor.1"
+[HKEY_CLASSES_ROOT\CLSID\{12D73610-A1C9-11D3-BC90-00C04F72DF9F}\VersionIndependentProgID]
+	@="SAPI.SpITNProcessor"
+[HKEY_CLASSES_ROOT\CLSID\{12D73610-A1C9-11D3-BC90-00C04F72DF9F}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{12D73610-A1C9-11D3-BC90-00C04F72DF9F}\TypeLib]
+	@="{9903F14C-12CE-4c99-9986-2EE3D7D588A8}"
+; End itnprocessor.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from lexicon.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpLexicon.1]
+	@="SpLexicon Class"
+[HKEY_CLASSES_ROOT\SAPI.SpLexicon.1\CLSID]
+	@="{0655E396-25D0-11D3-9C26-00C04F8EF87C}"
+[HKEY_CLASSES_ROOT\SAPI.SpLexicon]
+	@="SpLexicon Class"
+[HKEY_CLASSES_ROOT\SAPI.SpLexicon\CLSID]
+	@="{0655E396-25D0-11D3-9C26-00C04F8EF87C}"
+[HKEY_CLASSES_ROOT\SAPI.SpLexicon\CurVer]
+	@="SAPI.SpLexicon.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{0655E396-25D0-11D3-9C26-00C04F8EF87C}]
+	@="SpLexicon Class"
+[HKEY_CLASSES_ROOT\CLSID\{0655E396-25D0-11D3-9C26-00C04F8EF87C}\ProgID]
+	@="SAPI.SpLexicon.1"
+[HKEY_CLASSES_ROOT\CLSID\{0655E396-25D0-11D3-9C26-00C04F8EF87C}\VersionIndependentProgID]
+	@="SAPI.SpLexicon"
+[HKEY_CLASSES_ROOT\CLSID\{0655E396-25D0-11D3-9C26-00C04F8EF87C}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{0655E396-25D0-11D3-9C26-00C04F8EF87C}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End lexicon.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from nullconv.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpNullPhoneConverter.1]
+	@="SpNullPhoneConverter Class"
+[HKEY_CLASSES_ROOT\SAPI.SpNullPhoneConverter.1\CLSID]
+	@="{455F24E9-7396-4A16-9715-7C0FDBE3EFE3}"
+[HKEY_CLASSES_ROOT\SAPI.SpNullPhoneConverter]
+	@="SpNullPhoneConverter Class"
+[HKEY_CLASSES_ROOT\SAPI.SpNullPhoneConverter\CLSID]
+	@="{455F24E9-7396-4A16-9715-7C0FDBE3EFE3}"
+[HKEY_CLASSES_ROOT\SAPI.SpNullPhoneConverter\CurVer]
+	@="SAPI.SpNullPhoneConverter.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{455F24E9-7396-4A16-9715-7C0FDBE3EFE3}]
+	@="SpNullPhoneConverter Class"
+[HKEY_CLASSES_ROOT\CLSID\{455F24E9-7396-4A16-9715-7C0FDBE3EFE3}\ProgID]
+	@="SAPI.SpNullPhoneConverter.1"
+[HKEY_CLASSES_ROOT\CLSID\{455F24E9-7396-4A16-9715-7C0FDBE3EFE3}\VersionIndependentProgID]
+	@="SAPI.SpNullPhoneConverter"
+[HKEY_CLASSES_ROOT\CLSID\{455F24E9-7396-4A16-9715-7C0FDBE3EFE3}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{455F24E9-7396-4A16-9715-7C0FDBE3EFE3}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End nullconv.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from objecttoken.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpObjectToken.1]
+	@="SpObjectToken Class"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectToken.1\CLSID]
+	@="{EF411752-3736-4CB4-9C8C-8EF4CCB58EFE}"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectToken]
+	@="SpObjectToken Class"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectToken\CLSID]
+	@="{EF411752-3736-4CB4-9C8C-8EF4CCB58EFE}"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectToken\CurVer]
+	@="SAPI.SpObjectToken.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{EF411752-3736-4CB4-9C8C-8EF4CCB58EFE}]
+	@="SpObjectToken Class"
+[HKEY_CLASSES_ROOT\CLSID\{EF411752-3736-4CB4-9C8C-8EF4CCB58EFE}\ProgID]
+	@="SAPI.SpObjectToken.1"
+[HKEY_CLASSES_ROOT\CLSID\{EF411752-3736-4CB4-9C8C-8EF4CCB58EFE}\VersionIndependentProgID]
+	@="SAPI.SpObjectToken"
+[HKEY_CLASSES_ROOT\CLSID\{EF411752-3736-4CB4-9C8C-8EF4CCB58EFE}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{EF411752-3736-4CB4-9C8C-8EF4CCB58EFE}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End objecttoken.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from objecttokencategory.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenCategory.1]
+	@="SpObjectTokenCategory Class"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenCategory.1\CLSID]
+	@="{A910187F-0C7A-45AC-92CC-59EDAFB77B53}"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenCategory]
+	@="SpObjectTokenCategory Class"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenCategory\CLSID]
+	@="{A910187F-0C7A-45AC-92CC-59EDAFB77B53}"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenCategory\CurVer]
+	@="SAPI.SpObjectTokenCategory.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{A910187F-0C7A-45AC-92CC-59EDAFB77B53}]
+	@="SpObjectTokenCategory Class"
+[HKEY_CLASSES_ROOT\CLSID\{A910187F-0C7A-45AC-92CC-59EDAFB77B53}\ProgID]
+	@="SAPI.SpObjectTokenCategory.1"
+[HKEY_CLASSES_ROOT\CLSID\{A910187F-0C7A-45AC-92CC-59EDAFB77B53}\VersionIndependentProgID]
+	@="SAPI.SpObjectTokenCategory"
+[HKEY_CLASSES_ROOT\CLSID\{A910187F-0C7A-45AC-92CC-59EDAFB77B53}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{A910187F-0C7A-45AC-92CC-59EDAFB77B53}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End objecttokencategory.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from objecttokenenumbuilder.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenEnum.1]
+	@="SpObjectTokenEnum Class"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenEnum.1\CLSID]
+	@="{3918D75F-0ACB-41F2-B733-92AA15BCECF6}"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenEnum]
+	@="SpObjectTokenEnum Class"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenEnum\CLSID]
+	@="{3918D75F-0ACB-41F2-B733-92AA15BCECF6}"
+[HKEY_CLASSES_ROOT\SAPI.SpObjectTokenEnum\CurVer]
+	@="SAPI.SpObjectTokenEnum.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{3918D75F-0ACB-41F2-B733-92AA15BCECF6}]
+	@="SpObjectTokenEnum Class"
+[HKEY_CLASSES_ROOT\CLSID\{3918D75F-0ACB-41F2-B733-92AA15BCECF6}\ProgID]
+	@="SAPI.SpObjectTokenEnum.1"
+[HKEY_CLASSES_ROOT\CLSID\{3918D75F-0ACB-41F2-B733-92AA15BCECF6}\VersionIndependentProgID]
+	@="SAPI.SpObjectTokenEnum"
+[HKEY_CLASSES_ROOT\CLSID\{3918D75F-0ACB-41F2-B733-92AA15BCECF6}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{3918D75F-0ACB-41F2-B733-92AA15BCECF6}\TypeLib]
+	@="{9903F14C-12CE-4C99-9986-2EE3D7D588A8}"
+; End objecttokenenumbuilder.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from phoneconv.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpPhoneConverter.1]
+	@="SpPhoneConverter Class"
+[HKEY_CLASSES_ROOT\SAPI.SpPhoneConverter.1\CLSID]
+	@="{9185F743-1143-4C28-86B5-BFF14F20E5C8}"
+[HKEY_CLASSES_ROOT\SAPI.SpPhoneConverter]
+	@="SpPhoneConverter Class"
+[HKEY_CLASSES_ROOT\SAPI.SpPhoneConverter\CLSID]
+	@="{9185F743-1143-4C28-86B5-BFF14F20E5C8}"
+[HKEY_CLASSES_ROOT\SAPI.SpPhoneConverter\CurVer]
+	@="SAPI.SpPhoneConverter.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{9185F743-1143-4C28-86B5-BFF14F20E5C8}]
+	@="SpPhoneConverter Class"
+[HKEY_CLASSES_ROOT\CLSID\{9185F743-1143-4C28-86B5-BFF14F20E5C8}\ProgID]
+	@="SAPI.SpPhoneConverter.1"
+[HKEY_CLASSES_ROOT\CLSID\{9185F743-1143-4C28-86B5-BFF14F20E5C8}\VersionIndependentProgID]
+	@="SAPI.SpPhoneConverter"
+[HKEY_CLASSES_ROOT\CLSID\{9185F743-1143-4C28-86B5-BFF14F20E5C8}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{9185F743-1143-4C28-86B5-BFF14F20E5C8}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End phoneconv.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from recoctxt.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecoContext.1]
+	@="SpSharedRecoContext Class"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecoContext.1\CLSID]
+	@="{47206204-5ECA-11D2-960F-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecoContext]
+	@="SpSharedRecoContext Class"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecoContext\CLSID]
+	@="{47206204-5ECA-11D2-960F-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecoContext\CurVer]
+	@="SAPI.SpSharedRecoContext.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{47206204-5ECA-11D2-960F-00C04F8EE628}]
+	@="SpSharedRecoContext Class"
+[HKEY_CLASSES_ROOT\CLSID\{47206204-5ECA-11D2-960F-00C04F8EE628}\ProgID]
+	@="SAPI.SpSharedRecoContext.1"
+[HKEY_CLASSES_ROOT\CLSID\{47206204-5ECA-11D2-960F-00C04F8EE628}\VersionIndependentProgID]
+	@="SAPI.SpSharedRecoContext"
+[HKEY_CLASSES_ROOT\CLSID\{47206204-5ECA-11D2-960F-00C04F8EE628}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{47206204-5ECA-11D2-960F-00C04F8EE628}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End recoctxt.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from recognizer.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpInprocRecognizer.1]
+	@="SpInprocRecognizer Class"
+[HKEY_CLASSES_ROOT\SAPI.SpInprocRecognizer.1\CLSID]
+	@="{41B89B6B-9399-11D2-9623-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpInprocRecognizer]
+	@="SpInprocRecognizer Class"
+[HKEY_CLASSES_ROOT\SAPI.SpInprocRecognizer\CLSID]
+	@="{41B89B6B-9399-11D2-9623-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpInprocRecognizer\CurVer]
+	@="SAPI.SpInprocRecognizer.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{41B89B6B-9399-11D2-9623-00C04F8EE628}]
+	@="SpInprocRecognizer Class"
+[HKEY_CLASSES_ROOT\CLSID\{41B89B6B-9399-11D2-9623-00C04F8EE628}\ProgID]
+	@="Sapi.SpInprocRecognizer.1"
+[HKEY_CLASSES_ROOT\CLSID\{41B89B6B-9399-11D2-9623-00C04F8EE628}\VersionIndependentProgID]
+	@="Sapi.SpInprocRecognizer"
+[HKEY_CLASSES_ROOT\CLSID\{41B89B6B-9399-11D2-9623-00C04F8EE628}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{41B89B6B-9399-11D2-9623-00C04F8EE628}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecognizer.1]
+	@="SpSharedRecognizer Class"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecognizer.1\CLSID]
+	@="{3BEE4890-4FE9-4A37-8C1E-5E7E12791C1F}"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecognizer]
+	@="SpSharedRecognizer Class"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecognizer\CLSID]
+	@="{3BEE4890-4FE9-4A37-8C1E-5E7E12791C1F}"
+[HKEY_CLASSES_ROOT\SAPI.SpSharedRecognizer\CurVer]
+	@="SAPI.SpSharedRecognizer.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{3BEE4890-4FE9-4A37-8C1E-5E7E12791C1F}]
+	@="SpSharedRecognizer Class"
+[HKEY_CLASSES_ROOT\CLSID\{3BEE4890-4FE9-4A37-8C1E-5E7E12791C1F}\ProgID]
+	@="Sapi.SpSharedRecognizer.1"
+[HKEY_CLASSES_ROOT\CLSID\{3BEE4890-4FE9-4A37-8C1E-5E7E12791C1F}\VersionIndependentProgID]
+	@="Sapi.SpSharedRecognizer"
+[HKEY_CLASSES_ROOT\CLSID\{3BEE4890-4FE9-4A37-8C1E-5E7E12791C1F}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{3BEE4890-4FE9-4A37-8C1E-5E7E12791C1F}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End recognizer.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from recplayaudio.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpRecPlayAudio.1]
+	@="SpRecPlayAudio Class"
+[HKEY_CLASSES_ROOT\SAPI.SpRecPlayAudio.1\CLSID]
+	@="{FEE225FC-7AFD-45E9-95D0-5A318079D911}"
+[HKEY_CLASSES_ROOT\SAPI.SpRecPlayAudio]
+	@="SpRecPlayAudio Class"
+[HKEY_CLASSES_ROOT\SAPI.SpRecPlayAudio\CLSID]
+	@="{FEE225FC-7AFD-45E9-95D0-5A318079D911}"
+[HKEY_CLASSES_ROOT\SAPI.SpRecPlayAudio\CurVer]
+	@="SAPI.SpRecPlayAudio.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{FEE225FC-7AFD-45E9-95D0-5A318079D911}]
+	@="SpRecPlayAudio Class"
+[HKEY_CLASSES_ROOT\CLSID\{FEE225FC-7AFD-45E9-95D0-5A318079D911}\ProgID]
+	@="SAPI.SpRecPlayAudio.1"
+[HKEY_CLASSES_ROOT\CLSID\{FEE225FC-7AFD-45E9-95D0-5A318079D911}\VersionIndependentProgID]
+	@="SAPI.SpRecPlayAudio"
+[HKEY_CLASSES_ROOT\CLSID\{FEE225FC-7AFD-45E9-95D0-5A318079D911}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{FEE225FC-7AFD-45E9-95D0-5A318079D911}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End recplayaudio.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from regdatakey.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpDataKey.1]
+	@="SpDataKey Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDataKey.1\CLSID]
+	@="{D9F6EE60-58C9-458B-88E1-2F908FD7F87C}"
+[HKEY_CLASSES_ROOT\SAPI.SpDataKey]
+	@="SpDataKey Class"
+[HKEY_CLASSES_ROOT\SAPI.SpDataKey\CLSID]
+	@="{D9F6EE60-58C9-458B-88E1-2F908FD7F87C}"
+[HKEY_CLASSES_ROOT\SAPI.SpDataKey\CurVer]
+	@="SAPI.SpDataKey.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{D9F6EE60-58C9-458B-88E1-2F908FD7F87C}]
+	@="SpDataKey Class"
+[HKEY_CLASSES_ROOT\CLSID\{D9F6EE60-58C9-458B-88E1-2F908FD7F87C}\ProgID]
+	@="SAPI.SpDataKey.1"
+[HKEY_CLASSES_ROOT\CLSID\{D9F6EE60-58C9-458B-88E1-2F908FD7F87C}\VersionIndependentProgID]
+	@="SAPI.SpDataKey"
+[HKEY_CLASSES_ROOT\CLSID\{D9F6EE60-58C9-458B-88E1-2F908FD7F87C}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{D9F6EE60-58C9-458B-88E1-2F908FD7F87C}\TypeLib]
+	@="{9903F14C-12CE-4C99-9986-2EE3D7D588A8}"
+; End regdatakey.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from spcommunicator.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{2D12DD17-6C4E-456E-A953-D210E3C64176}]
+	@="SpCommunicator Class"
+[HKEY_CLASSES_ROOT\CLSID\{2D12DD17-6C4E-456E-A953-D210E3C64176}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+; End spcommunicator.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from spnotify.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpNotifyTranslator.1]
+	@="SpNotifyTranslator Class"
+[HKEY_CLASSES_ROOT\SAPI.SpNotifyTranslator.1\CLSID]
+	@="{E2AE5372-5D40-11D2-960E-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpNotifyTranslator]
+	@="SpNotifyTranslator Class"
+[HKEY_CLASSES_ROOT\SAPI.SpNotifyTranslator\CLSID]
+	@="{E2AE5372-5D40-11D2-960E-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpNotifyTranslator\CurVer]
+	@="SAPI.SpNotifyTranslator.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{E2AE5372-5D40-11D2-960E-00C04F8EE628}]
+	@="SpNotifyTranslator Class"
+[HKEY_CLASSES_ROOT\CLSID\{E2AE5372-5D40-11D2-960E-00C04F8EE628}\ProgID]
+	@="SAPI.SpNotifyTranslator.1"
+[HKEY_CLASSES_ROOT\CLSID\{E2AE5372-5D40-11D2-960E-00C04F8EE628}\VersionIndependentProgID]
+	@="SAPI.SpNotifyTranslator"
+[HKEY_CLASSES_ROOT\CLSID\{E2AE5372-5D40-11D2-960E-00C04F8EE628}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{E2AE5372-5D40-11D2-960E-00C04F8EE628}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End spnotify.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from spphrase.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpPhraseBuilder.1]
+	@="SpPhraseBuilder Class"
+[HKEY_CLASSES_ROOT\SAPI.SpPhraseBuilder.1\CLSID]
+	@="{777B6BBD-2FF2-11D3-88FE-00C04F8EF9B5}"
+[HKEY_CLASSES_ROOT\SAPI.SpPhraseBuilder]
+	@="SpPhraseBuilder Class"
+[HKEY_CLASSES_ROOT\SAPI.SpPhraseBuilder\CLSID]
+	@="{777B6BBD-2FF2-11D3-88FE-00C04F8EF9B5}"
+[HKEY_CLASSES_ROOT\SAPI.SpPhraseBuilder\CurVer]
+	@="SAPI.SpPhraseBuilder.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{777B6BBD-2FF2-11D3-88FE-00C04F8EF9B5}]
+	@="SpPhraseBuilder Class"
+[HKEY_CLASSES_ROOT\CLSID\{777B6BBD-2FF2-11D3-88FE-00C04F8EF9B5}\ProgID]
+	@="SAPI.SpPhraseBuilder.1"
+[HKEY_CLASSES_ROOT\CLSID\{777B6BBD-2FF2-11D3-88FE-00C04F8EF9B5}\VersionIndependentProgID]
+	@="SAPI.SpPhraseBuilder"
+[HKEY_CLASSES_ROOT\CLSID\{777B6BBD-2FF2-11D3-88FE-00C04F8EF9B5}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{777B6BBD-2FF2-11D3-88FE-00C04F8EF9B5}\TypeLib]
+	@="{9903F14C-12CE-4c99-9986-2EE3D7D588A8}"
+; End spphrase.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from spresmgr.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpResourceManager.1]
+	@="SpResourceManager Class"
+[HKEY_CLASSES_ROOT\SAPI.SpResourceManager.1\CLSID]
+	@="{96749373-3391-11D2-9EE3-00C04F797396}"
+[HKEY_CLASSES_ROOT\SAPI.SpResourceManager]
+	@="SpResourceManager Class"
+[HKEY_CLASSES_ROOT\SAPI.SpResourceManager\CLSID]
+	@="{96749373-3391-11D2-9EE3-00C04F797396}"
+[HKEY_CLASSES_ROOT\SAPI.SpResourceManager\CurVer]
+	@="SAPI.SpResourceManager.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{96749373-3391-11D2-9EE3-00C04F797396}]
+	@="SpResourceManager Class"
+[HKEY_CLASSES_ROOT\CLSID\{96749373-3391-11D2-9EE3-00C04F797396}\ProgID]
+	@="SAPI.SpResourceManager.1"
+[HKEY_CLASSES_ROOT\CLSID\{96749373-3391-11D2-9EE3-00C04F797396}\VersionIndependentProgID]
+	@="SAPI.SpResourceManager"
+[HKEY_CLASSES_ROOT\CLSID\{96749373-3391-11D2-9EE3-00C04F797396}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{96749373-3391-11D2-9EE3-00C04F797396}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End spresmgr.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from spsapiserver.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{1B2AFB92-0B5E-4A30-B5CC-353DB4F9E150}]
+	@="SpSapiServer Class"
+[HKEY_CLASSES_ROOT\CLSID\{1B2AFB92-0B5E-4A30-B5CC-353DB4F9E150}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+; End spsapiserver.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from spvoice.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpVoice.1]
+	@="SpVoice Class"
+[HKEY_CLASSES_ROOT\SAPI.SpVoice.1\CLSID]
+	@="{96749377-3391-11D2-9EE3-00C04F797396}"
+[HKEY_CLASSES_ROOT\SAPI.SpVoice]
+	@="SpVoice Class"
+[HKEY_CLASSES_ROOT\SAPI.SpVoice\CLSID]
+	@="{96749377-3391-11D2-9EE3-00C04F797396}"
+[HKEY_CLASSES_ROOT\SAPI.SpVoice\CurVer]
+	@="SAPI.SpVoice.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{96749377-3391-11D2-9EE3-00C04F797396}]
+	@="SpVoice Class"
+[HKEY_CLASSES_ROOT\CLSID\{96749377-3391-11D2-9EE3-00C04F797396}\ProgID]
+	@="SAPI.SpVoice.1"
+[HKEY_CLASSES_ROOT\CLSID\{96749377-3391-11D2-9EE3-00C04F797396}\VersionIndependentProgID]
+	@="SAPI.SpVoice"
+[HKEY_CLASSES_ROOT\CLSID\{96749377-3391-11D2-9EE3-00C04F797396}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{96749377-3391-11D2-9EE3-00C04F797396}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End spvoice.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from srrecoinst.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{DC626A64-D684-4627-83CB-44420ABDBD1A}]
+	@="SpSharedRecoInst Class"
+[HKEY_CLASSES_ROOT\CLSID\{DC626A64-D684-4627-83CB-44420ABDBD1A}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+; End srrecoinst.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from srrecomaster.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{D6AD10F3-70AB-41E1-96B3-4C36E35D333C}]
+	@="SpRecoMaster Class"
+[HKEY_CLASSES_ROOT\CLSID\{D6AD10F3-70AB-41E1-96B3-4C36E35D333C}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+; End srrecomaster.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from taskmgr.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{4C6F940C-3CFE-11D2-9EE7-00C04F797396}]
+	@="SpTaskManager Class"
+[HKEY_CLASSES_ROOT\CLSID\{4C6F940C-3CFE-11D2-9EE7-00C04F797396}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+; End taskmgr.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from uncompressedlexicon.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpUncompressedLexicon.1]
+	@="SpUncompressedLexicon Class"
+[HKEY_CLASSES_ROOT\SAPI.SpUncompressedLexicon.1\CLSID]
+	@="{C9E37C15-DF92-4727-85D6-72E5EEB6995A}"
+[HKEY_CLASSES_ROOT\SAPI.SpUncompressedLexicon]
+	@="SpUncompressedLexicon Class"
+[HKEY_CLASSES_ROOT\SAPI.SpUncompressedLexicon\CLSID]
+	@="{C9E37C15-DF92-4727-85D6-72E5EEB6995A}"
+[HKEY_CLASSES_ROOT\SAPI.SpUncompressedLexicon\CurVer]
+	@="SAPI.SpUncompressedLexicon.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{C9E37C15-DF92-4727-85D6-72E5EEB6995A}]
+	@="SpUncompressedLexicon Class"
+[HKEY_CLASSES_ROOT\CLSID\{C9E37C15-DF92-4727-85D6-72E5EEB6995A}\ProgID]
+	@="SAPI.SpUncompressedLexicon.1"
+[HKEY_CLASSES_ROOT\CLSID\{C9E37C15-DF92-4727-85D6-72E5EEB6995A}\VersionIndependentProgID]
+	@="SAPI.SpUncompressedLexicon"
+[HKEY_CLASSES_ROOT\CLSID\{C9E37C15-DF92-4727-85D6-72E5EEB6995A}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{C9E37C15-DF92-4727-85D6-72E5EEB6995A}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+[HKEY_LOCAL_MACHINE]
+[HKEY_LOCAL_MACHINE\SOFTWARE]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AppLexicons]
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\AppLexicons\Tokens]
+; End uncompressedlexicon.rgs
+
+; -------------------------------------------------------------------------
+; Automatically generated from wavstream.rgs using makereg.bat
+[HKEY_CLASSES_ROOT]
+[HKEY_CLASSES_ROOT\SAPI.SpStream.1]
+	@="SpStream Class"
+[HKEY_CLASSES_ROOT\SAPI.SpStream.1\CLSID]
+	@="{715D9C59-4442-11D2-9605-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpStream]
+	@="SpStream Class"
+[HKEY_CLASSES_ROOT\SAPI.SpStream\CLSID]
+	@="{715D9C59-4442-11D2-9605-00C04F8EE628}"
+[HKEY_CLASSES_ROOT\SAPI.SpStream\CurVer]
+	@="SAPI.SpStream.1"
+[HKEY_CLASSES_ROOT\CLSID]
+[HKEY_CLASSES_ROOT\CLSID\{715D9C59-4442-11D2-9605-00C04F8EE628}]
+	@="SpStream Class"
+[HKEY_CLASSES_ROOT\CLSID\{715D9C59-4442-11D2-9605-00C04F8EE628}\ProgID]
+	@="SAPI.SpStream.1"
+[HKEY_CLASSES_ROOT\CLSID\{715D9C59-4442-11D2-9605-00C04F8EE628}\VersionIndependentProgID]
+	@="SAPI.SpStream"
+[HKEY_CLASSES_ROOT\CLSID\{715D9C59-4442-11D2-9605-00C04F8EE628}\InprocServer32]
+	@="sapi.dll"
+	"ThreadingModel"="Both"
+[HKEY_CLASSES_ROOT\CLSID\{715D9C59-4442-11D2-9605-00C04F8EE628}\TypeLib]
+	@="{C866CA3A-32F7-11D2-9602-00C04F8EE628}"
+; End wavstream.rgs
+
+;@CESYSGEN ENDIF ; SPEECH_MODULES_SAPI
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+;@CESYSGEN IF SPEECH_MODULES_SAPI
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\PhoneConverters]
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\PhoneConverters\Tokens]
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\PhoneConverters\Tokens\English]
+"CLSID"="{9185F743-1143-4C28-86B5-BFF14F20E5C8}"
+@="English Phone Converter"
+"PhoneMap"="- 0001 ! 0002 & 0003 , 0004 . 0005 ? 0006 _ 0007 1 0008 2 0009 aa 000a ae 000b ah 000c ao 000d aw 000e ax 000f ay 0010 b 0011 ch 0012 d 0013 dh 0014 eh 0015 er 0016 ey 0017 f 0018 g 0019 h 001a ih 001b iy 001c jh 001d k 001e l 001f m 0020 n 0021 ng 0022 ow 0023 oy 0024 p 0025 r 0026 s 0027 sh 0028 t 0029 th 002a uh 002b uw 002c v 002d w 002e y 002f z 0030 zh 0031"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\PhoneConverters\Tokens\English\Attributes]
+"Language"="409"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\PhoneConverters\Tokens\Japanese]
+"CLSID"="{9185F743-1143-4C28-86B5-BFF14F20E5C8}"
+@="Japanese Phone Converter"
+"PhoneMap"="309C 309C 30A1 30A1 30A2 30A2 30A3 30A3 30A4 30A4 30A5 30A5 30A6 30A6 30A7 30A7 30A8 30A8 30A9 30A9 30AA 30AA 30AB 30AB 30AC 30AC 30AD 30AD 30AE 30AE 30AF 30AF 30B0 30B0 30B1 30B1 30B2 30B2 30B3 30B3 30B4 30B4 30B5 30B5 30B6 30B6 30B7 30B7 30B8 30B8 30B9 30B9 30BA 30BA 30BB 30BB 30BC 30BC 30BD 30BD 30BE 30BE 30BF 30BF 30C0 30C0 30C1 30C1 30C2 30C2 30C3 30C3 30C4 30C4 30C5 30C5 30C6 30C6 30C7 30C7 30C8 30C8 30C9 30C9 30CA 30CA 30CB 30CB 30CC 30CC 30CD 30CD 30CE 30CE 30CF 30CF 30D0 30D0 30D1 30D1 30D2 30D2 30D3 30D3 30D4 30D4 30D5 30D5 30D6 30D6 30D7 30D7 30D8 30D8 30D9 30D9 30DA 30DA 30DB 30DB 30DC 30DC 30DD 30DD 30DE 30DE 30DF 30DF 30E0 30E0 30E1 30E1 30E2 30E2 30E3 30E3 30E4 30E4 30E5 30E5 30E6 30E6 30E7 30E7 30E8 30E8 30E9 30E9 30EA 30EA 30EB 30EB 30EC 30EC 30ED 30ED 30EE 30EE 30EF 30EF 30F0 30F0 30F1 30F1 30F2 30F2 30F3 30F3 30F4 30F4 30F5 30F5 30F6 30F6 30F7 30F7 30F8 30F8 30F9 30F9 30FA 30FA 30FB 30FB 30FC 30FC 30FD 30FD 30FE 30FE"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\PhoneConverters\Tokens\Japanese\Attributes]
+"NoDelimiter"=""
+"NumericPhones"=""
+"Language"="411"
+
+;@CESYSGEN ENDIF 
+

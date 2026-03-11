@@ -1,0 +1,161 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="EventLog_Loc.js" language="javascript"></script>
+
+
+<html>
+
+<SCRIPT LANGUAGE="JAVASCRIPT">
+function fillPopup(chldNodes)
+{
+    var msgData;
+    var binaryData;
+
+    // Handle the way different browsers represent childNodes element
+	if (chldNodes.length == 7) {
+		msgData    = chldNodes.item(5).innerHTML;
+		binaryData = chldNodes.item(6).innerHTML;
+	}
+	else if (chldNodes.length == 15) {
+		msgData    = chldNodes.item(11).innerHTML;
+		binaryData = chldNodes.item(13).innerHTML;
+	}
+	else {
+        return;
+	}
+
+	var str = "<HTML>\n<BODY>\n<B>Properties</B><P>" + msgData;
+
+	if (binaryData != "") {
+		str += "<BR>" + "AdditionalData" + "<BR>";
+		str += binaryData;
+	}
+	str += "</HTML>";
+	var output = document.getElementById("dataOutput");
+	output.innerHTML = str;
+}
+
+
+var xmlLogData;        // XML DOM to hold the data from the event log
+var xmlTransform;      // XML DOM to hold XSLT transformation
+var tableOutputV;      // DIV tag to which to write XSLT output results
+var eventLogName = ""; // Friendly name of EventLog
+var xslFileName  = "/remoteadminimages/EventLog.xsl"; // Transformation rules.
+
+
+function GetLogNameFromURL() {
+	if (document.URL == null)
+		return false;
+
+	// Remove base URL and retrieve query string portion
+	var URLComponents = document.URL.split('?LogName=');
+	if (URLComponents.length <= 1)
+		return false;
+
+	// It's possible there are extra paramaters after log name itself.  Ignore these.
+	var QueryString = URLComponents[1];
+	var QueryStringComponents = QueryString.split('&');
+	if (QueryStringComponents.length == 0)
+		return false;
+
+	eventLogName = decodeURI(QueryStringComponents[0]);
+	return true;
+}
+
+function AddClearEventLogLink()
+{
+	document.write("<A HREF=MODULE_EventLog?LogName=" + encodeURI(eventLogName)  + "&ClearLog=1>" + Loc("ClearLog") + "</A>");
+}
+
+function ShowPage()
+{
+	AddClearEventLogLink();
+
+	// Write out basic Table header info
+	document.write("<DIV STYLE=\"width: 600px\">");
+    document.write("<table>");
+    document.write("<tr>");
+    document.write("<th width=100 bgcolor=lightgrey>" + Loc("Type") + "</th>");
+    document.write("<th width=80 bgcolor=lightgrey>" + Loc("Date") + "</th>");
+    document.write("<th width=80 bgcolor=lightgrey>" + Loc("Time") + "</th>");
+    document.write("<th width=200 bgcolor=lightgrey>" + Loc("Source") + "</th>");
+    document.write("<th width=100 bgcolor=lightgrey>" + Loc("EventID") + "</th>");
+    document.write("</tr>");
+	document.write("</TABLE>");
+	document.write("</DIV>");
+
+
+	document.write("<div id=tableOutput></div>");
+	document.write("<div id=dataOutput></div>");
+
+	tableOutputV = document.getElementById("tableOutput");
+
+	var xmlLogURL = "MODULE_EventLog?LogName=" + encodeURI(eventLogName) + "&RawLogData=1";
+
+	try
+	{
+		if (window.ActiveXObject)
+		{
+			// Load XML syncronously
+			xmlLogData      = new ActiveXObject("Microsoft.XMLDOM");
+			xmlTransform    = new ActiveXObject("Microsoft.XMLDOM");
+
+			xmlLogData.async   = false;
+			xmlTransform.async = false;
+
+			xmlLogData.load(xmlLogURL);
+			xmlTransform.load(xslFileName);
+
+			tableOutputV.innerHTML = xmlLogData.transformNode(xmlTransform);
+		}
+		else if (document.implementation && document.implementation.createDocument)
+		{
+				// Only supports async XML loads
+				xmlLogData   = document.implementation.createDocument("","", null);
+				xmlTransform = document.implementation.createDocument("","", null);
+
+				xmlLogData.onload = parseEventLog;
+				xmlTransform.onload = parseXSL;
+
+				// Parse the event log
+				xmlLogData.load(xmlLogURL);
+			}
+		}
+	catch (c)
+	{
+		tableOutputV.innerHTML = L_EmptyLog_Message;
+	}
+}
+
+// We have parsed the style sheet to do the transformation.  Do the work.
+function parseXSL() {
+	var processor = new XSLTProcessor();
+	processor.importStylesheet(xmlTransform);
+	var results = processor.transformToFragment(xmlLogData, document);
+
+	tableOutputV.innerHTML = "";
+	tableOutputV.appendChild(results);
+}
+
+// We have successfully parsed the event log data itself.
+function parseEventLog()
+{
+	xmlTransform.load(xslFileName);
+}
+
+GetLogNameFromURL();
+BuildPage(Loc("PageTitle"), Loc("PageBlurb") + "<B>" + eventLogName + "</B>","ShowPage()");
+</script>
+</html>
+

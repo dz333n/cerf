@@ -313,6 +313,115 @@
 ;
 
 ; @CESYSGEN IF CPLMAIN_COLORSCHEME
+;
+[HKEY_CURRENT_USER\ControlPanel\Appearance]
+"Current"=mui_sz:"cplmain.cpl,#33406"
+
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\WHEAT]
+"DisplayName"=mui_sz:"cplmain.cpl,#33407"
+"Settings"=hex:\
+      ff,ff,00,00,f0,f0,d5,00,00,40,1d,00,80,80,00,02,bc,bc,41,02,c4,c4,55,00,ff,\
+      ff,ff,02,00,00,00,02,00,00,00,02,00,00,00,02,ff,ff,ff,02,c4,c4,55,00,c4,c4,\
+      55,00,ee,ee,d0,02,80,80,00,02,ff,ff,ff,02,c4,c4,55,00,80,80,80,00,8c,8d,8b,\
+      00,00,00,00,02,ff,ff,ff,02,f0,f0,d5,00,00,00,00,00,ff,ff,ff,00,00,00,00,02,\
+      ff,ff,ff,02,c7,c7,61,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\MARINE]
+"DisplayName"=mui_sz:"cplmain.cpl,#33408"
+"Settings"=hex:\
+      ff,ff,00,00,d8,f5,eb,00,80,00,00,02,46,46,8c,00,8d,8b,cb,00,a3,e7,cf,00,ff,\
+      ff,ff,02,16,56,40,00,00,00,00,00,00,00,00,02,ff,ff,ff,02,64,d7,ae,00,64,d7,\
+      ae,00,80,80,80,02,70,70,b8,00,ff,ff,ff,02,64,d7,ae,00,80,80,80,00,4f,65,7d,\
+      02,00,00,00,02,d7,d7,d7,00,d8,f5,eb,00,00,00,00,00,ff,ff,ff,00,00,00,00,02,\
+      ff,ff,ff,02,64,d7,ae,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\ROSE]
+"DisplayName"=mui_sz:"cplmain.cpl,#33409"
+"Settings"=hex:\
+      ff,ff,00,00,ff,e6,e6,00,80,80,80,02,9f,60,70,02,a0,a0,a4,02,ff,ca,ca,00,ff,\
+      ff,ff,02,00,00,00,02,00,00,00,02,00,00,00,02,ff,ff,ff,02,ff,97,97,00,ff,97,\
+      97,00,9f,60,70,02,9f,60,70,02,ff,ff,ff,02,ff,97,97,00,7f,7f,7f,00,89,89,89,\
+      00,00,00,00,02,00,00,00,02,ff,e6,e6,00,00,00,00,00,ff,ff,ff,00,00,00,00,02,\
+      ff,ff,ff,02,ff,95,95,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\BRICK]
+"DisplayName"=mui_sz:"cplmain.cpl,#33410"
+"Settings"=hex:\
+      ff,ff,00,00,e8,e7,dd,00,9b,00,00,00,80,00,00,00,8d,89,61,00,a2,9d,75,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,e1,e0,d2,00,a3,9e,76,00,a3,9e,\
+      76,00,e1,e0,d2,00,8d,89,61,00,ff,ff,ff,00,a3,9e,76,00,80,80,80,00,80,80,80,\
+      00,00,00,00,00,e1,e0,d2,00,e8,e7,dd,00,00,00,00,00,ff,ff,ff,00,80,00,00,00,\
+      e1,e0,d2,00,9f,9b,73,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\DESERT]
+"DisplayName"=mui_sz:"cplmain.cpl,#33411"
+"Settings"=hex:\
+      ff,ff,00,00,ea,e6,dd,00,a2,8d,68,00,00,80,80,00,a2,8d,68,00,cc,c2,ad,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,ff,ff,ff,00,cc,c2,ad,00,cc,c2,\
+      ad,00,a2,8d,68,00,00,80,80,00,ff,ff,ff,00,cc,c2,ad,00,80,80,80,00,a2,8d,68,\
+      00,00,00,00,00,ff,ff,ff,00,ea,e6,dd,00,00,00,00,00,ff,ff,ff,00,00,00,00,00,\
+      ff,ff,ff,00,cc,c2,ad,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\EGGPLANT]
+"DisplayName"=mui_sz:"cplmain.cpl,#33412"
+"Settings"=hex:\
+      ff,ff,00,00,d5,e7,d3,00,40,00,40,00,4d,00,4d,00,a5,50,8d,00,5b,98,56,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,ff,ff,ff,00,5b,98,56,00,5b,98,\
+      56,00,80,80,80,00,37,5c,34,00,ff,ff,ff,00,5b,98,56,00,80,80,80,00,78,52,6d,\
+      00,00,00,00,00,4f,4f,4f,00,a0,c9,9c,00,00,00,00,00,ff,ff,ff,00,80,00,80,00,\
+      ff,ff,ff,00,5b,98,56,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\HCBLACK]
+"DisplayName"=mui_sz:"cplmain.cpl,#33413"
+"Settings"=hex:\
+      ff,ff,00,00,c0,c0,c0,00,00,00,00,00,80,00,80,00,00,80,00,00,00,00,00,00,00,\
+      00,00,00,ff,ff,ff,00,ff,ff,ff,00,ff,ff,ff,00,ff,ff,ff,00,80,80,80,00,c0,c0,\
+      c0,00,80,80,80,00,ff,ff,ff,00,00,00,00,00,00,00,00,00,80,80,80,00,80,80,80,\
+      00,ff,ff,ff,00,ff,ff,ff,00,c0,c0,c0,00,ff,ff,ff,00,c0,c0,c0,00,ff,ff,ff,00,\
+      00,00,00,00,00,00,00,00,ff,ff,ff,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\HCWHITE]
+"DisplayName"=mui_sz:"cplmain.cpl,#33414"
+"Settings"=hex:\
+      ff,ff,00,00,ff,ff,ff,00,ff,ff,ff,00,00,00,00,00,ff,ff,ff,00,ff,ff,ff,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,ff,ff,ff,00,80,80,80,00,c0,c0,\
+      c0,00,80,80,80,00,00,00,00,00,ff,ff,ff,00,ff,ff,ff,00,80,80,80,00,80,80,80,\
+      00,00,00,00,00,00,00,00,00,c0,c0,c0,00,00,00,00,00,c0,c0,c0,00,00,00,00,00,\
+      ff,ff,ff,00,ff,ff,ff,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\LILAC]
+"DisplayName"=mui_sz:"cplmain.cpl,#33415"
+"Settings"=hex:\
+      ff,ff,00,00,ae,a8,d9,00,00,00,00,00,5a,4e,b1,00,80,80,80,00,ae,a8,d9,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,ff,ff,ff,00,ae,a8,d9,00,ae,a8,\
+      d9,00,5a,4e,b1,00,5a,4e,b1,00,ff,ff,ff,00,ae,a8,d9,00,80,80,80,00,69,69,69,\
+      00,00,00,00,00,ff,ff,ff,00,d8,d5,ec,00,00,00,00,00,ff,ff,ff,00,00,00,00,00,\
+      ff,ff,ff,00,ae,a8,d9,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\MAPLE]
+"DisplayName"=mui_sz:"cplmain.cpl,#33416"
+"Settings"=hex:\
+      ff,ff,00,00,f3,ed,da,00,00,00,00,02,b3,94,37,00,a0,a0,a4,02,e6,d8,ae,02,ff,\
+      ff,ff,02,00,00,00,02,00,00,00,02,00,00,00,02,ff,ff,ff,02,d0,b6,66,00,d0,b6,\
+      66,00,f2,ec,d7,02,a3,87,32,02,00,00,00,02,d0,b6,66,00,80,80,80,00,70,6f,71,\
+      00,00,00,00,02,f2,ec,d7,02,f3,ed,da,00,00,00,00,00,ff,ff,ff,00,00,00,00,02,\
+      ff,ff,ff,02,d2,ba,6f,00,00,00,00,02
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\SPRUCE]
+"DisplayName"=mui_sz:"cplmain.cpl,#33417"
+"Settings"=hex:\
+      ff,ff,00,00,d0,e3,d3,00,2e,58,2e,00,59,97,64,00,7f,7f,7f,00,a2,c8,a9,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,ff,ff,ff,00,a2,c8,a9,00,a2,c8,\
+      a9,00,d0,e3,d3,00,59,97,64,00,ff,ff,ff,00,a2,c8,a9,00,80,80,80,00,63,a5,63,\
+      00,00,00,00,00,d0,e3,d3,00,d0,e3,d3,00,00,00,00,00,ff,ff,ff,00,00,00,00,00,\
+      ff,ff,ff,00,a2,c8,a9,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\STORM]
+"DisplayName"=mui_sz:"cplmain.cpl,#33418"
+"Settings"=hex:\
+      ff,ff,00,00,e7,e7,e7,00,00,00,00,00,00,00,2f,00,80,80,80,00,c0,c0,c0,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,ff,ff,ff,00,a0,a0,a0,00,a0,a0,\
+      a0,00,80,80,80,00,00,00,66,00,ff,ff,ff,00,a0,a0,a0,00,80,80,80,00,80,80,80,\
+      00,00,00,00,00,24,24,24,00,e7,e7,e7,00,00,00,00,00,ff,ff,ff,00,80,00,80,00,\
+      ff,ff,ff,00,a0,a0,a0,00,00,00,00,00
+[HKEY_CURRENT_USER\ControlPanel\Appearance\Schemes\STANDARD]
+"DisplayName"=mui_sz:"cplmain.cpl,#33406"
+"Settings"=hex:\
+      ff,ff,00,00,e0,e0,e0,00,3a,6e,a5,00,00,00,80,00,80,80,80,00,c0,c0,c0,00,ff,\
+      ff,ff,00,00,00,00,00,00,00,00,00,00,00,00,00,ff,ff,ff,00,c0,c0,c0,00,c0,c0,\
+      c0,00,80,80,80,00,00,00,80,00,ff,ff,ff,00,c0,c0,c0,00,80,80,80,00,80,80,80,\
+      00,00,00,00,00,c0,c0,c0,00,ff,ff,ff,00,00,00,00,00,df,df,df,00,00,00,00,00,\
+      ff,ff,ff,00,c0,c0,c0,00,00,00,00,00
+;
 ; @CESYSGEN ENDIF CPLMAIN_COLORSCHEME
 
 ; @CESYSGEN IF CPLMAIN_SOUNDS

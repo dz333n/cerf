@@ -1,0 +1,218 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include HOSTNAME##
+##include NETWORK##
+##include NAT##
+
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="local_network_loc.js" language="javascript"></script>
+<script src="general_loc.js" language="javascript"></script>
+<script language="javascript">
+	
+
+// local variables
+var l_LeaseTimeOptions	= new Array();
+	l_LeaseTimeOptions[0]	= "15:"		+ Loc("15Minute");	
+	l_LeaseTimeOptions[1]	= "30:"		+ Loc("30Minute");	
+	l_LeaseTimeOptions[2]	= "120:"	+ Loc("2Hours"); 	
+	l_LeaseTimeOptions[3]	= "1440:"	+ Loc("24Hour"); 	
+	l_LeaseTimeOptions[4]	= "4320:"	+ Loc("3Day");		
+	l_LeaseTimeOptions[5]	= "10080:"	+ Loc("1Week");		
+	l_LeaseTimeOptions[6]	= "20160:"	+ Loc("2Week");		
+
+var l_DHCPENableOptions = new Array();
+	l_DHCPENableOptions[0] = "0:"		+ Loc('Disabled');
+	l_DHCPENableOptions[1] = "1:"		+ Loc('Enabled');
+
+
+function OnReset()
+{
+	setSelection("DhcpAllocator", g_NAT_EnableDhcpAllocator);
+	HandleDHCPEnableChange(g_NAT_EnableDhcpAllocator);
+}	
+
+
+function SubmitHandler(SubmitVar)
+{	
+	var bOK = true;
+	ClearError();
+
+	
+	var form = FindObject("EditForm");
+
+	bOK &= ValidateIP("IP");
+	bOK &= ValidateNotBroadcast("IP");
+
+	bOK &= ValidateIP("Subnet");
+	bOK &= ValidateNotBroadcast("Subnet");
+	bOK &= ValidateHostName("Hostname");
+	
+	bOK &= (IsOkDHCPRange()?true:false);
+	
+	// If everything passed then pass this onto the global handler to submit
+	if (true == bOK)
+	{		
+		form.IP.name			= "a_NETWORK_IPAddress_"+g_NAT_Private;
+		form.Subnet.name		= "a_NETWORK_Subnet_"+g_NAT_Private;
+		form.Hostname.name		= "HOSTNAME_Name";
+		
+		form.DhcpAllocator.name	= "NAT_EnableDhcpAllocator";
+		form.DHCPLeaseTime.name	= "NAT_DHCPLeaseTime";
+	
+		GlobalSubmitHandler(SubmitVar);		
+		return true;
+	}else{		
+		FocusFirstError();		
+		return false;
+	}
+}
+
+
+function AddDHCPLeaseTimeOptions()
+{
+	// Note: if the g_NAT_DHCPLeaseTime variable is = 0 we will change it to 15
+	// 0 is the default but means 15.
+	if (0 == g_NAT_DHCPLeaseTime)
+		g_NAT_DHCPLeaseTime = 15;
+
+	document.write("<OPTION value=15>15 Minutes</OPTION>");
+	document.write("<OPTION value=30>30 Minutes</OPTION>");
+	document.write("<OPTION value=120>2 Hours</OPTION>");
+	document.write("<OPTION value=1440>24 Hours</OPTION>");
+	document.write("<OPTION value=4320>3 Days</OPTION>");
+	document.write("<OPTION value=10080>One Week</OPTION>");
+	document.write("<OPTION value=20160>Two Weeks</OPTION>");
+}
+
+function HandleDHCPEnableChange(Selection)
+{
+	if (1 == Selection)
+	{
+		// enable all child items
+		var DHCPStart;	
+		var DHCPEnd; 
+
+		if(DHCPStart = FindObject("NAT_DHCPStartAllocation")) {
+			DHCPStart.enabled = true;
+		}
+		if(DHCPEnd = FindObject("NAT_DHCPStopAllocation")) {
+			DHCPStart.enabled = true;
+		}
+
+		document.getElementById("DHCPLeaseTime").disabled = false;
+		document.getElementById("LocalDomainName").disabled = false;
+	}else{
+		// disable all child items
+		var DHCPStart;	
+		var DHCPEnd; 
+
+		if(DHCPStart = FindObject("NAT_DHCPStartAllocation")) {
+			DHCPStart.enabled = false;
+		}
+		if(DHCPEnd = FindObject("NAT_DHCPStopAllocation")) {
+			DHCPStart.enabled = false;
+		}
+		document.getElementById("DHCPLeaseTime").disabled = true;
+		document.getElementById("LocalDomainName").disabled = true;
+	}
+}
+
+
+
+function IsOkDHCPRange()
+{
+	DHCPStart = FindObject("NAT_DHCPStartAllocation");	
+	DHCPEnd = FindObject("NAT_DHCPStopAllocation");
+	var form = FindObject("EditForm");
+
+	var Start = parseInt(DHCPStart.value);
+	var End = parseInt(DHCPEnd.value);
+	
+	if(Start > End || Start>255 || End>255) {					
+		FlagError(form.NAT_DHCPStartAllocation, "IPBadRange");
+		FlagError(form.NAT_DHCPStopAllocation, "IPBadRange");
+		return false;
+	} else {
+		NoError(form.NAT_DHCPStartAllocation);
+		NoError(form.NAT_DHCPStopAllocation);		
+		return true;
+	}
+}
+function ValidateDHCP(Quad) {
+	if(!IsOkDHCPRange()) {
+		return false;
+	} else {
+		return ValidateIPQuad(Quad);
+	}
+}
+
+function DHCPRangeChange()
+{
+	IsOkDHCPRange();
+	enableApply();	
+}
+
+function ShowPage()
+{
+	document.write("<form METHOD=post name=EditForm onsubmit='return SubmitHandler(this)' onreset=OnReset()>");
+	BuildBoxHeader();
+
+	document.write("<table class=boxInside>");
+	Add2ColTRTD(Loc('BaseStationName'), "<input type=text onkeyup=enableApply(); id=Hostname value="+g_HOSTNAME_Name+">");
+	Add2ColTRTD(Loc('EnterIP'), BuildIPInput(g_NETWORK_IPAddress[g_NAT_Private], "IP", true));
+	Add2ColTRTD(Loc('Subnet'), BuildIPInput(g_NETWORK_Subnet[g_NAT_Private], "Subnet", true));
+	document.write("<TR><TD COLSPAN=2><HR><B>"+Loc('DHCPSettings')+"</B><BR>"+Loc('DHCPBlurb')+"</TD></TR>");   
+
+	AddTR();
+		AddTD(Loc('DHCPServer'));
+		document.write("<TD><select id=DhcpAllocator onchange='enableApply(); HandleDHCPEnableChange(this.value);' >")
+			AddOptionsFromArray(l_DHCPENableOptions, g_NAT_EnableDhcpAllocator);
+		document.write("</SELECT>");
+	document.write("</TD></TR>");
+
+
+	var PrivateIP = g_NETWORK_IPAddress[g_NAT_Private].split(".");
+	var PrivateIPParts = PrivateIP[0]+"."+PrivateIP[1]+"."+PrivateIP[2]+".";
+	
+	AddTR();
+	Add2ColTD(Loc('DHCPStart'), PrivateIPParts + "<input class=normal onKeyPress=NumOnly(); onkeyup=DHCPRangeChange(); onBlur=ValidateDHCP(this); type=text name=NAT_DHCPStartAllocation value="+g_NAT_DHCPStartAllocation+" size=3 maxlength=3>");
+	EndTR();
+	AddTR();
+	Add2ColTD(Loc('DHCPEnd'), PrivateIPParts + "<input class=normal onKeyPress=NumOnly(); onkeyup=DHCPRangeChange(); onBlur=ValidateDHCP(this); type=text name=NAT_DHCPStopAllocation value="+g_NAT_DHCPStopAllocation+" size=3 maxlength=3>");
+	EndTR();
+	
+	AddTR();
+		AddTD(Loc('LeaseTime'));
+		document.write("<TD><SELECT id=DHCPLeaseTime onchange=enableApply(); size=1>");
+			AddOptionsFromArray(l_LeaseTimeOptions, g_NAT_DHCPLeaseTime);
+		document.write("</SELECT>");
+	document.write("</TD></TR>");
+
+
+	Add2ColTD(Loc('LocalDomain'), "<input type=text onkeyup=enableApply(); name=NAT_DHCPAllocatorDomain id=LocalDomainName maxLength=63 size=27 value='" + g_NAT_DHCPAllocatorDomain + "'>");
+	
+	document.write("</TABLE>");
+	BuildBoxFooter();
+	AddApplyCancel('EditForm');
+	document.write("</form>");
+
+	setSelection("DhcpAllocator", g_NAT_EnableDhcpAllocator);
+	HandleDHCPEnableChange(g_NAT_EnableDhcpAllocator);
+}
+
+
+</script>
+<html>
+	<script>BuildPage(Loc('PageTitle'), Loc('PageBlurb'), "ShowPage()");</script>
+</html>

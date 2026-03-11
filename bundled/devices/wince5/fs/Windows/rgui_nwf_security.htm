@@ -1,0 +1,417 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include NATIVEWIFI##
+##include NETWORK##
+##include REMOTEUTILS##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="NWF_Security_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+
+// local vars
+// NOTE: We are making an assumption here.  The security is going to start out
+// defaulted to 40bit with some default key.  If OEM's change the default then
+// they also HAVE to update this or the UI and security will be out of sync.
+
+var l_WepMode = "1";	// default to 40bit
+
+if ("undefined" != typeof(g_REMOTEUTILS_NoBackupRegistry["SecMode"]))
+{
+	l_WepMode = g_REMOTEUTILS_NoBackupRegistry["SecMode"];
+}
+
+var l_CachedWepMode = l_WepMode;
+
+var l_CachedKey	= g_NATIVEWIFI_WEPKey[g_NATIVEWIFI_DefaultWEPKey];
+
+
+var KeyOptions = new Array();
+
+KeyOptions[0] = "0:"	+ Loc("OPTNone");
+KeyOptions[1] = "1:"	+ Loc("OPT40");
+KeyOptions[2] = "2:"	+ Loc("OPT104");
+KeyOptions[3] = "3:"	+ Loc("OPTWPA");
+
+
+
+// local variables
+
+// Need to figure out which form to display based on the encryption bits
+var l_CurrentPaneID = "FormNone";
+switch (l_WepMode)
+{
+	case "0":		l_CurrentPaneID = "FormNone";	  l_WepMode=0;break;
+	case "1":	    l_CurrentPaneID = "Form40Bit";	  l_WepMode=1;break;
+	case "2":	    l_CurrentPaneID = "Form104Bit"	; l_WepMode=2;break;
+	case "3":		l_CurrentPaneID = "FormWPA";	  l_WepMode=3;break;
+	default:
+	{
+		// something is wrong.  Reset it back to none (0)
+		alert("ERR: Invalid EncryptionBits length ["+ l_WepMode + "]");
+		l_WepMode = 0;
+	}
+}
+
+var l_StartupPaneID = l_CurrentPaneID;
+
+
+function ValidateHexObj(Control, MinLen, MaxLen, ErrorString)
+{
+	var Valid = false;
+
+	if (null == Control)
+	{
+		alert("ERR: Invalid control passed to ValidateHexObj");
+	}else{
+		var MatchStr = RegExp("^[0-9a-fA-F]{"+MinLen+","+MaxLen+"}$");
+		
+		var Match = MatchStr.exec(Control.value);
+			
+		if (Match)
+		{
+			Valid = true;
+		}else{
+			alert(ErrorString);
+			Control.select();
+			Control.focus();
+		}
+	}
+	
+	return Valid;
+}	
+
+
+function ValidateKey(KeyObj)
+{
+	var bOK = true;
+	if ((null == KeyObj) || ("object" != typeof(KeyObj)))
+	{
+		alert("ERR: Invalid control ID passed to ValidateKey");
+		return false;
+	}
+	
+	
+	switch (l_CurrentPaneID)
+	{
+		case "FormNone":
+		{
+			// key must be empty.
+			Key.value = "";
+		}break;
+		
+		case "Form40Bit":
+		{
+			// 10 hex digits
+			bOK = ValidateHexObj(KeyObj, 10, 10, Loc("Err11"));
+		}break;
+		
+		case "Form104Bit":
+		{
+			bOK = ValidateHexObj(KeyObj, 26, 26, Loc("Err11"));
+		}break;
+		
+		case "FormWPA":
+		{
+			// 8-63 characters
+			var len = KeyObj.value.length
+			if (len < 8 || len > 63)
+			{
+				bOK = false;
+				alert(Loc("Err12"));
+				KeyObj.select();
+				KeyObj.focus();
+			}
+		}break;
+		
+		default:
+		{
+			alert("ERR: Unknown pane ID");
+		}
+	}
+	
+	return(bOK);
+}		
+
+function OnReset()
+{
+	ShowHidden(l_StartupPaneID);
+	G_Dirty = false;
+}	
+	
+
+
+function SubmitHandler(SubmitVar)
+{
+	var bOK = true;
+
+	//SubmitVar.action="debug";
+	
+	var Key = FindObject("a_NATIVEWIFI_WEPKey_0");
+	var Mode = FindObject("NATIVEWIFI_SecurityMode");
+	
+	var KeyToValidate;
+	
+	switch (l_CurrentPaneID)
+	{
+		case "FormNone":
+		{
+			// key must be empty.
+			Key.value = "";
+			Mode.value = 1;
+		}break;
+		
+		case "Form40Bit":
+		{
+			KeyToValidate = FindObject("KeyValue40");
+			bOK = ValidateKey(KeyToValidate);
+			Key.value = KeyToValidate.value;
+			Mode.value = 2;
+		}break;
+		
+		case "Form104Bit":
+		{
+			KeyToValidate = FindObject("KeyValue104");
+			bOK = ValidateKey(KeyToValidate);
+			Key.value = KeyToValidate.value;
+			Mode.value = 2;
+		}break;
+		
+		case "FormWPA":
+		{
+			KeyToValidate = FindObject("WpaPassPhrase");
+			bOK = ValidateKey(KeyToValidate);
+			
+			Key.name = "NATIVEWIFI_WPAPskKey";
+			Key.value = KeyToValidate.value;			
+			Mode.value = 3;
+
+			var IndexKey = FindObject("NATIVEWIFI_DefaultWEPKey");
+			IndexKey.name = "NATIVEWIFI_WPAGroupKeyUpdateTimer";
+			IndexKey.value = "3600";
+		}break;
+		
+		default:
+		{
+			bOK = false;
+			alert("ERR: Unknown pane ID: " + l_CurrentPaneID);
+		}
+	}
+
+	// If everything passed then pass this onto the global handler to submit
+	if (true == bOK)
+	{
+		AddSubmitItem(SubmitVar, "a_REMOTEUTILS_NoBackupRegistry_SecMode", SubmitVar.WirelessEncryptionStrength.value);
+
+		GlobalSubmitHandler(SubmitVar);
+		
+		return(true);
+	}else{
+		FocusFirstError();
+		return(false);
+	}
+}
+
+function AddHiddenForm(Name, CreationFn)
+{
+	document.write("<TR><TD>");
+
+	document.write("<DIV ID=DIV_" + Name + " class='hideform'>");
+
+	document.write("<table>");
+
+	fn = new Function(CreationFn);
+	if(fn) {
+		document.write(CreationFn());	
+	}
+
+	document.write("</table>");
+
+	document.write("</DIV>");
+	document.write("</TD></TR>");
+}
+
+function FormNone()
+{
+	ret = "<TR><TD class=selectedRadioText>"+Loc("NoneTitle")+"</TD></TR>";
+
+	ret += "<TR><TD>";
+	ret += Loc("NoneBlurb");
+	ret += "</TD></TR>";
+
+	return ret;
+}
+
+function Form40Bit()
+{
+	ret = "<TR><TD class=selectedRadioText>"+Loc("40Title")+"</TD></TR>";
+
+	ret += "<TR><TD>";
+	ret += Loc("40Blurb");
+	ret += "</TD></TR>";
+
+	ret += "<TR>";
+	ret += "<TD>" + Loc("WepKey") + "<INPUT id=KeyValue40 onKeyPress=HexOnly(); onKeyUp=enableApply(); maxLength=10 size=15 value=" + g_NATIVEWIFI_WEPKey[g_NATIVEWIFI_DefaultWEPKey] + "></TD></TR>";
+
+	return ret;
+}
+
+function Form104Bit()
+{
+	ret = "<TR><TD class=selectedRadioText>"+Loc("104Title")+"</TD></TR>";
+
+	ret += "<TR><TD>";
+	ret += Loc("104Blurb");
+	ret += "</TD></TR>";
+
+	ret += "<TR>";
+	ret += "<TD>" + Loc("WepKey") + "<INPUT id=KeyValue104 onKeyPress=HexOnly(); onKeyUp=enableApply(); maxLength=26 size=30 value=" + g_NATIVEWIFI_WEPKey[g_NATIVEWIFI_DefaultWEPKey] + "></TD></TR>";
+
+	return ret;
+}
+
+function FormWPA()
+{
+	ret = "<TR><TD colspan=2 class=selectedRadioText>"+Loc("WPATitle")+"</TD></TR>";
+
+	ret += "<TR><TD colspan=2>";
+	ret += Loc("WPABlurb");
+	ret += "</TD></TR>";
+
+	ret += "<TR><TD width=20><img src='../remoteadminimages/images_icon_warning.gif'></TD>";
+
+	ret += "<TD class=natoffmessage>"
+	ret += Loc("WPAWarning");
+	ret += "</TD></TR>";
+
+	ret += "<TR><TD colspan=2>"+Loc("PassphraseTitle");
+
+	ret += "<TR>";
+	ret += "<TD colspan=2>" + Loc("Passphrase") + "<INPUT id=WpaPassPhrase onKeyUp=enableApply(); maxLength=63 size=64 value=" + g_NATIVEWIFI_WEPKey[g_NATIVEWIFI_DefaultWEPKey] + "></TD></TR>";
+
+	return ret;
+}
+
+function ShowHidden(ID)
+{	
+	if (ID != l_CurrentPaneID)
+	{
+		enableApply();
+	}
+
+	Hide("DIV_FormNone");
+	Hide("DIV_Form40Bit");
+	Hide("DIV_Form104Bit");
+	Hide("DIV_FormWPA");
+
+	Show("DIV_"+ID);
+	
+	l_CurrentPaneID = ID;
+}
+
+
+function SelectionChanged(selectobj)
+{
+	ClearError();
+	l_WepMode = selectobj.selectedIndex;
+	
+	switch (selectobj.selectedIndex)
+	{
+	case 0:
+		ShowHidden("FormNone");
+		break;
+	case 1:
+		l_KeyToValidate = FindObject("KeyValue40");
+		ShowHidden("Form40Bit");
+		break;
+	case 2:
+		l_KeyToValidate = FindObject("KeyValue104");
+		ShowHidden("Form104Bit");
+		break;
+	case 3:
+		l_KeyToValidate = FindObject("WpaPassPhrase");
+		ShowHidden("FormWPA");
+		break;
+	}
+	
+	if (l_WepMode == l_CachedWepMode)
+	{
+		l_KeyToValidate.value = l_CachedKey;
+		disableApply();
+	}else{
+		l_KeyToValidate.value = "";
+	}
+
+}
+
+
+function ShowPage()
+{	
+	document.write("<form METHOD=post action='NWF_Security.htm' onsubmit='return(SubmitHandler(this))' onreset=OnReset()>");
+
+	document.write("<INPUT type=hidden name=NATIVEWIFI_DefaultWEPKey 		value='" + g_NATIVEWIFI_DefaultWEPKey + "'>");
+	document.write("<INPUT type=hidden name=a_NATIVEWIFI_WEPKey_0			value='" + g_NATIVEWIFI_WEPKey["0"]			+ "'>");
+	document.write("<INPUT type=hidden name=NATIVEWIFI_ChannelNo			value='" + g_NATIVEWIFI_ChannelNo		+ "'>");
+	document.write("<INPUT type=hidden name=NATIVEWIFI_SSID			    value='" + g_NATIVEWIFI_SSID			+ "'>");
+	document.write("<INPUT type=hidden name=NATIVEWIFI_SecurityMode		value='" + g_NATIVEWIFI_SecurityMode    + "'>");
+
+	BuildBoxHeader();
+	
+	document.write("<table id=TableData class=boxInside>");
+	
+	AddTR();
+		AddAttrTD("class=cellLtColor", Loc("SecTitle"));
+	EndTR();
+	AddTR();
+		AddTD(Loc("SecBlurb"));
+	EndTR();
+	
+	document.write("<SPAN id=channelLabel>");
+	document.write("<TR>");
+		document.write("<TD>");
+			document.write(Loc("EncStr"));
+		
+			document.write("<SELECT id=WirelessEncryptionStrength onchange='SelectionChanged(this)'>");
+				AddOptionsFromArray(KeyOptions, l_WepMode);
+			document.write("</SELECT>");
+		document.write("</TD>");
+	document.write("</TR></SPAN>");
+	document.write("<TR><TD><HR></TD></TR>");
+
+	
+	AddHiddenForm("FormNone", FormNone);
+	AddHiddenForm("Form40Bit", Form40Bit);
+	AddHiddenForm("Form104Bit", Form104Bit);
+	AddHiddenForm("FormWPA", FormWPA);
+	
+	
+	document.write("</table>");
+
+	BuildBoxFooter();
+
+	AddApplyCancel();
+	
+	document.write("</form>");
+
+	ShowHidden(l_CurrentPaneID);
+	
+	if ("0" == g_NATIVEWIFI_WirelessEnabled)
+	{
+		TableData.disabled = true;
+		FindObject("WirelessEncryptionStrength").disabled = true;
+	}
+}
+	
+</script>
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>

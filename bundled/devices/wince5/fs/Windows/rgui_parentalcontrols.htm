@@ -1,0 +1,484 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include USERS##
+##include PARENTALCONTROLS##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="ParentalControlsUser_Loc.js" language="javascript"></script>
+<script src="ParentalControls_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+// g_PARENTALCONTROLS_RestrictionMode 0 == Disabled / 1 == Allow / 2 = block
+// g_PARENTALCONTROLS_TimeEnabled	0 = always, 1 = scheduled
+
+if (!ModuleExists("PARENTALCONTROLS") || g_PARENTALCONTROLS_Enabled == "0")
+{
+	// build up some place holder variables so we don't get JS errors.
+	var g_PARENTALCONTROLS_Auth = "1"; // 1 = user names, 0 = IP
+	var g_PARENTALCONTROLS_ClientGroup = new Array();
+	var g_PARENTALCONTROLS_Restrictions = new Array();
+}
+
+var l_AgeGroups	= new Array();
+l_AgeGroups[0]	= Loc("Child");
+l_AgeGroups[1]	= Loc("Teen");
+l_AgeGroups[2]	= Loc("Adult");
+l_AgeGroups[3]	= Loc("None");
+
+
+// local vars
+var l_GroupsList = new Array();
+l_GroupsList[0] = Loc("Child");
+l_GroupsList[1] = Loc("Teen");
+l_GroupsList[2] = Loc("Adult");
+
+var l_AgeGroupOptions	= new Array();
+l_AgeGroupOptions[0]	= "0:"+Loc("Child");
+l_AgeGroupOptions[1]	= "1:"+Loc("Teen");
+l_AgeGroupOptions[2]	= "2:"+Loc("Adult");
+
+var l_CurrentGroup = GetCookie("CurrentGroup");
+if (null == l_CurrentGroup)
+	l_CurrentGroup = "0"; // child
+
+var l_SplitUrls = new Array(3);
+for (var i = 0; i < 3; i++)
+{
+	if ("undefined" != typeof(g_PARENTALCONTROLS_Restrictions[i]) && g_PARENTALCONTROLS_Restrictions[i].length>0)
+	{
+		l_SplitUrls[i] = new String(g_PARENTALCONTROLS_Restrictions[i]).split(",");
+	}else{
+		l_SplitUrls[i] = new Array();
+	}
+}
+
+function SettingsSubmitHandler(SubmitVar) 
+{		
+	ClearError();
+	var bOK = true;
+	
+	var FormVar = FindObject("PCSettingsForm");
+	var TimeEnabled = GetRadioValue(FormVar.RadioSched);
+	
+	// All radio / drop downs.  Nothing to validate.
+
+	AddSubmitItem(FormVar, "a_PARENTALCONTROLS_TimeEnabled_" + l_CurrentGroup, TimeEnabled);
+
+	if ("1" == TimeEnabled)
+	{
+		DayMask = BuildDayMask(FormVar.StartDay.value, FormVar.EndDay.value);
+
+		AddSubmitItem(FormVar, "a_PARENTALCONTROLS_TimeDays_" + l_CurrentGroup, DayMask);
+		AddSubmitItem(FormVar, "a_PARENTALCONTROLS_TimeStartHour_" + l_CurrentGroup, FormVar.StartTime.value);
+		AddSubmitItem(FormVar, "a_PARENTALCONTROLS_TimeEndHour_" + l_CurrentGroup, FormVar.EndTime.value);
+	}
+	
+	RestrictionMode = GetRadioValue(FormVar.RadioAB);
+	AddSubmitItem(FormVar, "a_PARENTALCONTROLS_RestrictionMode_" + l_CurrentGroup, RestrictionMode);
+
+	if (bOK)
+	{
+		GlobalSubmitHandler(SubmitVar);		
+
+		return true;		
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+
+function ScheduleSelectionChanged(NewValue)
+{
+	G_Dirty = true;
+	enableApply();
+	if ("0" == NewValue.value)
+	{
+		Hide("ScheduleDiv");
+	}else{
+		Show("ScheduleDiv");
+	}
+	
+	return true;
+}
+
+function URLRadioChanged(NewValue)
+{
+	G_Dirty = true;
+	enableApply();
+	
+	// disable the lower form until they have applied
+	Hide("UrlFormDiv");
+	
+	return true;
+}
+
+function GroupChanged(NewGroupValue)
+{
+	// Update the page to match the new groups data
+	
+	if (l_CurrentGroup != NewGroupValue)
+	{
+		SetCookie("CurrentGroup", NewGroupValue);
+		
+		l_CurrentGroup = NewGroupValue;
+
+		var Form = FindObject("PCSettingsForm");
+		
+		SetRadioSelect(Form.RadioSched, g_PARENTALCONTROLS_TimeEnabled[NewGroupValue]);
+		if ("0" == g_PARENTALCONTROLS_TimeEnabled[NewGroupValue])
+			Hide("ScheduleDiv");
+		else
+			Show("ScheduleDiv");
+			
+		SetRadioSelect(Form.RadioAB, g_PARENTALCONTROLS_RestrictionMode[NewGroupValue]);
+		if ("0" == g_PARENTALCONTROLS_RestrictionMode[NewGroupValue])
+		{
+			Hide("UrlFormDiv");
+		}else{
+			Show("UrlFormDiv");
+			var UrlBlurb = FindObject("EditBlurb");
+			if (null != UrlBlurb)
+			{
+				UrlBlurb.innerHTML = ("1" == g_PARENTALCONTROLS_RestrictionMode[NewGroupValue] ? Loc("AllowBlurb") : Loc("BlockBlurb"));
+			}
+			var Title = FindObject("ListSecTitle");
+			if (null != Title)
+			{
+				Title.innerHTML = ("1" == NewGroupValue ? Loc("SecPermitTitle") : Loc("SecBlockTitle"));
+			}
+			
+			// Now need to update the URL list
+			var URLListTable = FindObject("URLListTable");
+			while (URLListTable.rows.length > 1)
+			{
+				URLListTable.deleteRow(1);
+			}
+			AddURLTableData();
+			
+		}
+
+	}
+	
+	return true;
+}
+
+function AddDOWTODSelects(enable)
+{
+	document.write("<SELECT id=StartDay onchange=enableApply(); size=1>");
+		AddDOWOptions("");
+	document.write("</SELECT>");
+	
+	document.write(" " + Loc("To") + " ");
+	document.write("<SELECT id=EndDay onchange=enableApply(); size=1>");
+		AddDOWOptions("");
+	document.write("</SELECT>");
+	
+	document.write(" " + Loc("Between") + " ");
+
+	document.write("<SELECT id=StartTime onchange=enableApply(); size=1>");
+		AddAMPMHourOptions();
+	document.write("</SELECT>");
+
+	document.write(" " + Loc("And") + " ");
+
+	document.write("<SELECT id=EndTime onchange=enableApply(); size=1>");
+		AddAMPMHourOptions();
+	document.write("</SELECT>");
+}
+
+function enableURLApply()
+{
+	var FormVar = FindObject("URLEditForm");
+
+	FormVar.Apply.disabled = false;
+	FormVar.Cancel.disabled = false;
+
+}
+
+function URLSubmitHandler(FormVar)
+{
+	ClearError();
+	var bOK = true;
+	var CombinedURL = ""; 
+	
+	// All radio / drop downs.  Nothing to validate.
+	bOK &= ValidateNoneEmpty(FormVar.URL, "URLEmpty");
+
+	if (bOK)
+	{
+		for (var i = 0; i < l_SplitUrls[l_CurrentGroup].length; i++)
+		{
+			if (FormVar.EditKey.value != i)
+			{
+				if (CombinedURL.length > 0)
+					CombinedURL += ',';
+				
+				CombinedURL += l_SplitUrls[l_CurrentGroup][i];
+			}
+		}
+		if (CombinedURL.length > 0)
+		{
+			CombinedURL+= ',';
+		}
+		CombinedURL+=FormVar.URL.value;
+		
+		AddSubmitItem(FormVar, "a_PARENTALCONTROLS_Restrictions_" + l_CurrentGroup, CombinedURL);
+
+		GlobalSubmitHandler(FormVar);		
+
+		return true;		
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+
+function EditURL(Key)
+{
+	ClearError();
+
+	var form = FindObject("URLEditForm");
+	form.URL.value = l_SplitUrls[l_CurrentGroup][Key];
+	form.EditKey.value = Key;
+	
+	// now switch the buttons to make sense.
+	// Update the buttons to make sense
+	var FormVar = FindObject("URLEditForm");
+
+	FormVar.Apply.value = Loc("BTNUpdate");
+	FormVar.Apply.disabled = true;
+
+	FormVar.Cancel.disabled = false;
+}
+
+function ResetURLEditForm()
+{
+	G_Dirty = false;
+	ClearError();
+
+	var Form = FindObject("URLEditForm");
+	Form.reset();
+
+
+	Form.Apply.value = Loc("BTNAdd");
+	Form.Apply.disabled = true;
+
+	Form.Cancel.disabled = true;
+}
+
+
+
+
+function DeleteURL(Key)
+{
+	var form = FindObject("URLEditForm");
+	var CombinedURL = "";
+	
+	for (var i = 0; i < l_SplitUrls[l_CurrentGroup].length; i++)
+	{
+		if (i != Key)
+		{
+			if (CombinedURL.length > 0)
+				CombinedURL += ',';
+			
+			CombinedURL += l_SplitUrls[l_CurrentGroup][i];
+		}
+	}
+	
+	AddSubmitItem(form, "a_PARENTALCONTROLS_Restrictions_" + l_CurrentGroup, CombinedURL);
+	
+	form.submit();
+}
+
+
+function ShowURLEdit()
+{
+	document.write("<table class=boxInside>");
+
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor><SPAN id=ListSecTitle>" + ("1" == g_PARENTALCONTROLS_RestrictionMode[l_CurrentGroup] ? Loc("SecPermitTitle") : Loc("SecBlockTitle")) + "</SPAN></TD></TR>");
+	document.write("<TR><TD COLSPAN=4><SPAN id=EditBlurb>" + ("1" == g_PARENTALCONTROLS_RestrictionMode[l_CurrentGroup] ? Loc("AllowBlurb") : Loc("BlockBlurb")) + "</SPAN></TD></TR>");
+	AddShadow("EditKey", '-1');
+
+	AddTR();
+		AddTD("</BR>"+Loc("EditHead"));
+	EndTR();
+	
+	AddTR();
+		AddTD("<input type=text ID=URL size=75 onBlur='ValidateNoneEmpty(this, \"URLEmpty\", false);' onkeyup=enableURLApply()></div>");
+	EndTR();
+
+	document.write("<TR><TD COLSPAN=5><input id=Apply type=submit disabled value="+Loc('BTNAdd')+"><input id=Cancel type=button disabled value="+Loc('BTNClear')+" onclick=ResetURLEditForm()></TD></TR>");
+
+	AddBar();
+	document.write("</TABLE>");
+}
+
+function AddURLTableData()
+{
+	var TableObj = FindObject("URLListTable");
+	var NewRow = URLListTable.insertRow(1);
+	var NewCell = NewRow.insertCell();
+	
+	var index = 0;
+
+	for(Key in l_SplitUrls[l_CurrentGroup])
+	{
+		NewRow = TableObj.insertRow(1);
+		
+		NewCell = NewRow.insertCell();
+		NewCell.innerHTML = l_SplitUrls[l_CurrentGroup][Key];
+
+		NewCell = NewRow.insertCell();
+		NewCell.innerHTML = "<a class=PortForwardListLink href=javascript:EditURL('" + index + "');>"+Loc("Edit")+"</A>";
+
+		NewCell = NewRow.insertCell();
+		NewCell.innerHTML = "<a class=PortForwardListLink href=javascript:DeleteURL('" + index++ + "');>"+Loc("Delete")+"</A>";
+	}
+	
+	FindObject("count").innerText = index;
+}
+
+
+function ShowURLList()
+{
+	cnt=0; for(x in l_SplitUrls[l_CurrentGroup]) {cnt ++;}	
+
+	document.write(Loc("NumUrlFilters") + "<span id=count>"+cnt+"</span>");
+
+	document.write("<input type=hidden id=HiddenAction value=''>");
+	
+	document.write("<table id=URLListTable class=URLListTable border=0 cellspacing=0 cellpadding=0>");	
+
+	document.write("<TR class=PortForwardKey>");
+		AddAttrTD("width=10%", Loc("COLUrlFilter"));
+		AddAttrTD("width=10%", Loc("COLEdit"));
+		AddAttrTD("width=10%", Loc("COLDelete"));
+	EndTR();
+	
+	AddURLTableData();
+	
+/*
+	document.write(BuildURLTableData());
+	var index = 0;
+	for(Key in l_SplitUrls[l_CurrentGroup])
+	{
+		AddTR();
+
+			AddTD(l_SplitUrls[l_CurrentGroup][Key]);
+			
+			AddTD("<a class=PortForwardListLink href=javascript:EditURL('" + index + "');>"+Loc("Edit")+"</A>");
+
+			AddTD("<a class=PortForwardListLink href=javascript:DeleteURL('" + index++ + "');>"+Loc("Delete")+"</A>");
+
+		EndTR();
+	}
+*/
+	document.write("</TABLE>");	
+}
+
+
+function ShowPage()
+{
+	// If PC is disabled we just want to tell the user what is going on.
+	if ("0" == g_PARENTALCONTROLS_Enabled)
+	{
+		BuildBoxHeader();
+		document.write("<table class=boxInside>");
+			AddTRTD(Loc("PCDisabledBlurb") + Menu("ParentalControls") + ".");
+		document.write("</table>");
+		BuildBoxFooter();
+		return;
+	}
+
+	document.write("<form METHOD=post name=PCSettingsForm onsubmit='return SettingsSubmitHandler(this)'>");
+	BuildBoxHeader("PCSettingsDiv");
+	document.write("<table class=boxInside>");
+	
+		AddSection(Loc("GroupTitle"), Loc("GroupBlurb"));
+		AddTR();
+			document.write("<TD>");
+
+			document.write("<select id=Group onchange=GroupChanged(this.value);>");
+				AddOptionsFromArray(l_AgeGroupOptions, l_CurrentGroup);
+			document.write("</TD>");
+		EndTR();
+
+		AddBar();
+		AddSection(Loc("ScheduleTitle"), Loc("ScheduleBlurb"));
+
+
+		AddSelectionRadio("RadioSched", Loc("RadioAlways"),	"0", g_PARENTALCONTROLS_TimeEnabled[l_CurrentGroup], "ScheduleSelectionChanged");
+		AddSelectionRadio("RadioSched", Loc("RadioSchedule"),	"1", g_PARENTALCONTROLS_TimeEnabled[l_CurrentGroup], "ScheduleSelectionChanged");
+
+		AddTR();
+			document.write("<TD colspan=5><DIV id=ScheduleDiv>");
+				AddDOWTODSelects(false);
+			document.write("</TD>");
+		EndTR();
+				
+
+		if ("0" == g_PARENTALCONTROLS_TimeEnabled[l_CurrentGroup])
+		{
+			Hide("ScheduleDiv");
+		}else{
+			DayStart	= ExtractDayStart(g_PARENTALCONTROLS_TimeDays[l_CurrentGroup]);
+			DayEnd		= ExtractDayEnd(g_PARENTALCONTROLS_TimeDays[l_CurrentGroup]);
+			
+			setSelection("StartDay", DayStart);
+			setSelection("EndDay", DayEnd);
+			
+			setSelection("StartTime", g_PARENTALCONTROLS_TimeStartHour[l_CurrentGroup]);
+			setSelection("EndTime", g_PARENTALCONTROLS_TimeEndHour[l_CurrentGroup]);
+		}
+			
+		
+		AddBar();
+		AddSection(Loc("URLTitle"), Loc("URLBlurb"));
+
+		AddSelectionRadio("RadioAB", Loc("RadioURLDisabled"),	"0", g_PARENTALCONTROLS_RestrictionMode[l_CurrentGroup], "URLRadioChanged");
+		AddSelectionRadio("RadioAB", Loc("RadioURLPermit"),	"1", g_PARENTALCONTROLS_RestrictionMode[l_CurrentGroup], "URLRadioChanged");
+		AddSelectionRadio("RadioAB", Loc("RadioURLBlock"),		"2", g_PARENTALCONTROLS_RestrictionMode[l_CurrentGroup], "URLRadioChanged");
+
+	document.write("</table>");
+	BuildBoxFooter();
+	AddApplyCancel();
+	document.write("</form>");
+
+
+	document.write("<form METHOD=post name=URLEditForm onsubmit='return URLSubmitHandler(this)'>");
+	BuildBoxHeader("UrlFormDiv");
+	document.write("<table class=boxInside>");
+	
+		AddTR();
+			document.write("<td>");
+				ShowURLEdit();
+				ShowURLList();
+			document.write("</td>");
+		EndTR();		
+
+	document.write("</table>");
+	BuildBoxFooter();
+	document.write("</form>");
+	if ("0" == g_PARENTALCONTROLS_RestrictionMode[l_CurrentGroup])
+		Hide("UrlFormDiv");
+	
+	GroupChanged(l_CurrentGroup);	// hide / show everything as needed for current data
+}
+
+</script>
+<html>
+	<script>
+	BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");
+	</script>
+</html>

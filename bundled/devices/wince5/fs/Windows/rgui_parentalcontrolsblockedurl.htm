@@ -1,0 +1,32 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="../remoteadminimages/GeneralUtils2.js" language="javascript"></script>
+<script src="RGUI_ParentalControlsBlocked_loc.js" language="javascript"></script>
+<script language="javascript">
+
+function ShowPage()
+{
+	BuildBoxHeader();
+	AddTR();
+		AddAttrTD("colspan=2 ", Loc("BlockedByURL"));
+	EndTR();
+	BuildBoxFooter();
+}
+
+
+</script>
+<html>
+	<script>
+	BuildMainTable_NoToolBar(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");
+	</script>
+</html>

@@ -1,0 +1,68 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include NETWORK##
+##include NAT##
+##include FIREWALL##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="Hacker_Protection_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+function UpdateType(Hand, clickedOn)
+{
+	o = FindObject("a_FIREWALL_Flags_" + Hand);
+	if(clickedOn.checked) {
+		o.value |= g_FIREWALL_Const["FWF_DISABLED"];
+	} else {
+		o.value &= ~(g_FIREWALL_Const["FWF_DISABLED"]);
+	}
+	enableApply();
+}
+function ShowPage()
+{
+	IsChecked = " CHECKED";
+
+	for(Hand in g_FIREWALL_Description) {
+		if("{73687012-EF70-4054-A809-6D3EE8ED982E}" == g_FIREWALL_Description[Hand]) {			
+			Handle = Hand;
+			Flags = g_FIREWALL_Flags[Hand];
+			if(Flags & g_FIREWALL_Const["FWF_DISABLED"]) {			
+			} else {
+				IsChecked = "";	
+			}			
+			break;
+		}
+	}
+	
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	BuildBoxHeader();	
+	document.write("<table class=boxInside>");	
+	document.write("<TR>");	
+	document.write("<TD><input type=hidden name=a_FIREWALL_Flags_" + Handle + " value="+Flags+"></TD>");
+	document.write("</TR>");
+	
+	document.write("<TR><TD class=cellLtColor>" + Loc('SecTitle') + "</TD></TR>");
+	document.write("<TR><TD COLSPAN=2>" + Loc('SecBlurb') + "</TD></TR>");   
+	document.write("<TR><TD COLSPAN=2><input type=checkbox onClick=UpdateType(\""+Handle+"\",this) "+IsChecked+">" + Loc("CheckText") + "</TD></TR>");
+	document.write("</TABLE>");
+	BuildBoxFooter();
+	AddApplyCancel();
+	document.write("</form>");
+}
+</script>
+
+
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>
+
+

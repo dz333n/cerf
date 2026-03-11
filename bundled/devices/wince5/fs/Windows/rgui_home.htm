@@ -1,0 +1,71 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include REMOTEUTILS##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="Home_loc.js" language="javascript"></script>
+<script language="javascript">
+
+var l_OOBE = g_REMOTEUTILS_NoBackupRegistry["OOBE"] == "0" ? "checked" : "";	// 1 if in OOBE mode, 0 after wizard finished.
+
+function AddTask(LinkText, LinkURL, Blurb, CBValue)
+{
+	// CBValue is opt if not passed then will not show a checkbox
+	var CBText = "";
+	if ("undefined" != typeof(CBValue))
+	{
+		CBText = "<Input type=CheckBox disabled " + CBValue + ">";
+	}
+	
+	AddTR();
+		AddAttrTD("width=5%", CBText);
+		AddAttrTD("width=95%", "<A href="+LinkURL+">" + LinkText + "</A>");
+	EndTR();
+	
+	Add2ColTRTD("", Blurb);
+	
+	AddTRTD("</BR>");
+}
+
+
+function ShowHome()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	AddSection(Loc("SecTitleCommon"), Loc("SecBlurbCommon"));
+
+	AddTR();
+		document.write("<TD><table class=boxInside>");
+			AddTask(Loc("TitleOOBE"), Loc("URLOOBE"), Loc("BlurbOOBE"), l_OOBE);
+
+			AddTask(Loc("TitleSettings"), Loc("URLSettings"), Loc("BlurbSettings"));
+
+			AddTR();
+				AddAttrTD("Colspan=2", "</BR>"+Loc("WizardCBNote"));
+			EndTR();
+		document.write("</table></td>");
+	EndTR();
+		
+	
+
+	document.write("</TABLE>");
+	BuildBoxFooter();
+}
+
+
+</script>
+<html>
+	<script>
+	BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowHome()");
+	</script>
+</html>

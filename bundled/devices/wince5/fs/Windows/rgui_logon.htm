@@ -1,0 +1,61 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include PASSWORD##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script language="javascript">
+
+
+function ShowErrors() 
+{
+	return new String("");
+}
+
+function ShowPage()
+{	
+	BuildBoxHeader();
+	document.write("<table class=boxInside><form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	
+	document.write("<TR>");
+		document.write("<TD class=notComplete>Password:</TD>");
+		document.write("<TD><INPUT id=AdminPassword type=password maxLength=16 size=16 value="" name=AdminPassword></TD>");
+	document.write("</TR>");
+
+	document.write("<TR>");
+		documetn.write("<TD><INPUT type=submit value='Log On' name=Login> <INPUT onclick=self.close();return(false); type=button value=Cancel name=Cancel></TD>");
+	document.write("</TR>");
+	
+	document.write("<TR>");
+		document.write("<TD colspan=2> <HR width="100%" color=#d6dff5 noShade SIZE=1></TD>");
+	document.write("</TR>");
+
+	document.write("<TR>");
+		document.write("<B>Important</B>   If you don't know your base station password, you must ");
+		document.write("restore the base station factory default settings, and then log on to the base ");
+		document.write("station by using the factory default password. After you log on, you can create ");
+		document.write("a new password. For information about restoring factory default settings, see ");
+		document.write("the <EM>User's Guide</EM>. </TD>");
+	document.write("</TR>");
+
+		
+	document.write("</form></table>");
+	BuildBoxFooter();
+}
+	
+</script>
+<html>
+	<script>
+	g_Blurb = "To access the base station, type your password and then click <B>Log On</B>.  Your base station password is case sensitive";
+
+	BuildPage("Base Station Log On", g_Blurb, "ShowPage()");
+	</script>
+</html>

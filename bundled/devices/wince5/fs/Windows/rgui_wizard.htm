@@ -1,0 +1,383 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+
+##include PASSWORD##
+##include HOSTNAME##
+##include NETWORK##
+##include NAT##
+##include RAS##
+##include NATIVEWIFI##
+##include REMOTEUTILS##
+
+
+<script src="General_Loc.js" language="javascript"></script>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+
+
+<script language="javascript">
+var l_WizardPages	= new Array();
+
+var l_CurPage = 0;
+var l_NumPages = 0;
+var l_DisplayPage = null;
+
+var l_ForceLastPage = false;
+
+var l_WhatToFocus = null;
+
+function StartWizard()
+{
+	DisplayPage(l_WizardPages[0][0]);
+	UpdateNav();
+	UpdateBtns();
+}
+
+function InsertPage(PageID)
+{
+	l_WizardPages[l_NumPages] = new Array(4);
+	l_WizardPages[l_NumPages][0] = PageID;
+	l_WizardPages[l_NumPages][1] = "Show_"+PageID+"()";
+	l_WizardPages[l_NumPages][2] = "Validate_"+PageID+"()";
+	l_WizardPages[l_NumPages][3] = "Submit_"+PageID;
+	l_NumPages++;
+}
+	
+function BuildNavBar()
+{
+	document.write("<TABLE ID=NAV class=innerToolBar width=200>");
+		for (i = 1; i < l_WizardPages.length; i++)
+		{
+			document.write('<DIV style=margin-left:10px; id="Nav'+i+'">');
+			document.write(i + ". " + WLoc(l_WizardPages[i][0]+"_Nav"));
+			document.write('</DIV></BR>');
+		}
+	document.write("</table>");
+}
+
+function UpdateNav()
+{
+	var NavBlock = FindObject("NAV");
+	if (0 == l_CurPage)
+	{
+		// on welcome page hide the nav items
+		Hide("NAV");
+		for (i = 1; i < l_WizardPages.length; i++)
+		{
+			Hide("Nav"+i);
+		}
+	}else{
+		Show("NAV");
+		for (i = 1; i < l_WizardPages.length; i++)
+		{
+			Show("Nav"+i);
+		}
+		
+		for (i = 1; i < l_WizardPages.length; i++)
+		{
+			var NavEntry = FindObject("Nav"+i);
+			if (i <= l_CurPage)
+			{
+				NavEntry.style.backgroundColor = "white";
+			}else{
+				NavEntry.style.backgroundColor = "#D4D9E6";
+			}
+		}
+	}
+}
+
+function SetupPages()
+{
+	for (i = 0; i < l_WizardPages.length; i++)
+	{
+		GeneratePage(l_WizardPages[i][0], l_WizardPages[i][1]);
+	}
+}
+
+
+function GeneratePage(PageID, CreationFn)
+{
+	document.write("<DIV ID=DIV_" + PageID + " class='hideform'>");
+	document.write("<table>");
+
+	fn = eval(CreationFn);
+	if(fn) {
+		CreationFn();
+	}
+
+	document.write("</table>");
+	document.write("</DIV>");
+}
+
+
+function DisplayPage(PageID)
+{
+	if (l_DisplayPage != PageID)
+	{
+		if (null != l_DisplayPage)
+		{
+			HidePage(l_DisplayPage);
+		}
+		ShowPage(PageID);
+		
+		l_DisplayPage = PageID;
+	}
+}
+	
+
+function HidePage(PageID)
+{
+	// hide the page div
+	Hide("Div_"+PageID);
+}
+
+function ShowPage(PageID)
+{
+	l_WhatToFocus = null;
+
+	// show the page div
+	
+	try
+	{
+		// Update is an optional function.  Don't care if it doesn't exist
+		eval("Update_"+PageID+"()");
+	}
+		
+	catch(e)
+	{
+		// canceling the onbeforeunload dialog can cause the browswer to throw an "unspecified" error in document.location	
+		// this protects the user from seeing it and getting confused.
+	}
+	
+	Show("Div_"+PageID);
+	if (null != l_WhatToFocus)
+	{
+		l_WhatToFocus.focus();
+	}
+}
+
+function NextPage()
+{
+	// Validate the current page data.
+	var DataValid = false;
+	DataValid = eval(l_WizardPages[l_CurPage][2]);
+	
+	if (DataValid)
+	{
+		if (l_CurPage < l_NumPages-1)
+		{
+			l_CurPage++;
+			DisplayPage(l_WizardPages[l_CurPage][0]);
+		}else{
+			alert("ERR: PrevPage trying to go beyond number of pages");
+		}
+
+		UpdateNav();
+
+		UpdateBtns();
+	}else{
+		FocusFirstError();
+	}
+
+}
+
+function PrevPage()
+{
+	ClearError();
+	l_ForceLastPage = false;
+	if (l_CurPage > 0)
+	{
+		l_CurPage--;
+		DisplayPage(l_WizardPages[l_CurPage][0]);
+	}else{
+		alert("ERR: PrevPage trying to go before page 0");
+	}
+	
+	UpdateNav();
+
+	UpdateBtns();
+}
+
+function UpdateBtns()
+{
+	if (0 == l_CurPage)
+	{
+		// Hide the prev button
+		Hide("Prev");
+	}else{
+		// make sure its visable
+		Show("Prev");
+	}
+
+	if ((l_NumPages-1 == l_CurPage) || l_ForceLastPage)
+	{
+		// Hide the button
+		Hide("Next");
+	}else{
+		// make sure its visable
+		Show("Next");
+	}
+
+	if ((l_NumPages-1 == l_CurPage) || l_ForceLastPage)
+	{
+		// Show the finish button
+		Show("Finish");
+	}else{
+		Hide("Finish");
+	}
+}
+
+function FinishWizard()
+{
+	
+	var DataValid = false;
+	var SubmitRet = false;
+	
+	var WForm = FindObject("WizardForm");
+
+	for (i = 1; i < l_NumPages; i++)
+	{
+		DataValid = eval(l_WizardPages[l_CurPage][2]);
+
+		if (DataValid)
+		{	
+			SubmitRet = eval(l_WizardPages[i][3]+"(WForm)");
+			if (!SubmitRet)
+			{
+				break;
+			}
+		}else{
+			break;
+		}
+	}
+	
+	if (DataValid && SubmitRet)
+	{
+		AddSubmitItem(WForm, "a_REMOTEUTILS_NOBACKUPREGISTRY_OOBE", "0");
+		//WForm.action = "debug";
+		WForm.submit();
+	}
+}
+
+function SetupPage()
+{	
+	document.write("<head>");
+	document.write("<meta http-equiv='Content-Language' content='en-us'>");
+	document.write("<meta http-equiv='Content-Type' content='text/html; charset=UTF-8'>");
+	document.write("<title class=pageHeadText>" + Loc("WindowsCETitle") + "</title>");
+	document.write("</head>");
+
+	
+	document.write("<link rel=stylesheet media=screen type=\"text/css\" href=\"../remoteadminimages/style.css\">");
+
+	document.write('<BODY>');
+
+	//document.write("<form ACTION='Result.htm' METHOD=get id=WizardForm></form>"); // we will use this later to build the submit.
+	document.write("<form action='home.htm' METHOD=post id=WizardForm></form>"); // we will use this later to build the submit.
+		document.write("<table class=mainPage>");
+			document.write("<TR class=TitleBar>");
+				AddAttrTD("colspan=3", Loc("WindowsCETitle"));
+			EndTR();
+		
+			AddTR();
+				// nav bar column
+				document.write("<TD valign=top class=toolBar>");
+					BuildNavBar();
+				document.write("</TD>");
+				
+				// body column
+				document.write("<td height=100% align=left valign=top>");
+					document.write("<table class=componentContainer>");
+					
+						AddTR(); 
+							document.write("<TD width = 700>");	
+								SetupPages();
+							document.write("</TD>");
+						EndTR();
+						
+						AddTR();
+							document.write("<TD align=right>");
+								document.write("<TABLE>");
+									AddTR();
+										AddTD("<input type=button id=Prev value='<< "+WLoc('Start_Prev')+"' onclick=PrevPage();>");
+  										AddTD("<input type=button id=Next value='"+WLoc('Start_Next')+" >>' onclick=NextPage();>");
+  										AddTD("<input type=button id=Finish value='"+WLoc('Start_Finish')+"' onclick=FinishWizard();>");
+  									EndTR();
+  								document.write("</TABLE>");
+							document.write("</TD>");	
+  						EndTR();
+  						
+						AddTR();
+							document.write("<TD>");
+								AddErrorDisplay();
+							document.write("</TD>");
+						EndTR();
+						
+					document.write("</table>"); // body table
+				document.write("</TD>");
+				
+			EndTR();
+		document.write("</TABLE>");	// main page table
+	document.write("<input type=submit id=Apply value=" + Loc('BTNApply') + " disabled>  <input id=Cancel type=button disabled value=" + Loc('BTNCancel') + " >");
+
+	document.write("</Body>");
+	Hide("Apply");
+	Hide("Cancel");
+}
+
+function WLoc(Key)
+{
+	var TestLoc = false;
+
+	if (TestLoc)
+	{
+		return "ABC";
+	}else{
+		var p = new Function("return(L_Wizard_"+Key+"_Message)");
+		var f = new Function("return(\"undefined\" == typeof(L_Wizard_"+Key+"_Message))");
+
+		if (true == f()) {
+			alert("ERR: WLoc Undefined String: " + Key +"!")
+			return "UNDEFINED STRING ["+Key+"]";
+		}
+		else
+			return p();
+	}
+}
+</script>
+
+
+<script src="Wizard_Start_Loc.js" language="javascript"></script>
+<script src="Wizard_Start.js" language="javascript"></script>
+
+<script src="Wizard_Password_Loc.js" language="javascript"></script>
+<script src="Wizard_Password.js" language="javascript"></script>
+
+<script src="Wizard_WAN_Loc.js" language="javascript"></script>
+<script src="Wizard_WAN.js" language="javascript"></script>
+
+<script src="Wizard_WirelessMode_Loc.js" language="javascript"></script>
+<script src="Wizard_WirelessMode.js" language="javascript"></script>
+
+<script src="Wizard_SSID_Loc.js" language="javascript"></script>
+<script src="Wizard_SSID.js" language="javascript"></script>
+
+<script src="NWF_Security_Loc.js" language="javascript"></script>
+<script src="Wizard_WirelessSecurity_Loc.js" language="javascript"></script>
+<script src="Wizard_WirelessSecurity.js" language="javascript"></script>
+
+<html>
+	<script>
+		SetupPage();
+		StartWizard();
+	</script>
+</html>
+

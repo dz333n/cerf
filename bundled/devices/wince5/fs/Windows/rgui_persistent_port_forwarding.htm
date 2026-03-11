@@ -1,0 +1,337 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include PORTFORWARD##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="Persistent_Port_Forwarding_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+// NOTE: InternalPort is the PrivatePort
+//			Port is the InboundPort
+//			The description is used as a Key into the registry.  If a user chnages the description then we need to delete the original entry and create a new one
+;
+
+l_Keys = new Array();
+
+var l_ProtocolOptions	= new Array();
+l_ProtocolOptions[0]	= "TCP:"+Loc("TCP");
+l_ProtocolOptions[1]	= "UDP:"+Loc("UDP");
+
+var l_EditIP = "...";
+
+
+function ToggleActive(CheckBox, KeyIndex) 
+{
+	var Key = l_Keys[KeyIndex];
+	var form = FindObject("EditForm");
+
+	form.HiddenEnabled.name = "a_PORTFORWARD_Enabled_"+Key;
+	form.HiddenEnabled.value = (true==CheckBox.checked)?1:0;
+
+	document.forms["EditForm"].submit();
+}
+
+function DeleteRule(KeyIndex)  
+{
+	var Key = l_Keys[KeyIndex];
+
+	var form = FindObject("EditForm");
+
+	form.HiddenDelete.name = "a_PORTFORWARD_Delete_"+Key;
+
+	document.forms["EditForm"].submit();
+}
+
+function EditRow(KeyIndex) 
+{
+	ClearError();
+
+	var form = FindObject("EditForm");
+
+	var Key = l_Keys[KeyIndex]
+
+	form.HiddenKey.value		= Key;
+	form.HiddenEnabled.value	= g_PORTFORWARD_Enabled[Key];
+
+	form.Description.value		= Key;		// Description is used as the key
+	form.InboundPort.value		= g_PORTFORWARD_Port[Key];
+	form.PrivatePort.value		= g_PORTFORWARD_InternalPort[Key];
+
+	setSelection("Protocol", g_PORTFORWARD_Protocol[Key]);
+	SetIP(g_PORTFORWARD_InternalName[Key], "l_EditIP");	
+
+
+	// Update the buttons to make sense
+	var btn = FindObject("Apply");
+	btn.value=Loc("BTNUpdate");
+
+	btn.disabled = true;
+
+	btn = FindObject("Cancel");
+	btn.disabled = false;
+	
+}
+
+function ValidateInPortProtocol(Field)
+{
+	var form = FindObject("EditForm");
+	var EditedKey = form.HiddenKey.value;
+
+	var valid = true;
+	// now check to make sure this isn't a duplicate of an existing rule
+	for (key in g_PORTFORWARD_Port)
+	{
+		if (key == EditedKey)
+			continue;	// skip our own entry.
+			
+		if ((Field.value == g_PORTFORWARD_Protocol[key]) && (form.InboundPort.value == g_PORTFORWARD_Port[key]))
+		{
+			valid = false;
+			FlagError(Field, "DuplicatePort");
+			FlagError(form.InboundPort, "DuplicatePort");
+			break;
+		}
+	}
+	
+	if(valid) {
+		NoError(Field);
+		NoError(form.InboundPort);
+
+		var inPort = FindObject("InboundPort");
+		var PrivPort = FindObject("PrivatePort");
+	
+		if(PrivPort.value == "") {
+			PrivPort.value = inPort.value;
+		} 	
+	}
+	
+}
+
+
+function ValidateInPort(Field)
+{
+	var form = FindObject("EditForm");
+	var EditedKey = form.HiddenKey.value;
+
+	var valid = true;
+	// First check normal port validation
+	valid &= ValidatePort(Field, false);
+	
+	// now check to make sure this isn't a duplicate of an existing rule
+	for (key in g_PORTFORWARD_Port)
+	{
+		if (key == EditedKey)
+			continue;	// skip our own entry.
+			
+		if ((Field.value == g_PORTFORWARD_Port[key]) && (form.Protocol.value == g_PORTFORWARD_Protocol[key]))
+		{
+			valid = false;
+			FlagError(Field, "DuplicatePort");
+			FlagError(form.Protocol, "DuplicatePort");
+			break;
+		}
+	}
+
+	if(valid) {
+		NoError(Field);
+		NoError(form.Protocol);
+		var inPort = FindObject("InboundPort");
+		var PrivPort = FindObject("PrivatePort");
+	
+		if(PrivPort.value == "") {
+			PrivPort.value = inPort.value;
+		} 	
+	}
+	return valid;
+}
+
+function SubmitHandler(SubmitVar) 
+{
+	ClearError();
+	// NOTE: because they description is used as the key we need to watch for changes to it,
+	//			also note that because it is used as the key we don't actualy send the description on its own.
+	//			
+
+	var bOK = true;
+	var form = FindObject("EditForm");
+	var Key = form.HiddenKey.value;
+
+	bOK &= ValidateNoneEmpty(form.Description, "AppForwardNullDesc", true);
+	bOK &= ValidateInPort(form.InboundPort);// only a single unique port allowed
+	bOK &= ValidateIP("l_EditIP");
+	bOK &= ValidateNotNetworkID("l_EditIP");
+	bOK &= ValidatePort(form.PrivatePort);	// only a single port allowed
+
+	if (bOK)
+	{
+		if ('-1' == Key)
+		{
+			// New row, make the key == the description value
+			Key = form.Description.value;
+		}
+			
+		// if the Key does not == the description then we need to delete the old row
+		if (form.Description.value != Key)
+		{
+			form.HiddenDelete.name			= "a_PORTFORWARD_Delete_"+Key;
+			
+			// And we make the key == to the new description
+			Key = form.Description.value;
+		}
+	
+		form.HiddenEnabled.name		= "a_PORTFORWARD_Enabled_"+Key;
+
+		form.HiddenIP.name			= "a_PORTFORWARD_InternalName_"+Key;
+		form.HiddenIP.value			= form.l_EditIP.value;
+
+		form.HiddenProtocol.name	= "a_PORTFORWARD_Protocol_"+Key;
+		form.HiddenProtocol.value	= form.Protocol.value;
+
+		form.InboundPort.name		= "a_PORTFORWARD_Port_"+Key;
+		form.PrivatePort.name		= "a_PORTFORWARD_InternalPort_"+Key;
+
+		GlobalSubmitHandler(SubmitVar);		
+
+		return true;
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+function ResetEditForm()
+{
+	G_Dirty = false;
+	ClearError();
+
+	var Form = FindObject("EditForm");
+	Form.reset();
+
+	var btn = FindObject("Apply");
+	btn.value=Loc("BTNAdd");
+	btn.disabled = true;
+
+	btn = FindObject("Cancel");
+	btn.disabled = true;
+}
+
+function ValidatePrivatePort(Field, SetFocus)
+{
+	var ret = ValidatePort(Field,SetFocus);
+	var inPort = FindObject("InboundPort");
+	var PrivPort = FindObject("PrivatePort");
+	
+	if(ret && inPort.value == "") {
+		inPort.value = PrivPort.value;
+	} 
+
+	return ret;	
+}
+
+function ShowEditSection()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<form METHOD=post name=EditForm onsubmit='return SubmitHandler(this)'>");
+
+	// the shadow items will have there name's set during the submit process and will be sent to the backend
+	AddShadow("HiddenEnabled", '1');
+	AddShadow("HiddenKey", '-1');
+	AddShadow("HiddenProtocol", '');
+	AddShadow("HiddenIP", '');
+	AddShadow("HiddenDelete", '1');
+
+	AddTR();
+		AddTD(Loc("COLDescription"));
+		AddTD(Loc("COLInboundPort"));
+		AddTD(Loc("COLProtocol"));
+		AddTD(Loc("COLPrivateIP"));
+		AddTD(Loc("COLPrivatePort"));
+	EndTR();
+
+	AddTR();
+		AddTD("<input id=Description size=15% maxLength=59 onBlur='ValidateNoneEmpty(this, \"PersistPortForwardNullDesc\", false);' onkeyup=enableApply()>");
+		AddTD("<input id=InboundPort maxLength=5 size=6 onKeyPress=NumOnly(); onBlur='ValidateInPort(this);' onkeyup=enableApply()>");
+		
+		document.write("<TD>");
+		document.write("<select id=Protocol onchange='ValidateInPortProtocol(this);enableApply();'>");
+			AddOptionsFromArray(l_ProtocolOptions, "TCP");
+		document.write("</TD>");
+
+		AddAttrTD("size=10%", BuildIPInput(g_REMOTEUTILS_ClientIP, "l_EditIP", true));
+
+		AddTD("<input id=PrivatePort maxLength=5 size=6 onKeyPress=NumOnly(); onBlur='ValidatePrivatePort(this, false);' onkeyup=enableApply()>");
+	EndTR();
+	
+	document.write("<TR><TD COLSPAN=5><HR></TD></TR>");
+	
+	document.write("<TR><TD COLSPAN=5><input id=Apply type=submit disabled value="+Loc('BTNAdd')+"><input id=Cancel type=button disabled value="+Loc('BTNClear')+" onclick=ResetEditForm()></TD></TR>");	
+
+	document.write("</form>");
+	document.write("</TABLE>");
+	BuildBoxFooter();
+
+}
+
+function ShowListSection()
+{
+	BuildBoxHeader();
+
+	document.write("<table class=PortForwardTable border=0 cellspacing=0 cellpadding=0>");	
+	document.write("<form name=PortForward METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	
+	document.write("<TR class=PortForwardKey>");
+		AddAttrTD("width=10%", Loc("COLEnabled"));
+		AddAttrTD("width=10%", Loc("COLDescription"));
+		AddAttrTD("width=10%", Loc("COLInboundPort"));
+		AddAttrTD("width=10%", Loc("COLProtocol"));
+		AddAttrTD("width=10%", Loc("COLPrivateIP"));
+		AddAttrTD("width=10%", Loc("COLPrivatePort"));
+		AddAttrTD("width=10%", Loc("COLEdit"));
+		AddAttrTD("width=10%", Loc("COLDelete"));
+	EndTR();
+	
+	
+	for(Key in g_PORTFORWARD_Enabled)
+	{
+		idx = l_Keys.length;
+		l_Keys[idx] = new String(Key);		
+
+		AddTR();
+			AddTD("<input type=checkbox id=CheckEnabled_" + idx + " onClick='ToggleActive(this, " + idx + ")' " + ('1' == g_PORTFORWARD_Enabled[Key] ? " CHECKED":"")+">");
+			AddTD(Key);	// Description is used as the key.
+			AddTD(g_PORTFORWARD_Port[Key]);
+			AddTD(g_PORTFORWARD_Protocol[Key]);
+			AddTD(g_PORTFORWARD_InternalName[Key]);
+			AddTD(g_PORTFORWARD_InternalPort[Key]);
+			
+			AddTD("<a class=PortForwardLink href=javascript:EditRow(" + idx + ");>" + Loc("Edit") + "</A>");
+			AddTD("<a class=PortForwardLink href=javascript:DeleteRule(" + idx + ");>" + Loc("Delete") + "</A>");
+		EndTR();
+	}
+	document.write("</form>");
+	document.write("</TABLE>");	
+	BuildBoxFooter();
+}
+
+function ShowPage()
+{
+	ShowEditSection();
+	ShowListSection();
+}
+</script>
+
+
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>

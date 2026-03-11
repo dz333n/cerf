@@ -1,0 +1,170 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include HOSTNAME## 
+##include NETWORK## 
+##include NAT## 
+##include VERSION##
+
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="Settings_loc.js" language="javascript"></script>
+<script language="javascript">
+
+function SafeDisplay(variable)
+{
+	if ("undefined" == typeof(variable))
+	{
+		return "";
+	}else{
+		return variable;
+	}
+}
+
+function ShowAdapters()
+{
+	for(UID in g_NETWORK_IPAddress) {
+		BuildBoxHeader();
+		document.write("<table class=boxInside>");
+
+		document.write("<TR><TD COLSPAN=2 class=cellLtColor>" + UID + "</TD></TR>");
+
+		Add2ColTRTD(Loc("DHCPEnabled"),		SafeDisplay(g_NETWORK_DHCP[UID]));
+		Add2ColTRTD(Loc("IP"),				SafeDisplay(g_NETWORK_IPAddress[UID]));
+		Add2ColTRTD(Loc("Subnet"),			SafeDisplay(g_NETWORK_Subnet[UID]));
+		Add2ColTRTD(Loc("DNS1"),			SafeDisplay(g_NETWORK_DNS1[UID]));
+		Add2ColTRTD(Loc("DNS2"),			SafeDisplay(g_NETWORK_DNS2[UID]));
+		Add2ColTRTD(Loc("WINS1"),			SafeDisplay(g_NETWORK_WINS1[UID]));
+		Add2ColTRTD(Loc("WINS2"),			SafeDisplay(g_NETWORK_WINS2[UID]));
+
+		document.write("</TABLE>");
+		BuildBoxFooter();
+	}	
+}
+
+
+function ShowWAN()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	
+	AddTR(); AddAttrTD("class=cellLtColor", Loc('SecTitleWAN')); EndTR();
+	AddTR(); AddAttrTD("COLSPAN=2", Loc('SecBlurbWAN')); EndTR();
+	
+	Add2ColTRTD(Loc('Broadband'), '');
+	Add2ColTRTD(Loc('WANIP'),				SafeDisplay(g_NETWORK_IPAddress[g_NAT_Public]));
+	Add2ColTRTD(Loc('Subnet'),				SafeDisplay(g_NETWORK_Subnet[g_NAT_Public]));
+	Add2ColTRTD(Loc('Gateway'),				SafeDisplay(g_NETWORK_GATEWAY[g_NAT_Public]));
+	Add2ColTRTD(Loc('DNSPrimary'),			SafeDisplay(g_NETWORK_DNS1[g_NAT_Public]));
+	Add2ColTRTD(Loc('DNSSecondary'),		SafeDisplay(g_NETWORK_DNS2[g_NAT_Public]));
+
+    document.write("<TR><TD COLSPAN=2><hr><p align=left>"+Loc("Buttons")+"</p><p align=right><input type=submit name=a_NETWORK_RELEASE_"+g_NAT_Public+" value="+Loc('BTNRelease')+"><input type=submit name=a_NETWORK_RENEW_"+g_NAT_Public+" value="+Loc('BTNRenew')+"></p></TD></TR>");
+
+	document.write("</form>");
+	document.write("</TABLE>");
+	BuildBoxFooter();
+}
+
+
+function ShowLAN()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+
+	AddTR(); AddAttrTD("class=cellLtColor", Loc('SecTitleLAN')); EndTR();
+	AddTR(); AddAttrTD("COLSPAN=2", Loc('SecBlurbLAN')); EndTR();
+
+	adapSplit = new String(g_NAT_Private).split(";");
+	for(i=0; i<adapSplit.length; i++) {
+		Add2ColTRTD(Loc('LocalIP'), g_NETWORK_IPAddress[adapSplit[i]]);
+		Add2ColTRTD(Loc('Subnet'), g_NETWORK_Subnet[adapSplit[i]]);
+	}
+	Add2ColTRTD(Loc('DHCPServer'), (g_NAT_EnableDhcpAllocator? Loc("Enabled"):Loc("Disabled")));
+
+	AddBlankLine();
+
+	AddTR(); AddAttrTD("class=cellLtColor", Loc('SecTitleDHCP')); EndTR();
+	AddTR(); AddAttrTD("COLSPAN=2", Loc('SecBlurbDHCP')); EndTR();
+
+	document.write("<TABLE width=100%>");
+	AddTR();
+		AddTD(Loc('IP'));
+		AddTD(Loc('HostName'));
+		AddTD(Loc('MACAddress'));
+	EndTR();
+	document.write("<TR><TD COLSPAN=3><HR></TD></TR>");
+
+	for(IP in g_NAT_MAC) {
+		if ('ff-ff-ff-ff-ff-ff' != g_NAT_MAC[IP])
+			document.write("<TR><TD>"+IP+"</TD><TD>"+g_NAT_HostName[IP]+"</TD><TD>"+g_NAT_MAC[IP]+"</TD></TR>");
+	}
+	if(g_NAT_MAC.length > 0) {
+		document.write("<TR><TD COLSPAN=3><HR></TD></TR>");
+	}	
+
+	document.write("<TR><TD COLSPAN=3></TD></TR>");
+
+	document.write("</form>");
+	document.write("</TABLE>");
+	BuildBoxFooter();
+}
+
+
+
+
+
+function ShowStationInfo()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+
+	AddTR(); AddAttrTD("class=cellLtColor", Loc('SecTitleStationInfo')); EndTR();
+	AddTR(); AddAttrTD("COLSPAN=2", Loc('SecBlurbStationInfo')); EndTR();
+
+	Add2ColTRTD(Loc('CEVersion'), g_VERSION_Major + "." + g_VERSION_Minor); EndTR();
+	Add2ColTRTD(Loc('CEBuild'), g_VERSION_BuildVer); EndTR();
+
+	document.write("</TABLE>");
+	BuildBoxFooter();
+}
+function ShowHome()
+{
+	if(ModuleExists("NAT")) {
+		if(!window.g_NAT_NotConfigured || 1 != g_NAT_NotConfigured) {
+			ShowWAN();
+			ShowLAN();
+		} else {
+			BuildBoxHeader();
+				document.write("<CENTER><B>Gateway functionality not configured</B></CENTER>");
+				document.write("<CENTER><B>Please click here to configure <a href=NAT.htm class=VisableLink>your public/private adapter</a></B></CENTER>");
+			BuildBoxFooter();
+		}
+	} 
+
+	if(!ModuleExists("NAT") && ModuleExists("SMBFILE")) {
+		ShowAdapters();		
+	}
+	
+	
+	ShowStationInfo();
+    
+}
+
+
+</script>
+<html>
+	<script>
+	BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowHome()");
+	</script>
+</html>

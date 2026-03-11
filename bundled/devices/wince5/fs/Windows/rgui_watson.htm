@@ -1,0 +1,86 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include WATSON##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="Watson_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+function SubmitHandler(SubmitVar)
+{
+	var bOK = false;
+	//SubmitVar.action="debug";
+	return GlobalSubmitHandler(SubmitVar);
+}
+
+function ShowErrors() 
+{
+	return new String("");
+}
+
+
+var g_Enabled = (g_WATSON_DontUpload=="0" && g_WATSON_NoConsentRequired=="1" && g_WATSON_DumpEnabled=="1");
+
+
+function UpdateFields()
+{
+	var DontUpload = FindObject("WATSON_DontUpload");
+	var NoConsent = FindObject("WATSON_NoConsentRequired");
+	var DumpEnabled = FindObject("WATSON_DumpEnabled");
+
+	g_Enabled = g_Enabled?false:true;
+	
+	if(g_Enabled) {
+		DontUpload.value = "0";
+		NoConsent.value = "1";
+		DumpEnabled.value = "1";
+	} else {
+		DontUpload.value = "1";
+		NoConsent.value = "0";
+		DumpEnabled.value = "0";
+	}	
+	enableApply();
+}
+
+function ShowPage()
+{	
+	document.write("<table class=boxInside><form METHOD=post name=WatsonForm onsubmit='SubmitHandler(this)'>");
+
+	BuildBoxHeader();
+	var fChecked = g_Enabled?"CHECKED":"";
+
+	document.write("<TR>");
+		document.write("<TD COLSPAN=2>");
+		document.write("<input type=hidden name=WATSON_DontUpload value="+g_WATSON_DontUpload+">");
+		document.write("<input type=hidden name=WATSON_NoConsentRequired value="+g_WATSON_NoConsentRequired+">");
+		document.write("<input type=hidden name=WATSON_DumpEnabled value="+g_WATSON_DumpEnabled+">");
+		
+		document.write(Loc("Ack")+"<BR><BR><input type=checkbox onClick=UpdateFields() "+fChecked+">"+Loc("AckConfirm"));
+		document.write("</TD>");
+	document.write("</TR>");
+
+	BuildBoxFooter();
+	AddApplyCancel("WatsonForm");
+	document.write("</form></table>");
+	
+
+	
+}
+	
+</script>
+<html>
+	<script>
+
+	BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");
+	</script>
+</html>

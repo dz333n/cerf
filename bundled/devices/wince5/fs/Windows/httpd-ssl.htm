@@ -1,0 +1,23 @@
+<H2><FONT COLOR=#FF0000>SSL Configuration</font></H2>
+Configure SSL connectivity for the Web server.  For more information, click 
+<A HREF="/WebAdmin/instructions/httpd-i-ssl.htm">here</A>.
+<HR>
+
+<FORM ACTION = "/WebAdmin/SSL/" METHOD = "post">
+<TABLE>
+<TR><TD WIDTH=500><B>Enable SSL</B>
+<BR><font size=2>Enable SSL on initialization of Web Server.</font></TD>
+<TD><INPUT TYPE="CHECKBOX" NAME="IsSSLOn" $$CHECKED(IsSSLOn=="Enabled")$$>
+
+
+<TR><TD WIDTH=500><B>Server Certificate Subject Line</B>
+<BR><font size=2>The subject of the server certificate used by the Web server 
+when performing SSL operations.</font></TD>
+</TD>
+<TD><INPUT NAME=SSLCertName VALUE = "$$SSLCertName$$"></TD>
+</TABLE>
+<HR>
+<P><INPUT TYPE=submit Name=Submit value=Update Settings>
+
+</FORM>
+

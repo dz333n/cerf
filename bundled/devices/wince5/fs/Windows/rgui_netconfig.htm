@@ -1,0 +1,109 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include PASSWORD##
+##include HOSTNAME##
+##include NETWORK##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+
+<script language="javascript">
+
+function NetworkChanged(obj)
+{
+	//alert("Changed: " + obj);
+	/*SubmitButton = FindObject("submit_"+obj);
+	if(SubmitButton) {
+		SubmitButton.disabled=false;
+	} else {
+		alert("Cant find submit btn" + obj);
+	}*/
+}
+
+function Input(UID, Name, InitValue, Type, Status)
+{
+    return new String("<input type=" + Type +" name=\"" + Name + "\" value=\"" + InitValue + "\" onKeypress=NetworkChanged(\""+UID+"\") "+Status+">");
+}
+
+function CheckClicked(Object) 
+{
+	if(Object) {
+		SubmitPart = FindObject("a_NETWORK_DHCP_" + Object.name);
+		if(SubmitPart) {
+			SubmitPart.value = (Object.checked)?"ENABLED":"DISABLED";	
+							
+			ip = FindObject("a_NETWORK_IPADDRESS_"+Object.name);	
+			sub = FindObject("a_NETWORK_SUBNET_"+Object.name);
+			dns1= FindObject("a_NETWORK_DNS1_"+Object.name);
+			dns2 = FindObject("a_NETWORK_DNS2_"+Object.name);
+			wins1 = FindObject("a_NETWORK_WINS1_"+Object.name);
+			wins2 = FindObject("a_NETWORK_WINS2_"+Object.name);
+			
+			if(ip) {ip.disabled = (Object.checked);}	
+			if(sub) {sub.disabled = (Object.checked);}	
+			if(dns1) {dns1.disabled = (Object.checked);}	
+			if(dns2) {dns2.disabled = (Object.checked);}	
+			if(wins1) {wins1.disabled = (Object.checked);}	
+			if(wins2) {wins2.disabled = (Object.checked);}	
+		}
+		NetworkChanged(Object.name);
+	}
+}
+
+function CheckInput(Name, InitValue)
+{
+	if("ENABLED" == InitValue) {
+		InitValue = "CHECKED";
+	} else {
+		InitValue = "";
+	}
+	return new String("<input type=checkbox name=" + Name + " onClick=CheckClicked(this) " + InitValue + ">");	
+}
+
+function ShowAdapters()
+{		
+	for(UID in g_NETWORK_IPAddress) {
+		BuildBoxHeader();
+		document.write("<table class=boxInside>");
+		document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+		document.write("<TR><TD COLSPAN=2 class=cellLtColor>" + UID + "</TD></TR>");
+		document.write("<TR><TD>DHCP Enabled:</TD><TD> " + CheckInput(UID, g_NETWORK_DHCP[UID]) + "</TD></TR>");
+		document.write("<input type=hidden name = a_NETWORK_DHCP_"+UID+" value=" + g_NETWORK_DHCP[UID] +">");
+		
+		if("ENABLED" == g_NETWORK_DHCP[UID]) {
+			status = "disabled";
+		} else {
+			status = "";
+		}
+		document.write("<TR><TD>IP Address:</TD><TD> " + Input(UID, "a_NETWORK_IPADDRESS_"+UID, g_NETWORK_IPAddress[UID], "text", status) + "</TD></TR>");
+		document.write("<TR><TD>Subnet:</TD><TD> " + Input(UID, "a_NETWORK_SUBNET_"+UID, g_NETWORK_Subnet[UID], "text", status) + "</TD></TR>");	
+		document.write("<TR><TD>DNS1:</TD><TD> " + Input(UID, "a_NETWORK_DNS1_"+UID, g_NETWORK_DNS1[UID], "text", status) + "</TD></TR>");	
+		document.write("<TR><TD>DNS2:</TD><TD> " + Input(UID, "a_NETWORK_DNS2_"+UID, g_NETWORK_DNS2[UID], "text", status) + "</TD></TR>");
+		document.write("<TR><TD>WINS1:</TD><TD> " + Input(UID, "a_NETWORK_WINS1_"+UID, g_NETWORK_WINS1[UID], "text", status) + "</TD></TR>");	
+		document.write("<TR><TD>WINS2:</TD><TD> " + Input(UID, "a_NETWORK_WINS2_"+UID, g_NETWORK_WINS2[UID], "text", status) + "</TD></TR>");			
+		//alert("Making submit_" + UID);
+		document.write("<TR><TD><input type=submit name=submit_"+UID+"></TD></TR>");
+		document.write("</form>");
+		document.write("</TABLE>");
+		BuildBoxFooter();
+	}	
+}
+
+
+</script>
+
+
+<html>
+	<script>BuildPage("NAS Admin", "Use this page to configure networking", "ShowAdapters()");</script>
+</html>
+
+
+

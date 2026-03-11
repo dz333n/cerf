@@ -1,0 +1,90 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+; @CESYSGEN IF RDP_MODULES_CETSC
+
+; Associate .rdp files with cetsc
+[HKEY_CLASSES_ROOT\.rdp]
+@="rdpfile"
+[HKEY_CLASSES_ROOT\rdpfile]
+;LOC_RDPCONNECTION
+@=mui_sz:"cetsc.exe,#30001"
+[HKEY_CLASSES_ROOT\rdpfile\DefaultIcon]
+@="\\Windows\\cetsc.exe,-10101"
+[HKEY_CLASSES_ROOT\rdpfile\Shell\Open\Command]
+@="\\Windows\\cetsc.exe %1"
+; @CESYSGEN ENDIF RDP_MODULES_CETSC
+
+
+; @CESYSGEN IF RDP_MODULES_MSTSCAX
+;Default location of bitmap cache location
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Terminal Server Client]
+"BitmapPersistCacheLocation"="\\Temp"
+; @CESYSGEN ENDIF RDP_MODULES_MSTSCAX
+
+; @CESYSGEN IF MSTSCAX_TSCWINCTRL
+IF IMGNORDPINGWE !
+[HKEY_LOCAL_MACHINE\SYSTEM\GWE]
+"LoadRdp"=dword:1
+ENDIF
+; @CESYSGEN ENDIF MSTSCAX_TSCWINCTRL
+
+;Turn on shell CF_HDROP clipboard
+; @CESYSGEN IF SHELL_MODULES_CESHELL
+; @CESYSGEN IF MSTSCAX_RDRCLIP && MSTSCAX_RDRDRIVE
+[HKEY_LOCAL_MACHINE\Explorer]
+"Use2ndClipboard"=dword:1
+; @CESYSGEN ENDIF MSTSCAX_RDRCLIP && MSTSCAX_RDRDRIVE
+; @CESYSGEN ENDIF SHELL_MODULES_CESHELL
+
+; @CESYSGEN IF MSTSCAX_TSCAXCTRL
+; @CESYSGEN ENDIF MSTSCAX_TSCAXCTRL
+
+
+; @CESYSGEN IF RDP_MODULES_WBTSHELL
+;@CESYSGEN IF CETSC_CETSCUI
+;@CESYSGEN ENDIF CETSC_CETSCUI
+; @CESYSGEN IF IE_MODULES_IESAMPLE
+; @CESYSGEN ENDIF IE_MODULES_IESAMPLE
+; @CESYSGEN IF RDP_MODULES_SSFLOAT
+; @CESYSGEN ENDIF RDP_MODULES_SSFLOAT
+; @CESYSGEN IF RDP_MODULES_SSBLANK
+; @CESYSGEN ENDIF RDP_MODULES_SSBLANK
+; @CESYSGEN IF RDP_MODULES_SSTILE
+; @CESYSGEN ENDIF RDP_MODULES_SSTILE
+; @CESYSGEN ELSE
+
+; WBT Shell is not included
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Terminal Server Client]
+        "CEConfig"="Maxall"
+
+; @CESYSGEN ENDIF RDP_MODULES_WBTSHELL
+
+; @CESYSGEN IF RDP_MODULES_ATLWBTWIZ
+; @CESYSGEN ENDIF RDP_MODULES_ATLWBTWIZ
+
+; @CESYSGEN IF RDP_MODULES_PRNPRXY
+[HKEY_LOCAL_MACHINE\WBT\Printers\PRNPRXY]
+   "Prefix"="PRN"
+   "Dll"="prnprxy.dll"
+; @CESYSGEN ENDIF RDP_MODULES_PRNPRXY
+
+; @CESYSGEN IF RDP_MODULES_FILTERFSD
+[HKEY_LOCAL_MACHINE\System\StorageManager\AutoLoad\FilterFsd]
+    "Dll"="filterfsd.dll"
+    "Paging"=dword:0
+    "LoadFlags"=dword:1
+    "BootPhase"=dword:2
+    "MountFlags"=dword:1
+    "FolderName"="FILTERFS"
+    "RootPath"="\\"
+; @CESYSGEN ENDIF RDP_MODULES_FILTERFSD
+
+

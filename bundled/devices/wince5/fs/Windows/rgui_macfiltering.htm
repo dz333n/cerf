@@ -1,0 +1,213 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include NETWORK##
+##include NATIVEWIFI##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="General_Loc.js" language="javascript"></script>
+<script src="ParentalControlsUser_loc.js" language="javascript"></script> <!-- to get the "None" string -->
+<script src="MACFiltering_loc.js" language="javascript"></script>
+
+<script language="javascript">
+
+ /*
+// An array of arrays of integers; initially it is null.
+var g_NATIVEWIFI_FilteredClientMac = new Array();
+g_NATIVEWIFI_FilteredClientMac["0"] = "AA-AA-AA-AA-AA-AA";
+g_NATIVEWIFI_FilteredClientMac["1"] = "BB-BB-BB-BB-BB-BB";
+
+var g_NATIVEWIFI_FilteredClientStatus = new Array();
+g_NATIVEWIFI_FilteredClientStatus["0"] = "0";
+g_NATIVEWIFI_FilteredClientStatus["1"] = "1";*/
+
+if('undefined' == typeof(g_NATIVEWIFI_FilteredClientMac)) {g_NATIVEWIFI_FilteredClientMac = new Array();}
+if('undefined' == typeof(g_NATIVEWIFI_FilteredClientStatus)) {g_NATIVEWIFI_FilteredClientStatus = new Array();}
+
+
+var l_InputMac = "00-00-00-00-00-00";
+
+function ShowErrors() 
+{
+	return new String("");
+}
+
+function ACEnabledChanged()
+{
+	// do the submit automaticaly if there is nothing dirty on the page.
+	var form = FindObject("ACEnabledForm");
+
+	AddSubmitItem(form, "NATIVEWIFI_FilteredClientAllowAll", (true==form._FilteredClientAllowAll.checked)?0:1);
+
+	form.submit();
+}
+
+function SubmitOnAddAddress()
+{
+	var form = FindObject("AddressesForm");
+
+	var bOK = true;
+	bOK &= ValidateMAC("g_InputMac");
+	
+	if (bOK)
+	{
+		AddSubmitItem(form, "NATIVEWIFI_FilteredClientAllowAll", "0");	// have to send this also to get it to take the other data.
+
+		AddSubmitItem(form, "a_NATIVEWIFI_FilteredClientMac_"+g_NATIVEWIFI_FilteredClientMac.length, form.g_InputMac.value);
+		AddSubmitItem(form, "a_NATIVEWIFI_FilteredClientStatus_"+g_NATIVEWIFI_FilteredClientMac.length, "1");
+		form.submit();
+	}else{
+		FocusFirstError();
+	}
+}
+
+
+function AddressControl()
+{
+	// this section is going to have its own form / apply / cancel	
+	AddSection(Loc("Sec1Title"), Loc("Sec1Blurb"));
+
+	AddTR();
+		AddAttrTD("Span=2", "<Input type=checkbox ID=_FilteredClientAllowAll " + (("0" == g_NATIVEWIFI_FilteredClientAllowAll ) ? 'checked' : '') + " onclick='ACEnabledChanged();'>"+Loc("EnableAC"));
+	EndTR();
+}
+
+function AddAddress()
+{
+		// this section is going to have its own form / apply / cancel			
+		AddSection(Loc("Sec2Title"), Loc("Sec2Blurb"))
+
+		document.write("<TR><TD>");
+		document.write(BuildMACInput(l_InputMac, "g_InputMac", true) + " " + Loc("MACFormat"), "");
+
+		document.write("<input type=button id=Add onclick=SubmitOnAddAddress(); value=" + Loc('BTNAdd') + ">"); 
+		document.write("</TR></TD>");
+		
+		AddBar();
+}
+
+function DeleteRule(Key) 
+{
+	// for NWF we have a special case.  To delete a mac we have to set its status to "6".
+	var Form = FindObject("AddressesForm");
+
+	AddSubmitItem(Form, "NATIVEWIFI_FilteredClientAllowAll", "0");	// have to send this also to get it to take the other data.
+
+	AddSubmitItem(Form, "a_NATIVEWIFI_FilteredClientMac_"+Key, g_NATIVEWIFI_FilteredClientMac[Key]);
+	AddSubmitItem(Form, "a_NATIVEWIFI_FilteredClientStatus_"+Key, "6");
+	
+	Form.submit();
+}
+
+function AddressTable()
+{
+	AddSection(Loc("Sec3Title"), Loc("Sec3Blurb"))
+
+	document.write("<TR span=2><TD><B>" + Loc("NumEntries") + g_NATIVEWIFI_FilteredClientMac.length + "</B></TR></TD>");
+	document.write("<TR><TD><table class=PortForwardTable border=0 cellspacing=0 cellpadding=0><TD>");
+		
+		document.write("<TR class=PortForwardKey>");
+			AddAttrTD("width=10%", Loc("COLMACAddress"));
+			AddAttrTD("width=10%", Loc("COLDelete"));
+		EndTR();
+
+		for(Key in g_NATIVEWIFI_FilteredClientMac)
+		{
+			document.write("<TR span=2>");	
+				document.write("<TD>");
+					document.write(g_NATIVEWIFI_FilteredClientMac[Key]);
+				document.write("</TD>");
+				
+				document.write("<TD><a class=PortForwardLink href=javascript:DeleteRule('" + Key + "');>"+Loc("Delete")+"</A></TD>");
+			document.write("</TR>");
+		}		
+	document.write("</TABLE>");
+	AddBar();
+}
+
+
+function AddCurrentlyConnectedTable()
+{
+	var data = false;
+	AddSection(Loc("Sec4Title"), Loc("Sec4Blurb"))
+
+	document.write("<TR><TD><table class=PortForwardTable border=0 cellspacing=0 cellpadding=0><TD>");
+		
+	document.write("<TR class=PortForwardKey>");
+		AddAttrTD("width=10%", Loc("COLMACAddress"));
+	EndTR();
+
+	if('undefined' != typeof(g_NATIVEWIFI_PeerClientMac))
+	{
+		for(Key in g_NATIVEWIFI_PeerClientMac)
+		{			
+			data = true;
+			document.write("<TR span=2>");	
+				document.write("<TD>");
+					document.write(g_NATIVEWIFI_PeerClientMac[Key]);
+				document.write("</TD>");
+			document.write("</TR>");
+		}		
+	}
+	
+	if (!data)
+	{
+		document.write("<TR span=2>");	
+			document.write("<TD>");
+				document.write(Loc("None"));
+			document.write("</TD>");
+		document.write("</TR>");
+	}	
+	
+	document.write("</TABLE>");
+}
+	
+function ShowPage()
+{	
+	document.write("<form METHOD=post name=ACEnabledForm onsubmit='return GlobalSubmitHandler(this);'>");
+		BuildBoxHeader("ACDiv");
+			document.write("<table id=TableData class=boxInside>");
+				AddressControl();
+			document.write("</table>");
+		BuildBoxFooter();	
+	document.write("</form>");
+	BuildBoxHeader("ConnectedData");
+		document.write("<table class=boxInside>");	
+			AddCurrentlyConnectedTable();
+		document.write("</table>");
+	BuildBoxFooter();	
+
+	if ((g_NATIVEWIFI_FilteredClientAllowAll == "0") && ("0" != g_NATIVEWIFI_WirelessEnabled))
+	{
+		document.write("<form METHOD=post name=AddressesForm onsubmit='return GlobalSubmitHandler(this);'>");
+			BuildBoxHeader("Data");
+				document.write("<DIV id='AddressTable' LEFT:233px; WIDTH:531px; POSITION:absolute; TOP:355px; HEIGHT:191px>");	
+					document.write("<table class=boxInside>");	
+						AddAddress();
+						AddressTable();
+					document.write("</table>");
+				document.write("</DIV>");	
+			BuildBoxFooter();	
+		document.write("</form>");
+	}
+	
+	if ("0" == g_NATIVEWIFI_WirelessEnabled)
+	{
+		TableData.disabled = true;
+	}
+	
+}
+	
+</script>
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>

@@ -1,0 +1,281 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+</script>
+##include NATIVEWIFI##
+
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="NWF_Wireless_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+
+// local variables
+var l_GSupported = false;
+var l_BSupported = false;
+
+for (key in g_NATIVEWIFI_SupportedPhysicalList)
+{
+	switch (g_NATIVEWIFI_SupportedPhysicalList[key])
+	{
+		case "5": // B mode
+		{
+			l_BSupported = true;
+		}break;
+		
+		case "6": // G mode
+		{
+			l_GSupported = true;
+		}break;
+	}
+}
+		
+
+var l_ModeOptions	= new Array();
+l_ModeOptions[0]	= "0:"+Loc("Disabled");
+
+
+
+if (l_GSupported)
+{
+	l_ModeOptions[l_ModeOptions.length]	= "4:"+Loc("GMode");
+}
+
+if (l_BSupported)
+{
+	l_ModeOptions[l_ModeOptions.length]	= "3:"+Loc("MixedB");
+}
+
+var l_CurrentMode = g_NATIVEWIFI_PhysicalType;
+if ("0" == g_NATIVEWIFI_WirelessEnabled)
+{
+	l_CurrentMode = "0";
+}
+
+
+
+function validateSsid(ssid)
+{
+	if (ssid == 0) return(false);
+	if (ssid.value.length == 0) return(false);
+	
+	for(i = 0; i < ssid.value.length; i++)
+	{
+		var c = ssid.value.charCodeAt(i);
+		if((c > 127) || (c < 32))
+		{
+			ssid.focus();
+			return(false);
+		}
+	}
+
+	return(true);
+}
+
+
+function SubmitHandler(SubmitVar)
+{
+	var bOK = false;
+	
+	//SubmitVar.action="debug";
+	
+	bOK = validateSsid(FindObject("NATIVEWIFI_SSID"));
+	if (!bOK)
+	{
+		alert(Loc("Err35"));
+	}
+
+	var BeaconPeriod = FindObject("NATIVEWIFI_BeaconPeriod");
+
+	if(BeaconPeriod.value < 1 || BeaconPeriod.value > 1000) {
+		alert(Loc("Err36"));
+		bOK = false;		
+	}
+	
+	// If everything passed then pass this onto the global handler to submit
+	if (bOK)
+	{
+		if ("0" == SubmitVar.WirelessMode.value)
+		{
+			SubmitVar.NATIVEWIFI_PhysicalType.value = g_NATIVEWIFI_PhysicalType; // default it to the starting value.
+			AddSubmitItem(SubmitVar, "NATIVEWIFI_WirelessEnabled", "0");
+		}else{
+			AddSubmitItem(SubmitVar, "NATIVEWIFI_WirelessEnabled", "1");
+		}
+
+		UpdateCheckBox();
+		UpdateAutoCheckBox();
+		GlobalSubmitHandler(SubmitVar);
+		return true;
+	} else{
+		return false;
+	}
+	
+}
+
+function UpdateCheckBox(Dirty)
+{
+	var HiddenSSID = FindObject("NATIVEWIFI_HiddenSSIDEnabled");
+	var SSIDCheckBox = FindObject("CkbBoxHiddenSSIDEnabled");
+	
+	if(SSIDCheckBox.checked) {
+		HiddenSSID.value = "0";
+	} else {
+		HiddenSSID.value = "1";
+	}
+
+	if(Dirty) 
+		enableApply();
+}
+
+function UpdateAutoCheckBox(Dirty)
+{
+	var Hidden = FindObject("NATIVEWIFI_AutoFrequencyEnabled");
+	var CheckBox = FindObject("CkbBoxHiddenAutoFreq");
+	var Channel = FindObject("NATIVEWIFI_ChannelNo");
+	
+	if(CheckBox.checked) {
+		Hidden.value = "1";
+		Channel.disabled = true;
+	} else {
+		Hidden.value = "0";
+		Channel.disabled = false;
+	}
+
+	if(Dirty) 
+		enableApply();
+}
+
+
+function ModeChanged(NewMode)
+{
+	var Data = FindObject("DataTable");
+	var CheckBox = FindObject("CkbBoxHiddenAutoFreq");
+	var Channel = FindObject("ChannelNo");
+	if ('0' == NewMode)
+	{
+		// disabled
+		Data.disabled = true;
+		// Not sure why but the channel # option isn't disableing here so will do it manualy
+		Channel.disabled = true;
+	}else{
+		// enabled
+		Data.disabled = false;
+		// Not sure why but the channel # option isn't enableing here so will do it manualy
+		if(!CheckBox.checked)
+		{
+			Channel.disabled = false;
+		}
+	}
+}
+
+
+function ShowErrors() 
+{
+	return new String("");
+}
+
+function ShowPage()
+{	
+	BuildBoxHeader();
+	document.write("<table class=boxInside><form METHOD=post onsubmit='return(SubmitHandler(this))'>");
+	
+	if (l_GSupported)
+	{
+		// don't have the blurb broken out of PageBlurb as of yet.
+		//document.write(Loc("GBlurb"));
+	}
+
+	if (l_BSupported)
+	{
+		// don't have the blurb broken out PageBlurb as of yet.
+		//document.write(Loc("BBlurb"));
+	}
+
+	document.write(Loc("PageBlurb2"));
+	document.write(Loc("PageBlurb3"));
+	document.write("<BR><BR>"+Loc("PageBlurb4")+"<BR><BR><HR>");
+	
+
+	AddTR();
+		AddTD(Loc("Mode"));
+		document.write("<TD>");
+			document.write("<SELECT id=WirelessMode onchange='ModeChanged(this.value);enableApply();' name=NATIVEWIFI_PhysicalType>");
+				AddOptionsFromArray(l_ModeOptions, l_CurrentMode);
+			document.write("</SELECT>");
+		document.write("</TD>");
+	EndTR();
+
+	AddTR();
+		document.write("<TD colspan=3><table id=DataTable>");
+
+			AddTR();
+				AddTD(Loc("NetworkName"));
+				AddTD("<INPUT maxLength=32 size=29 onKeyUp=enableApply(); value='" + g_NATIVEWIFI_SSID + "' name=NATIVEWIFI_SSID></TD>");
+			EndTR();
+
+
+			AddTR();
+				document.write("<TD COLSPAN=2>");
+					document.write("<INPUT name=NATIVEWIFI_HiddenSSIDEnabled onclick=enableApply(); type=hidden>");
+					document.write("<INPUT name=CkbBoxHiddenSSIDEnabled onclick=UpdateCheckBox(true); type=checkbox " + ("0" == g_NATIVEWIFI_HiddenSSIDEnabled?"CHECKED":"") + " >")
+					document.write(Loc("Broadcast"));
+				document.write("</TD>");
+			EndTR();
+
+			AddTR();
+				document.write("<TD COLSPAN=2>");			
+					document.write("<INPUT name=NATIVEWIFI_AutoFrequencyEnabled onclick=enableApply(); type=hidden>");
+					document.write("<INPUT name=CkbBoxHiddenAutoFreq onclick=UpdateAutoCheckBox(true); type=checkbox " + ("0"==g_NATIVEWIFI_AutoFrequencyEnabled?"":"CHECKED") + " >")
+					document.write(Loc("AutomaticFreq"));
+				document.write("</TD>");
+			EndTR();
+
+
+			AddTR();
+				document.write("<TD COLSPAN=2>");
+					document.write("&nbsp"+"&nbsp"+"&nbsp"+"&nbsp"+"&nbsp"+Loc("Channel"));
+					document.write("<SELECT id=ChannelNo onchange=enableApply(); size=1 name=NATIVEWIFI_ChannelNo>");
+						AddNumericOptions(1, 11, g_NATIVEWIFI_ChannelNo);
+					document.write("</SELECT>");
+
+				document.write("</TD>");
+			EndTR();
+
+
+			AddTR();
+				AddTD(Loc("Beacon"));
+				AddTD("<INPUT name=NATIVEWIFI_BeaconPeriod  onclick=enableApply(); type=input value=" + g_NATIVEWIFI_BeaconPeriod + " >")		
+			EndTR();
+
+
+			AddTR();
+				AddTD(Loc("MaximumAssociations"));
+				AddTD("<INPUT name=NATIVEWIFI_MaximumAssociations  onclick=enableApply(); type=input value=" + g_NATIVEWIFI_MaximumAssociations + " >")		
+			EndTR();
+			
+		document.write("</table></td>");
+	EndTR();
+
+	document.write("</TABLE>");
+	BuildBoxFooter();
+	AddApplyCancel();
+	document.write("</form>");
+	UpdateCheckBox();
+	UpdateAutoCheckBox();
+	
+	ModeChanged(l_CurrentMode);
+
+}	
+</script>
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>

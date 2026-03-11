@@ -1,0 +1,100 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include NAT##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="DMZ_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+
+var l_DMZ_Enabled = false;
+if ("" != g_NAT_InternalExposedHost) {
+	l_DMZ_Enabled = true;
+} else {	
+	g_NAT_InternalExposedHost = g_REMOTEUTILS_ClientIP;
+}
+
+
+function SubmitHandler(SubmitVar)
+{
+	var bOK = false;
+	ClearError();
+	
+	bOK  = ValidateIP("InternalExposedHost");
+	bOK &= ValidateNotNetworkID("InternalExposedHost");
+
+	// If everything passed then pass this onto the global handler to submit
+	if (true == bOK)
+	{		
+		form = FindObject("EditForm");
+		form.InternalExposedHost.name = "NAT_InternalExposedHost";
+
+		if(!l_DMZ_Enabled) {			
+			form.InternalExposedHost.value = "0.0.0.0";
+		}
+		
+		GlobalSubmitHandler(SubmitVar);
+		return true;
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+function UpdateCheck()
+{
+	var o = FindObject("_DmzEnabled");
+
+	if(o) {
+		if(o.checked) {
+			l_DMZ_Enabled = true;
+			SetIP(g_NAT_InternalExposedHost, "InternalExposedHost");
+			EnableIP("InternalExposedHost");
+		} else {
+			l_DMZ_Enabled = false;
+			SetIP(g_REMOTEUTILS_ClientIP, "InternalExposedHost");
+			DisableIP("InternalExposedHost");
+		}
+	} 
+}
+
+function ShowPage()
+{	
+	document.write("<form id=EditForm METHOD=post onsubmit='return(SubmitHandler(this))'>");
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	AddTR();
+		AddTD(Loc("Enable"));
+		var value = "";
+		if(l_DMZ_Enabled)
+		{
+			value = "checked";
+		}
+		AddTD("<INPUT type=checkbox id=_DmzEnabled onclick=enableApply();UpdateCheck(); " + value +  ">");
+	EndTR();
+	AddTR();
+		AddTD(Loc("DMZAddress"));
+		AddTD(BuildIPInput(g_NAT_InternalExposedHost, "InternalExposedHost", l_DMZ_Enabled));
+	EndTR();
+	
+	document.write("</table>");
+	BuildBoxFooter();
+
+	AddApplyCancel();
+	document.write("</form>");
+}
+	
+</script>
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+
+</html>

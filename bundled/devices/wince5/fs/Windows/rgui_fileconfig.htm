@@ -1,0 +1,164 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include USERS##
+##include SMBFILE##
+##include PASSWORD##
+##include HOSTNAME##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="general_loc.js"></script>
+
+
+<script language="javascript">
+var GlobalUserName = new Array();
+var GlobalShareName = new Array();
+
+
+function Input(ShareName, Name, InitValue)
+{
+	Name = Name + ShareName;
+	return new String("<input type=\"text\" name=\"" + Name + "\" value=\"" + InitValue + "\">");		
+}
+
+function UpdateACLS()
+{
+	var Sels = document.getElementsByTagName("*");
+	var ACLLists = new Array();
+	
+	for(var i=0; i<Sels.length; i++) 
+	{
+	
+		if(Sels[i].name && 0 == String(Sels[i].name).indexOf("a_SMBFILE_Permissions_")) {	
+			if(!ACLLists[GlobalShareName[Sels[i].name]]) {
+				ACLLists[GlobalShareName[Sels[i].name]] = "";
+			}			
+			if("Allow"==Sels[i].value && true == Sels[i].checked) {								
+				ACLLists[GlobalShareName[Sels[i].name]] += (GlobalUserName[Sels[i].name] + ";");	
+			}
+		}
+	}	
+	for(j in ACLLists) 
+	{
+		HiddenACL = FindObject( "a_SMBFILE_ShareUsers_" + j)
+		
+		if(HiddenACL) {
+			HiddenACL.value = ACLLists[j];
+		}
+	}
+}
+
+function CreateUserPermissionRadio(ShareName, UserName, Value, Checked)
+{		
+	myName = "a_SMBFILE_Permissions_"+ShareName+"_"+UserName;
+	GlobalUserName[myName] = UserName;
+ 	GlobalShareName[myName] = ShareName;
+ 	
+	document.write("<input type=\"radio\"");
+	document.write(" value=\""+ Value + "\"");
+	document.write(" name=\"" + myName + "\"");
+	document.write(" onClick=UpdateACLS() " + Checked + ">" +Value);		
+}
+
+function ShowPermissions(ShareName, UserList)
+{
+	var Users = String(UserList).split(";");
+	ACL = "a_SMBFILE_ShareUsers_" + ShareName;
+	document.write("<input type=hidden name=" + ACL + ">");
+
+	for(GlobalUser in g_USERS_User)
+	{
+		fFound = false;
+		
+		for(var j=0; j<Users.length; j++) {
+			if(GlobalUser == Users[j]) {
+				fFound = true;
+				break;
+			}
+		}
+		document.write("<TR>");		
+			document.write("<TD>"+GlobalUser+"</TD>");
+			document.write("<TD>");
+				if(true == fFound) {					
+					CreateUserPermissionRadio(ShareName, GlobalUser, "Allow", "checked");
+					CreateUserPermissionRadio(ShareName, GlobalUser, "Deny", "");					
+				} else {
+					CreateUserPermissionRadio(ShareName, GlobalUser, "Allow", "");
+					CreateUserPermissionRadio(ShareName, GlobalUser, "Deny", "checked");							
+				}
+			document.write("</TD>");		
+		document.write("</TR>");
+	}
+}
+
+function sub()
+{
+	document.mainform.submit();	
+}
+
+function GoBack()
+{
+	window.location="ShareManager.htm";
+}
+function ShowShares()
+{	 	
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	fHasShares = false;
+
+	var _ParamSet = document.location.search;
+	var _ParmVars = _ParamSet.split('&');
+
+	var Vars;
+	var MyPath;
+	for (i = 0; i < _ParmVars.length; i++)
+	{
+		Vars =_ParmVars[i].split('='); 
+		if ("?PATH" == Vars[0].toUpperCase())
+			MyPath = Vars[1];
+	}
+	
+	if(window.g_SMBFILE_ShareUsers) {
+		document.write("<form METHOD=post action=FileConfig.htm?Path="+MyPath+" name=mainform onsubmit='GlobalSubmitHandler(this)'>");
+
+		for(Share in g_SMBFILE_ShareUsers) {
+			if(Share==MyPath) {
+				fHasShares = 1;
+				document.write("<TR><TD COLSPAN=2 class=cellLtColor>"+ Share + "</TD></TR>");
+				//document.write("<TR><TD>SharePath</TD><TD>" + Input(Share,"a_SMBFILE_SharePath_", g_SMBFILE_SharePath[Share]) + "</TD></TR>");    			
+			    ShowPermissions(Share, g_SMBFILE_ShareUsers[Share]);
+			}
+		}	
+		document.write("<TR><TD>");
+		if(fHasShares) {
+			document.write("<input type=button value=Update onClick=sub()>");	
+		}
+		document.write("<input type=button value=Done onClick=GoBack()>");
+		document.write("</TD></TR>");
+		document.write("</form>");	
+	}
+	if(!fHasShares) {
+		document.write("<TR><TD><B><CENTER>No Shares Configured</CENTER></B></TD></TR>");	
+	}
+	document.write("</TABLE>");
+	BuildBoxFooter();
+}
+</script>
+
+
+<html>
+	<head>
+		<title>NAS Admin</title>		
+	</head>
+	<body onload=UpdateACLS()>	
+		<script>BuildMainTable("Use this page to configure user access to shares.", "", "ShowShares()");</script>	
+	</body>
+</html>

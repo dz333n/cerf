@@ -1,0 +1,87 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="general_loc.js"></script>
+<script src="RestartNetwork_loc.js"></script>
+
+<SCRIPT language="javascript">
+
+var Seconds = 15;
+var Redirect = "home.htm";
+
+
+var _ParamSet = document.location.search;
+var _ParmVars = _ParamSet.split('&');
+
+var Vars;
+for (i = 0; i < _ParmVars.length; i++)
+{
+	Vars =_ParmVars[i].split('='); 
+	
+	if ("?DELAY" == Vars[0].toUpperCase())
+		Seconds = Vars[1];
+
+	if ("REDIRECT" == Vars[0].toUpperCase())
+		Redirect = Vars[1];
+}
+
+var interval = "";
+
+var AstrDisplay = null;
+var Astr = "*";
+
+for(i=0; i<Seconds; i++) {
+	Astr += "*";
+}
+
+function StartTimer()
+{
+    interval = window.setInterval("CountDown()",1000);
+} 
+
+function CountDown()
+{
+    Seconds --;
+    if(AstrDisplay) {
+		AstrDisplay.innerHTML = Astr;
+		
+		Astr = Astr.substring(1);
+    }
+    
+    if (Seconds == -1)
+    {
+		window.clearInterval (interval);
+        window.location=Redirect;
+    }
+}
+
+function ShowPage()
+{	
+	BuildBoxHeader();
+	document.write("<CENTER><table class=boxInside>");	
+	document.write(Loc("PageBlurb"));
+	document.write("<center><div id=test>"+Astr+"</div></center>");
+	document.write("</table></CENTER>");
+	BuildBoxFooter();
+
+	AstrDisplay = FindObject("test");
+
+}
+</SCRIPT>
+
+
+
+<BODY onload=StartTimer()>
+<script>BuildMainTable_NoToolBar(Loc("PageTitle"), "", "ShowPage()");</script>
+</BODY>

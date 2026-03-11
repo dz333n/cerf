@@ -1,0 +1,490 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include TIMESERVICE##
+
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="SetTime_loc.js" language="javascript"></script>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script language="javascript">
+
+
+// NOTE: the time sent to us in g_TIMESERVICE_Hour is 24 hour clock (0-23).  This will have to be adjusted for AM / PM
+
+// file local variables
+var l_TimeMode	= 0;	// 0 = Internet time server, 1 = Manual
+
+var l_CurrentTime = String(g_TIMESERVICE_Month +","+g_TIMESERVICE_Day+","+g_TIMESERVICE_Year+","+g_TIMESERVICE_Hour+","+g_TIMESERVICE_Minute+","+g_TIMESERVICE_Second);
+var _TimeParts = new String(l_CurrentTime).split(",");
+
+var _GMTOffset	= 0;
+var _ZoneName	= 1;
+
+var l_AMPMOptions	= new Array();
+l_AMPMOptions[0]	= new String("AM:"+Loc("AM"));
+l_AMPMOptions[1]	= new String("PM:"+Loc("PM"));
+var l_AMPM = "AM";
+
+var TwentyFourHour = parseInt(_TimeParts[3]);
+if (TwentyFourHour < 1)
+{
+	_TimeParts[3] = 12;
+}
+
+if (12 == TwentyFourHour)
+{
+	l_AMPM = "PM";
+}
+
+if (TwentyFourHour > 12)
+{
+	_TimeParts[3] %= 12;
+	l_AMPM = "PM";
+}	
+
+var l_RadioSelections = new Array();
+
+var Months = new Array("PlaceHolder", Loc("Jan"), Loc("Feb"), Loc("Mar"), Loc("Apr"), Loc("May"), Loc("Jun"), Loc("Jul"), Loc("Aug"), Loc("Sep"), Loc("Oct"), Loc("Nov"), Loc("Dec"));
+
+function AddMonthOptions(Selected)
+{
+	
+	for (var iMonth = 1; iMonth < Months.length; iMonth++)
+	{
+		Select = (Selected == iMonth) ? " SELECTED" : " ";
+
+		document.write("<OPTION value=" + iMonth + Select + ">" + Months[iMonth] + "</OPTION>");
+	}
+}	
+
+function FindDaysInMonth(Month, Year)
+{
+	// figure out how many days are in the chosen month
+	var iEndDay = 30;
+	
+	Month = parseInt(Month);
+	Year = parseInt(Year);
+	switch (Month)
+	{
+		case 2:
+			// Handle leap years
+			if(((Year % 4) == 0) && ((Year % 100) != 0))	// Yes I don't handle the 400 year rule but really not going to matter I don't think.
+			{
+				iEndDay = 29;
+			}else{
+				iEndDay = 28;
+			}
+			break;
+			
+		case 4:
+		case 6:
+		case 9:
+		case 11:
+			iEndDay = 30;
+			break;
+			
+		default:
+			iEndDay = 31;
+	}
+	
+	return iEndDay;
+}
+
+
+function AddDaysInMonthOptions(Month, Year, Selected)
+{
+	// dealing with leap year etc is fun....
+	var iEndDay = FindDaysInMonth(Month, Year);
+	
+	if (Selected > iEndDay)
+		Selected = 1;
+	
+	for (var iDay = 1; iDay <= iEndDay; iDay++)
+	{
+		Select = (Selected == iDay) ? " SELECTED" : " ";
+
+		document.write("<OPTION value=" + iDay + Select + ">" + iDay + "</OPTION>");
+	}
+}
+
+
+function ShowErrors() 
+{
+	return new String("");
+}
+
+function ShowHidden(ID)
+{	
+	if (ID != l_CurrentPaneID)
+	{
+		enableApply();
+	}
+
+	// Hide all selections	
+    for( var i = 0; i < l_RadioSelections.length; i++)
+    {
+		Hide(l_RadioSelections[i]);
+	} 
+ 
+	// Show the correct section
+	Show(ID); 
+
+	if("TimeServerForm"==ID) {
+		EnableTimeServer(true);
+	} else {
+		EnableTimeServer(false);
+	}
+		
+}
+
+function AddSelectionRadio(Name, Description, FormObjectID)
+{
+	l_RadioSelections[l_RadioSelections.length] = FormObjectID;
+
+	if (l_CurrentPaneID == FormObjectID)
+	{		
+		selected = "checked";
+	} else {
+		selected = "";
+	}
+	
+	document.write("<TR><TD><input type=radio onClick=enableApply();ShowHidden(\""+FormObjectID+"\") name=typeSel + "+selected+">" + Name + "</TD><TD>" + Description + "</TD></TR>");
+
+}
+
+
+function AddHiddenForm(Name, CreationFn) {
+	document.write("<DIV ID="+Name+" LEFT:233px; WIDTH:531px; POSITION:absolute; TOP:355px; HEIGHT:191px class=hideform>");
+	
+	fn = new Function(CreationFn);
+	if(fn) {
+		CreationFn();
+	}
+	document.write("</DIV>");
+}
+
+function FormatTime()
+{
+	var TimeString = "";
+	
+	TimeString += _TimeParts[3] + ":";
+	
+	if (_TimeParts[4] < 10)
+		TimeString += "0";
+	TimeString += _TimeParts[4] + ":";
+
+	if (_TimeParts[5] < 10)
+		TimeString += "0";
+	TimeString += _TimeParts[5];
+	
+	return TimeString;
+}
+
+function TimeServerForm()
+{
+	var myServer="time.windows.com";
+	myServer = g_TIMESERVICE_ClientServer;
+	
+
+	document.write("<table>");
+	
+	AddSection(Loc("InternetTitle"), Loc("InternetBlurb"));
+	
+	Add2ColTRTD(Loc("ServerName"), "<INPUT id=TimeServerName onkeyup=enableApply(); maxLength=63 size=35 value='"+myServer+"' name=TIMESERVICE_ClientServer>");
+
+	/*AddBar();
+	AddSection(Loc("CurTime"), "");
+
+	AddTR();
+		AddTD(Loc("Date"));
+		AddTD(g_TIMESERVICE_Month + "/" + g_TIMESERVICE_Day + "/" + g_TIMESERVICE_Year);
+	EndTR();
+
+	AddTR();
+		AddTD(Loc("Time"));
+		AddTD(FormatTime() + "  " + l_AMPM);
+	EndTR();*/
+
+	document.write("</table>");
+}
+
+
+function AddYearOptions(Selected)
+{
+	AddNumericOptions(2000, 2020, Selected);
+}
+
+
+function UpdateDays()
+{	
+	enableApply();
+
+	// need to reload the days dropdown depending on the new month / year
+	M = FindObject("TIMESERVICE_Month");
+	Y = FindObject("TIMESERVICE_Year");
+	D = FindObject("TIMESERVICE_Day");
+	
+	// grab the currently selected day
+	var SelectedDay = D.value;
+	
+	var days = FindDaysInMonth(M.value, Y.value);
+
+	var cur = D.options.length;
+	
+	if (cur < days)
+	{
+		// need to add options
+		for (i = cur; i < days; i++)
+		{
+			var oOption = document.createElement("OPTION");
+			D.options.add(oOption);
+			oOption.innerText = (i+1);
+			oOption.value = (i+1);
+		}
+	}
+	
+	if (cur > days)
+	{
+		// need to remove options
+		for (i = cur; i > days; i--)
+		{
+			D.options.remove(i-1);
+		}
+	}
+		
+	if (SelectedDay > days)
+	{
+		// need to set the selection to the last possible day
+		D.value = days;
+	}	
+}
+	
+function ValidateHour(Field)
+{
+	if (Field.value < 1 || Field.value > 12)
+	{
+		FlagError(Field, "BadHour");
+		return false;
+	}else{
+		NoError(Field);
+		return true;
+	}
+}
+
+function ValidateMinute(Field)
+{
+	if (Field.value < 0 || Field.value > 59)
+	{
+		FlagError(Field, "BadMinute");
+		return false;
+	}else{
+		NoError(Field);
+		return true;
+	}
+}
+
+function ValidateSecond(Field)
+{
+	if (Field.value < 0 || Field.value > 59)
+	{
+		FlagError(Field, "BadSecond");
+		return false;
+	}else{
+		NoError(Field);
+		return true;
+	}
+}
+
+
+function ManualTimeForm()
+{
+	document.write("<table>");
+	
+	AddSection(Loc("ManualTitle"), Loc("ManualBlurb"));
+
+	AddTR();
+		document.write("<TD>"+Loc("Date"));
+		document.write("<SELECT id=month onchange=enableApply();UpdateDays(); name=TIMESERVICE_Month>");
+			AddMonthOptions(_TimeParts[0]);
+		document.write("</SELECT>");
+		
+		document.write(" <SELECT id=day onchange=enableApply() name=TIMESERVICE_Day>");
+			AddDaysInMonthOptions(_TimeParts[0], _TimeParts[2], _TimeParts[1]);
+		document.write("</SELECT>");
+		
+		document.write(" <SELECT id=year onchange=enableApply();UpdateDays(); name=TIMESERVICE_Year>");
+			AddYearOptions(_TimeParts[2]);
+		document.write("</SELECT>");
+		document.write("</TD>");
+	EndTR();
+
+	AddTR();
+		document.write("<TD>");
+		document.write(Loc("Time") + "<INPUT id=hour   onKeyPress=NumOnly(); onKeyUp=enableApply(); onBlur=ValidateHour(this);   size=3 maxlength=2 name=TIMESERVICE_Hour value="+_TimeParts[3]+"> ");
+		document.write("<INPUT id=minute onKeyPress=NumOnly(); onKeyUp=enableApply(); onBlur=ValidateMinute(this); size=4 maxlength=2 name=TIMESERVICE_Minute value="+_TimeParts[4]+"> ");
+		document.write("<INPUT id=second onKeyPress=NumOnly(); onKeyUp=enableApply(); onBlur=ValidateSecond(this); size=5 maxlength=2 name=TIMESERVICE_Second value="+_TimeParts[5]+"> ");
+		
+		document.write("<SELECT id=am_pm onchange=enableApply() name=TimeSetAM>");
+			AddOptionsFromArray(l_AMPMOptions, l_AMPM);
+		document.write("</SELECT> ");
+		document.write("</TD>");
+	EndTR();
+
+	document.write("</table>");
+}
+
+
+
+function AddTimeZoneOptions()
+{
+	for(Name in g_TIMESERVICE_TimeZoneDisplay) {
+		if(g_TIMESERVICE_CurrentTimeZone == Name) {			
+			Selected = "SELECTED";
+		} else {
+			Selected = "";
+		}
+		document.write("<OPTION value='" + Name + "' " + Selected + ">" + g_TIMESERVICE_TimeZoneDisplay[Name] + "</OPTION>");
+	}	
+}
+
+function AddTimeZone()
+{
+	AddSection(Loc("TZTitle"), Loc("TZBlurb"));
+
+	AddTR();
+		document.write("<TD>" + Loc("SetTZ"));
+			document.write("<SELECT size=1 onchange=enableApply(); name=TIMESERVICE_CurrentTimeZone value="+g_TIMESERVICE_CurrentTimeZone+">");
+				AddTimeZoneOptions();
+			document.write("</SELECT>");
+		document.write("</TD>");
+	EndTR();
+}
+
+
+function InitData()
+{
+	l_CurrentPaneID = (0 == l_TimeMode) ? "TimeServerForm" : "ManualTimeForm";
+	ShowHidden(l_CurrentPaneID);
+}
+
+function EnableTimeServer(enable)
+{
+	var clientEnable = FindObject("TIMESERVICE_ClientEnabled");
+	var serverEnable = FindObject("TIMESERVICE_ServerEnabled");
+		
+	if(enable) {
+		clientEnable.value="1";
+		serverEnable.value="1";
+	} else {
+		clientEnable.value="0";
+		serverEnable.value="0";
+	}
+	
+}
+
+function SubmitHandler(SubmitVar) 
+{		
+	ClearError();
+	var bOK = true;
+	
+	//SubmitVar.action = "debug";
+	
+	var FormVar = FindObject("EditForm");
+	
+	if ("0" == FormVar.TIMESERVICE_ClientEnabled.value)
+	{
+		// in manual validate the entered time
+		bOK &= ValidateHour(FormVar.hour); 
+		bOK &= ValidateMinute(FormVar.minute)
+		bOK &= ValidateSecond(FormVar.second)
+	}
+		
+	if (bOK)
+	{
+		// the module wants time in 24 hour format (0-23)
+		Hour = parseInt(FormVar.hour.value);
+		if ("AM" == FormVar.am_pm.value &&  12 == Hour)
+		{
+			FormVar.hour.value = 0;
+		}
+		
+		if ("PM" == FormVar.am_pm.value && Hour != 12)
+		{
+			FormVar.hour.value = Hour + 12;
+		}
+		
+		GlobalSubmitHandler(SubmitVar);		
+		return true;		
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+function OnReset()
+{
+	InitData();
+}	
+
+function ShowPage()
+{	
+	// loads current values into the fields as needed	
+	if(g_TIMESERVICE_ClientEnabled=="1" && g_TIMESERVICE_ServerEnabled=="1") {
+		l_TimeMode = 0
+		l_CurrentPaneID = "TimeServerForm";		
+	} else {
+		l_TimeMode = 1;
+		l_CurrentPaneID = "ManualTimeForm";
+	}
+
+
+	document.write("<form ID=EditForm METHOD=post onsubmit='return SubmitHandler(this)' onreset=OnReset()>");
+	document.write("<input type=hidden name=TIMESERVICE_ClientEnabled value=1>");
+	document.write("<input type=hidden name=TIMESERVICE_ServerEnabled value=1>");
+	
+	BuildBoxHeader();
+	document.write("<table class=boxInside>"); 
+
+	
+	AddSection(Loc("SecTitle"), "");
+	AddSelectionRadio(Loc("RadioInternet"),"", "TimeServerForm");
+	AddSelectionRadio(Loc("RadioManual"),"", "ManualTimeForm");
+
+	document.write("<TR><TD COLSPAN=2 class=hideform>");
+	document.write("</TD></TR>");
+
+
+	document.write("<TR><TD COLSPAN=2>");		
+		AddHiddenForm("TimeServerForm", TimeServerForm);
+	document.write("</TD></TR>");
+	
+	document.write("<TR><TD COLSPAN=2>");		
+		AddHiddenForm("ManualTimeForm", ManualTimeForm);
+	document.write("</TD></TR>");
+	AddBar();
+
+	AddTimeZone();
+	
+	document.write("</TABLE>");
+	BuildBoxFooter();
+	document.write("<SPAN>");
+	AddApplyCancel();
+	document.write("</SPAN>");
+	document.write("</form>");	
+
+	InitData();
+}
+
+</script>
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>

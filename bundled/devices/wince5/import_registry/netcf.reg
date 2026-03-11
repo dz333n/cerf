@@ -1,0 +1,67 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+;
+; NETCF GAC entries (Global Assembly Cache)
+
+; @CESYSGEN IF NETCF_MODULES_DOTNET
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework]
+"1.0.4292.0"=dword:1
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\Global]
+"Microsoft.VisualBasic, Version=7.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_Microsoft.VisualBasic_v7_0_5000_0_cneutral_1.dll","Microsoft.VisualBasic.dll"
+"Microsoft.WindowsCE.Forms, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_Microsoft.WindowsCE.Forms_v1_0_5000_0_cneutral_1.dll","Microsoft.WindowsCE.Forms.dll"
+"mscorlib, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_mscorlib_v1_0_5000_0_cneutral_1.dll","mscorlib.dll"
+"System.Data, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data_v1_0_5000_0_cneutral_1.dll","System.Data.dll"
+"System, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System_v1_0_5000_0_cneutral_1.dll","System.dll"
+"System.Drawing, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Drawing_v1_0_5000_0_cneutral_1.dll","System.Drawing.dll"
+"System.Net.IrDA, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Net.IrDA_v1_0_5000_0_cneutral_1.dll","System.Net.IrDA.dll"
+"System.Web.Services, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Web.Services_v1_0_5000_0_cneutral_1.dll","System.Web.Services.dll"
+"System.Windows.Forms, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Windows.Forms_v1_0_5000_0_cneutral_1.dll","System.Windows.Forms.dll"
+"System.Windows.Forms.DataGrid, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Windows.Forms.DataGrid_v1_0_5000_0_cneutral_1.dll","System.Windows.Forms.DataGrid.dll"
+"System.Xml, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Xml_v1_0_5000_0_cneutral_1.dll","System.Xml.dll"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\ROM]
+"Microsoft.VisualBasic, Version=7.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_Microsoft.VisualBasic_v7_0_5000_0_cneutral_1.dll","Microsoft.VisualBasic.dll"
+"Microsoft.WindowsCE.Forms, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_Microsoft.WindowsCE.Forms_v1_0_5000_0_cneutral_1.dll","Microsoft.WindowsCE.Forms.dll"
+"mscorlib, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_mscorlib_v1_0_5000_0_cneutral_1.dll","mscorlib.dll"
+"System.Data, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data_v1_0_5000_0_cneutral_1.dll","System.Data.dll"
+"System, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System_v1_0_5000_0_cneutral_1.dll","System.dll"
+"System.Drawing, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Drawing_v1_0_5000_0_cneutral_1.dll","System.Drawing.dll"
+"System.Net.IrDA, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Net.IrDA_v1_0_5000_0_cneutral_1.dll","System.Net.IrDA.dll"
+"System.Web.Services, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Web.Services_v1_0_5000_0_cneutral_1.dll","System.Web.Services.dll"
+"System.Windows.Forms, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Windows.Forms_v1_0_5000_0_cneutral_1.dll","System.Windows.Forms.dll"
+"System.Windows.Forms.DataGrid, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Windows.Forms.DataGrid_v1_0_5000_0_cneutral_1.dll","System.Windows.Forms.DataGrid.dll"
+"System.Xml, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Xml_v1_0_5000_0_cneutral_1.dll","System.Xml.dll"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF NETCF_MODULES_DOTNET_SMARTFON
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF NETCF_MODULES_SQLCE20_DP || NETCF_MODULES_SQL2000_DP
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\Global]
+"System.Data.Common, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.Common_v1_0_5000_0_cneutral_1.dll","System.Data.Common.dll"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\ROM]
+"System.Data.Common, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.Common_v1_0_5000_0_cneutral_1.dll","System.Data.Common.dll"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF NETCF_MODULES_SQLCE20_DP
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\Global]
+"System.Data.SqlServerCe, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.SqlServerCe_v1_0_5000_0_cneutral_1.dll","System.Data.SqlServerCe.dll"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\ROM]
+"System.Data.SqlServerCe, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.SqlServerCe_v1_0_5000_0_cneutral_1.dll","System.Data.SqlServerCe.dll"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF NETCF_MODULES_SQL2000_DP
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\Global]
+"System.Data.SqlClient, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.SqlClient_v1_0_5000_0_cneutral_1.dll","System.Data.SqlClient.dll"
+[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\.NETCompactFramework\Installer\Assemblies\ROM]
+"System.Data.SqlClient, Version=1.0.5000.0, Culture=neutral, PublicKeyToken=969DB8053D3322AC"=multi_sz:"\\windows\\GAC_System.Data.SqlClient_v1_0_5000_0_cneutral_1.dll","System.Data.SqlClient.dll"
+; @CESYSGEN ENDIF

@@ -1,0 +1,669 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include PASSWORD##
+##include HOSTNAME##
+##include NETWORK##
+##include REMOTEUTILS##
+##include NAT##
+##include RAS##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="wide_area_network_loc.js" language="javascript"></script>
+<script src="general_loc.js" language="javascript"></script>
+<script language="javascript">
+
+
+var l_PPPoE_AutoDNS = "0";			// 0 = Auto, UI uses reversed logic from the backend
+var l_PPPoE_DNS1 = "0.0.0.0";
+var l_PPPoE_DNS2 = "0.0.0.0";
+if (("undefined" != typeof(g_RAS_PPPoEDnsAddressUseServer["Conn"])) && ("0" == g_RAS_PPPoEDnsAddressUseServer["Conn"]))
+{
+	// manual PPPoE DNS
+	l_PPPoE_AutoDNS = "1";
+
+	l_PPPoE_DNS1 = g_RAS_PPPoEIPAddressDns["Conn"];
+	l_PPPoE_DNS2 = g_RAS_PPPoEIPAddressDnsAlt["Conn"];
+}
+
+
+var l_DNSMode	= new Array();
+l_DNSMode[0]	= "0:"+Loc("Auto");
+l_DNSMode[1]	= "1:"+Loc("Manual");
+
+// PPPoE password sizes
+var l_PasswordMinLen = 3;
+var l_PasswordMaxLen = 16;
+
+// Local variables
+// Figure out what mode we are in (Dynamic, static, PPPoE, Disabled)
+var l_CurrentPaneID = "DynamicForm";
+
+if (("undefined" != typeof(g_RAS_AutoDialEnabled)) && ("1" == g_RAS_AutoDialEnabled))
+{
+	l_CurrentPaneID = "PPPOEForm";
+}else{
+	if ("" == g_NETWORK_PROTOCOLSTOBINDTO[g_NAT_Public])
+	{
+		l_CurrentPaneID = "DisabledForm";
+	}else{
+		if ("ENABLED" == g_NETWORK_DHCP[g_NAT_Public])
+		{
+			l_CurrentPaneID = "DynamicForm";
+		}else{
+			l_CurrentPaneID = "StaticForm";
+		}
+	}
+}	
+
+
+var l_StartupPaneID = l_CurrentPaneID;
+
+var l_CachedPublic = g_NAT_Public;
+if ("undefined" != typeof(g_REMOTEUTILS_Registry["PUBLICADAPTER"]))
+{
+	l_CachedPublic = g_REMOTEUTILS_Registry["PUBLICADAPTER"];
+}
+
+if ("undefined" == typeof(g_RAS_PPPoEUsername["Conn"]))
+{
+	// build up some place holder variables so we don't get JS errors.
+	g_RAS_PPPoEDomain["Conn"] = "";
+	g_RAS_PPPoEPassword["Conn"] = "";
+	g_RAS_PPPoEUsername["Conn"] = "";
+	g_RAS_PPPoEServiceName["Conn"] = "";
+	g_RAS_PPPoEDeviceName["Conn"] = "";
+	
+	g_RAS_AutoDialEnabled			= 1;
+	g_RAS_AutoDialRasEntryName1		= "Conn";
+	g_RAS_AutoDialRasEntryName2		= "";
+	g_RAS_AutoDialRedialAttempts	= 10;
+	g_RAS_AutoDialIdleTimeoutMS		= 240000;
+}else{
+	// there is something in the PPPoE settings, but we only set the form to PPPoE if we are enabled.
+	if (1 == g_RAS_AutoDialEnabled)
+	{
+		// We are setup for PPPoE so make that the active form.
+		l_CurrentPaneID = "PPPOEForm";
+	}
+}	
+
+
+function ValidateDNS(SecName)
+{
+	var bValid = true;
+	
+	var DNSMode = FindObject(SecName+"AUTODNS");
+	if (null != DNSMode)
+	{
+		if ("1" == DNSMode.value)
+		{
+			bValid  = ValidateIP(SecName+"DNS1");
+			bValid &= ValidateIP(SecName+"DNS2");
+		}else{
+			bValid = true;
+		}
+	}
+	
+	return bValid;
+}
+
+function SubmitHandler(SubmitVar)
+{
+	var bOK = true;
+	ClearError();
+
+	var form = FindObject("FORM_"+l_CurrentPaneID);
+	var Key = "_Conn";	// we always use the same key for the PPPoE entries
+	var Disabled = false;
+
+	// This always has to happen, we need the shadow copy of the public if it doesn't exist.
+	if("undefined" == typeof(g_REMOTEUTILS_Registry["PUBLICADAPTER"]))
+	{
+		g_REMOTEUTILS_Registry["PUBLICADAPTER"] = g_NAT_Public;
+		AddSubmitItem(SubmitVar, "a_REMOTEUTILS_Registry_PUBLICADAPTER", g_NAT_Public);
+	}
+
+	
+	switch (l_CurrentPaneID)
+	{
+		case "DynamicForm":
+		{
+			// only need to validate the two DNS entries
+			if("undefined" != typeof(g_NETWORK_AUTODNS[g_NAT_Public])) {
+				bOK = ValidateDNS("DynamicForm");
+			}
+
+			if("undefined" != typeof(g_NETWORK_MACAddress[g_NAT_Public])) {		
+				bOK &= ValidateMAC("CLONE_MAC");
+			}
+
+			bOK &= ValidateHostName("HOSTNAME_Name");
+			
+			if (bOK)
+			{
+
+				// now prep user changeable fields to go back
+				form.HOSTNAME_Name.name			= "HOSTNAME_Name";
+				
+				if("undefined" != typeof(g_NETWORK_MACAddress[g_NAT_Public])) {					
+					form.CLONE_MAC.name				= "a_NETWORK_MACAddress_"+g_NAT_Public;	
+				}
+
+				if("undefined" != typeof(g_NETWORK_AUTODNS[g_NAT_Public])) {
+					form.DynamicFormAUTODNS.name	= "a_NETWORK_AUTODNS_"+g_NAT_Public;				
+					form.DynamicFormDNS1.name		= "a_NETWORK_DNS1_"+g_NAT_Public;
+					form.DynamicFormDNS2.name		= "a_NETWORK_DNS2_"+g_NAT_Public;
+				}
+			}
+		}break;
+		
+		case "StaticForm":
+		{
+			if("undefined" == typeof(g_REMOTEUTILS_Registry["PUBLICPROTOCOLSTOBIND"])) {
+				bOK  = ValidateIP("IPADDRESS");
+				bOK &= ValidateIP("SUBNET");
+				bOK &= ValidateIP("GATEWAY");
+				bOK &= ValidateIP("STATIC_DNS1");
+				bOK &= ValidateIP("STATIC_DNS2");
+
+				if (bOK)
+				{
+					// now prep user changeable fields to go back
+					form.IPADDRESS.name					= "a_NETWORK_IPAddress_"+g_NAT_Public;
+					form.SUBNET.name					= "a_NETWORK_Subnet_"+g_NAT_Public;
+					form.GATEWAY.name					= "a_NETWORK_Gateway_"+g_NAT_Public;
+
+					form.HDN_AUTODNS.name				= "a_NETWORK_AUTODNS_"+g_NAT_Public;
+					form.HDN_AUTODNS.value				= 1;	// forces manual settings
+					form.STATIC_DNS1.name				= "a_NETWORK_DNS1_"+g_NAT_Public;
+					form.STATIC_DNS2.name				= "a_NETWORK_DNS2_"+g_NAT_Public;
+				}
+			}
+		}break;
+		
+		case "PPPOEForm":
+		{
+			bOK = true;
+			//SubmitVar.action="debug";
+
+			bOK &= ValidateNoneEmpty(form.PPPoEUsername, "UserNameEmpty", false);
+			bOK &= ValidatePW(form.PPPoEPassword, l_PasswordMinLen, l_PasswordMaxLen);
+
+			if ("1" == form.PPPoE_AUTODNS.value)
+			{
+				bOK &= ValidateIP("PPPoE_DNS1");
+				bOK &= ValidateIP("PPPoE_DNS2");
+			}
+
+
+			//Need to build up the return variables
+			if (bOK)
+			{
+				form.PPPoEUsername.name					= "a_RAS_PPPoEUsername"		+ Key;
+				form.PPPoEPassword.name					= "a_RAS_PPPoEPassword"		+ Key;
+				form.PPPoEServiceName.name				= "a_RAS_PPPoEServiceName"	+ Key;
+				form.PPPoEDomain.name					= "a_RAS_PPPoEDomain"		+ Key;
+				form.HDN_PPPoEDeviceName.name			= "a_RAS_PPPoEDeviceName"	+ Key;
+				for (var i in g_RAS_PPPoEDevices)
+				{
+					form.HDN_PPPoEDeviceName.value		= g_RAS_PPPoEDevices[i];
+					break;
+				}
+
+				AddSubmitItem(SubmitVar, "NAT_Public",	form.HDN_PPPoEDeviceName.value);
+				
+				form.HDN_AutoDialEnabled.value			= 1;
+				
+				form.HDN_AutoDialRasEntryName1.name		= "RAS_AutoDialRasEntryName1";
+				form.HDN_AutoDialRasEntryName2.name		= "RAS_AutoDialRasEntryName2";
+				form.HDN_AutoDialTimeout.name			= "RAS_AutoDialIdleTimeoutMS"
+				form.HDN_AutoDialTimeout.value			= form.AutoDialMaxIdleTime.value * 1000; // change it from seconds to MS
+
+				form.AutoDialRedialAttemps.name			= "RAS_AutoDialRedialAttempts";
+
+				form.HDN_AutoDialRasEntryName1.value	= "Conn";
+				
+				// Ui and backend use reversed logic.
+				if ("1" == form.PPPoE_AUTODNS.value)
+				{
+					AddSubmitItem(SubmitVar, "a_RAS_PPPoEDnsAddressUseServer_Conn",	"0");
+					AddSubmitItem(SubmitVar, "a_RAS_PPPoEIPAddressDns_Conn",		form.PPPoE_DNS1.value);
+					AddSubmitItem(SubmitVar, "a_RAS_PPPoEIPAddressDnsAlt_Conn",		form.PPPoE_DNS2.value);
+				}else{
+					AddSubmitItem(SubmitVar, "a_RAS_PPPoEDnsAddressUseServer_Conn",	"1");
+				}
+			}
+		}break;
+		
+		case "DisabledForm":
+		{
+			// nothing to validate here.
+			bOK = true;
+			Disabled = true;
+			
+			// Cache and clear the public adapter bindings
+			AddSubmitItem(SubmitVar, "a_REMOTEUTILS_REGISTRY_PUBLICPROTOCOLSTOBIND", g_NETWORK_PROTOCOLSTOBINDTO[l_CachedPublic]);
+			AddSubmitItem(SubmitVar, "a_NETWORK_PROTOCOLSTOBINDTO_"+l_CachedPublic, "");
+			
+		}break;
+		
+		default:
+		{
+			alert("ERR: Invalid WAN mode ["+l_CurrentPaneID+"] in SubmitHandler");
+		}
+	}
+	// If everything passed then pass this onto the global handler to submit
+	if (true == bOK)
+	{
+		// If we are not disabled restore the bindings if they have been chached
+		if(!Disabled && ("undefined" != typeof(g_REMOTEUTILS_Registry["PUBLICPROTOCOLSTOBIND"])))
+		{
+			AddSubmitItem(SubmitVar, "a_REMOTEUTILS_DELREGISTRY_PUBLICPROTOCOLSTOBIND", "");
+			AddSubmitItem(SubmitVar, "a_NETWORK_PROTOCOLSTOBINDTO_"+g_REMOTEUTILS_Registry["PUBLICADAPTER"], g_REMOTEUTILS_Registry["PUBLICPROTOCOLSTOBIND"]);
+		}
+
+		if("DynamicForm" == l_CurrentPaneID)
+		{
+			AddSubmitItem(SubmitVar, "a_NETWORK_DHCP_" + l_CachedPublic, "ENABLED");
+		}else{
+			AddSubmitItem(SubmitVar, "a_NETWORK_DHCP_" + l_CachedPublic, "DISABLED");
+		}		
+		
+		
+		if ("PPPOEForm" != l_CurrentPaneID)
+		{
+			// need to make sure the PPPoE settings are turned off / removed
+			
+			form.HDN_PPPoEDelete.name					= "a_RAS_PPPoEDelete" + Key;
+			form.HDN_PPPoEDelete.value					= 1;
+
+			form.HDN_AutoDialEnabled.value				= 0;
+			
+			AddSubmitItem(SubmitVar, "NAT_Public", l_CachedPublic);
+		}
+
+		GlobalSubmitHandler(SubmitVar);
+		return true;
+	}else{
+		return false;
+	}
+}
+
+function HideApplyCancel(SecName)
+{
+	var form = FindObject("Form_" + SecName);
+
+	if ("undefined" != typeof(form.Apply))
+		form.Apply.id = "ApplyT";
+	
+	if ("undefined" != typeof(form.Cancel))
+		form.Cancel.id = "CancelT";
+}
+	
+function ShowApplyCancel(SecName)
+{
+	var form = FindObject("Form_" + SecName);
+	
+	if ("undefined" != typeof(form.ApplyT))
+	{
+		form.ApplyT.id = "Apply";
+	}
+	
+	if ("undefined" != typeof(form.CancelT))
+		form.CancelT.id = "Cancel";
+}
+
+
+function OnReset()
+{
+	ShowHidden(l_StartupPaneID);
+	
+	t = FindObject("RadioSet");
+	t.reset();
+}	
+	
+
+function ShowHidden(ID)
+{	
+
+	Hide("DIV_DynamicForm");
+	HideApplyCancel("DynamicForm");
+	Hide("DIV_StaticForm");
+	HideApplyCancel("StaticForm");
+	Hide("DIV_PPPOEForm");
+	HideApplyCancel("PPPOEForm");
+	Hide("DIV_DisabledForm");
+	HideApplyCancel("DisabledForm");
+
+	Show("DIV_"+ID);
+	ShowApplyCancel(ID);
+
+	if (ID != l_CurrentPaneID)
+	{
+		enableApply();
+	}
+	
+	l_CurrentPaneID = ID;
+
+	
+	if ("DynamicForm" == ID)
+	{
+		if("undefined" != typeof(g_NETWORK_AUTODNS[l_CachedPublic])) {
+			setSelection(ID+"AUTODNS", g_NETWORK_AUTODNS[l_CachedPublic]);		
+			ToggleDNSEntry(ID);
+		}
+	}	
+}
+
+function AddSelectionRadio(Name, Description, FormObject)
+{
+	if (l_CurrentPaneID == FormObject)
+	{
+		selected = "checked";
+	} else {
+		selected = "";
+	}
+
+	document.write("<TR width='150'><TD><input type=radio name=typeSel onClick=ShowHidden('"+FormObject+"'); "+selected+">" + Name + "</TD><TD>" + Description + "</TD></TR>");
+}
+
+function AddHiddenForm(Name, CreationFn) {
+	document.write("<form id='FORM_"+Name+"' METHOD=post onsubmit='return(SubmitHandler(this))' onreset=OnReset()>");
+	document.write("<DIV id='DIV_"+Name+"' LEFT:233px; WIDTH:531px; POSITION:absolute; TOP:355px; HEIGHT:191px>");
+	fn = new Function(CreationFn);
+	if(fn) {
+		CreationFn();
+	}else{
+		alert("ERR: Unable to find hidden form creation function");
+	}
+	
+	AddApplyCancel("FORM_"+Name);
+	document.write("</DIV>");
+	document.write("</form>");
+}
+
+function ToggleDNSEntry(SecName)
+{
+	DropDown = FindObject(SecName+"AUTODNS");
+	
+	switch (DropDown.value)
+	{
+		case "0":
+		{
+			DisableIP(SecName+"DNS1");
+			DisableIP(SecName+"DNS2");
+		}break;
+		
+		case "1":
+		{
+			EnableIP(SecName+"DNS1");
+			EnableIP(SecName+"DNS2");
+		}break;
+		
+		default:
+		{
+			alert("ERR: Unexpected value ["+DropDown.value+"] in ToggleDNSEntry");
+		}
+	}
+}
+
+function BuildMacWithClone()
+{
+	AddTR();
+		AddAttrTD("width='150'", Loc("MacAddress"));
+		if ("undefined" == typeof(g_NETWORK_MACAddress[l_CachedPublic]))
+		{
+			AddTD(BuildMACInput("-----", "CLONE_MAC", true) + Loc("MacFormat"));
+		}else{
+			AddTD(BuildMACInput(g_NETWORK_MACAddress[l_CachedPublic], "CLONE_MAC", true) + Loc("MacFormat"));
+		}
+	EndTR();
+	
+	
+	AddTR();
+		AddAttrTD("width='500' COLSPAN=2", Loc("MacCloneBlurb"));
+	EndTR();
+	
+	AddTR();
+		AddTD("");
+		AddAttrTD("", "<input type=submit onkeyup=enableApply(); id=\"a_CloneMac"+g_NAT_Public +"\" value='" + Loc("MacCloneMac") + "'>");
+	EndTR();
+}
+
+function AutoChange(FormName)
+{
+	ToggleDNSEntry(FormName);
+	enableApply();
+}
+
+function PPPoEDNSChange(NewValue)
+{
+	if ("0" == NewValue)
+	{
+		DisableIP("PPPoE_DNS1");
+		DisableIP("PPPoE_DNS2");
+	}else{
+		EnableIP("PPPoE_DNS1");
+		EnableIP("PPPoE_DNS2");
+	}
+	enableApply();
+}
+
+
+function BuildObtainDNS(SecName)
+{
+	AddTR();
+		AddAttrTD("width='150'", Loc("ObtainDNS"));
+		document.write("<TD>");
+			document.write("<select id="+SecName+"AUTODNS onChange=AutoChange('" + SecName + "'); >");
+				AddOptionsFromArray(l_DNSMode, g_NETWORK_AUTODNS[l_CachedPublic]);
+			document.write("</SELECT>");
+		document.write("</TD>");
+	EndTR();
+
+	document.write("<DIV ID=ObtainDNS>");
+		AddTR();
+			AddAttrTD("width='150'", Loc("DNSPrimary"));
+			AddTD(BuildIPInput(g_NETWORK_DNS1[l_CachedPublic], SecName+"DNS1", true));
+		EndTR();
+		
+		AddTR();
+			AddAttrTD("width='150'", Loc("DNSSecondary"));
+			AddTD(BuildIPInput(g_NETWORK_DNS2[l_CachedPublic], SecName+"DNS2", true));
+		EndTR();
+	document.write("</DIV>");
+}
+
+function DynamicForm()
+{
+	document.write("<table>");
+	document.write("<input type=hidden id=HDN_AutoDialEnabled name=RAS_AutoDialEnabled value=" + g_RAS_AutoDialEnabled + ">");	// this always gets sent
+	document.write("<input type=hidden id=HDN_PPPoEDelete value=0>");	// this only gets sent if we are switching from PPPoE to non
+
+	AddTR();
+		AddAttrTD("COLSPAN=2 class=selectedRadioText", Loc("DynamicTitle"));
+	EndTR();
+	AddTR();
+		AddAttrTD("COLSPAN=2", Loc("DynamicBlurb"));
+	EndTR();
+	AddTR();
+		AddAttrTD("width='150'", Loc("HostName"));
+		AddTD("<input type=text onkeyup=enableApply(); ID=HOSTNAME_Name value="+g_HOSTNAME_Name+">");
+	EndTR();
+
+
+	if("undefined" != typeof(g_NETWORK_MACAddress[l_CachedPublic])) {
+		AddBar();
+		BuildMacWithClone();
+	}
+
+	if("undefined" != typeof(g_NETWORK_AUTODNS[l_CachedPublic])) {
+		AddBar();
+		BuildObtainDNS("DynamicForm");
+	}
+
+	document.write("</table>");
+}
+
+function StaticForm()
+{
+	document.write("<table>");
+	document.write("<input type=hidden id=HDN_AutoDialEnabled name=RAS_AutoDialEnabled value=" + g_RAS_AutoDialEnabled + ">");	// this always gets sent
+	document.write("<input type=hidden id=HDN_PPPoEDelete value=0>");	// this only gets sent if we are switching from PPPoE to non
+	document.write("<input type=hidden id=HDN_AUTODNS	  value=0>");	
+	
+	AddTR();
+		AddAttrTD("COLSPAN=2 class=selectedRadioText", Loc("StaticTitle"));
+	EndTR();
+	AddTR();
+		AddAttrTD("COLSPAN=2", Loc("StaticBlurb"));
+	EndTR();
+
+	if("undefined" == typeof(g_REMOTEUTILS_Registry["PUBLICPROTOCOLSTOBIND"])) {
+		Add2ColTRTD(Loc("IP"), BuildIPInput(g_NETWORK_IPAddress[l_CachedPublic], "IPADDRESS", true));
+		Add2ColTRTD(Loc("Subnet"), BuildIPInput(g_NETWORK_Subnet[l_CachedPublic], "SUBNET", true));
+		Add2ColTRTD(Loc("DefaultGateway"), BuildIPInput(g_NETWORK_GATEWAY[l_CachedPublic],"GATEWAY", true));
+		Add2ColTRTD(Loc("DNSPrimary"), BuildIPInput(g_NETWORK_DNS1[l_CachedPublic], "STATIC_DNS1", true));
+		Add2ColTRTD(Loc("DNSSecondary"), BuildIPInput(g_NETWORK_DNS2[l_CachedPublic], "STATIC_DNS2", true));
+	}
+
+	document.write("</table>");
+}
+
+function PPPOEForm()
+{
+	document.write("<table>");
+	document.write("<input type=hidden id=HDN_AutoDialEnabled name=RAS_AutoDialEnabled value=" + g_RAS_AutoDialEnabled + ">");	// this always gets sent
+	
+	
+	document.write("<input type=hidden id=HDN_PPPoEDeviceName>");
+	document.write("<input type=hidden id=HDN_AutoDialRasEntryName1>");
+	document.write("<input type=hidden id=HDN_AutoDialRasEntryName2>");
+	document.write("<input type=hidden name=a_NETWORK_RENEW_"+g_NAT_Public+" value=1>");
+	document.write("<input type=hidden id=HDN_AutoDialTimeout>");
+	document.write("<input type=hidden name=a_NETWORK_BIND_"+g_NAT_Public+" value=1>");
+
+	AddTR();
+		AddAttrTD("COLSPAN=2 class=selectedRadioText", Loc("PPPoETitle"));
+	EndTR();
+	AddTR();
+		AddAttrTD("COLSPAN=2", Loc("PPPoEBlurb"));
+	EndTR();
+
+	Add2ColTRTD("<input type=hidden id='a_NETWORK_DHCP_"+g_NAT_Public +"' value=ENABLED>", "");
+
+	Add2ColTRTD(Loc("UserName"),	"<input type=input onkeyup=enableApply();	 maxlength=63 id=PPPoEUsername	value=" + g_RAS_PPPoEUsername["Conn"] +">");
+	Add2ColTRTD(Loc("Password"),	"<input type=password onkeyup=enableApply(); size=20 maxlength=" + l_PasswordMaxLen + " id=PPPoEPassword	value=" + g_RAS_PPPoEPassword["Conn"] +">");
+	Add2ColTRTD(Loc("Service"),		"<input type=input onkeyup=enableApply();	 maxlength=39 id=PPPoEServiceName value=" + g_RAS_PPPoEServiceName["Conn"] + ">" + Loc("SomeISPs"));
+	Add2ColTRTD(Loc("Domain"),		"<input type=input onkeyup=enableApply();	 maxlength=20 id=PPPoEDomain		value=" + g_RAS_PPPoEDomain["Conn"] + ">" + Loc("SomeISPs"));
+
+	document.write("<TR><TD COLSPAN=5><HR></TD></TR>");
+	
+
+	Add2ColTRTD(Loc("Redial"),	"<input type=input onKeyPress=NumOnly(); onkeyup=enableApply(); id=AutoDialRedialAttemps value=" + g_RAS_AutoDialRedialAttempts + ">");
+	Add2ColTRTD(Loc("MaxIdle"),	"<input type=input onKeyPress=NumOnly(); onkeyup=enableApply(); id=AutoDialMaxIdleTime value=" + g_RAS_AutoDialIdleTimeoutMS / 1000 + ">" + Loc("Seconds"));
+
+	document.write("<TR><TD COLSPAN=5><HR></TD></TR>");
+
+	AddTR();
+		AddAttrTD("width='150'", Loc("ObtainDNS"));
+		document.write("<TD>");
+			document.write("<select id=PPPoE_AUTODNS onChange=PPPoEDNSChange(this.value); >");
+				AddOptionsFromArray(l_DNSMode, l_PPPoE_AutoDNS);
+			document.write("</SELECT>");
+		document.write("</TD>");
+	EndTR();
+
+	document.write("<DIV ID=PPPoE_ObtainDNS>");
+		AddTR();
+			AddAttrTD("width='150'", Loc("DNSPrimary"));
+			AddTD(BuildIPInput(l_PPPoE_DNS1, "PPPoE_DNS1", true));
+		EndTR();
+		
+		AddTR();
+			AddAttrTD("width='150'", Loc("DNSSecondary"));
+			AddTD(BuildIPInput(l_PPPoE_DNS2, "PPPoE_DNS2", true));
+		EndTR();
+	document.write("</DIV>");
+	
+	PPPoEDNSChange(l_PPPoE_AutoDNS);
+
+	document.write("</table>");
+}
+
+function DisabledForm()
+{
+	document.write("<table>");
+	document.write("<input type=hidden id=HDN_AutoDialEnabled name=RAS_AutoDialEnabled value=" + g_RAS_AutoDialEnabled + ">");	// this always gets sent
+	document.write("<input type=hidden id=HDN_PPPoEDelete value=0>");	// this only gets sent if we are switching from PPPoE to non
+	
+	AddTR();
+		AddAttrTD("COLSPAN=2 class=selectedRadioText", Loc("DisabledTitle"));
+	EndTR();
+	AddTR();
+	AddAttrTD("COLSPAN=2", Loc("DisabledBlurb"));
+	EndTR();
+	
+	document.write("</table>");
+}
+
+function ShowPage()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	
+	AddTR();
+		AddAttrTD("COLSPAN=2 class=cellLtColor", Loc("RadioSecTitle"));
+	EndTR();
+	AddTR();
+		AddAttrTD("COLSPAN=2", Loc("RadioSecBlurb"));
+	EndTR();
+
+	document.write("<form id=RadioSet>");
+		AddSelectionRadio(Loc("DynamicRadioBtn"),	Loc("DynamicRadioBlurb"), "DynamicForm");
+		AddSelectionRadio(Loc("StaticRadioBtn"),	Loc("StaticRadioBlurb"), "StaticForm");
+		AddSelectionRadio(Loc("PPPoERadioBtn"),		Loc("PPPoERadioBlurb"), "PPPOEForm");
+		AddSelectionRadio(Loc("DisabledRadioBtn"),	Loc("DisabledRadioBlurb"), "DisabledForm");;
+	document.write("</form>");
+
+	
+	AddBar();
+
+	document.write("<TR><TD COLSPAN=2>");
+		AddHiddenForm("DynamicForm", DynamicForm);
+	document.write("</TD></TR>");
+	
+	document.write("<TR><TD COLSPAN=2>");
+		AddHiddenForm("StaticForm", StaticForm);
+	document.write("</TD></TR>");
+	
+	document.write("<TR><TD COLSPAN=2>");
+		AddHiddenForm("PPPOEForm", PPPOEForm);
+	document.write("</TD></TR>");
+	
+	document.write("<TR><TD COLSPAN=2>");
+		AddHiddenForm("DisabledForm", DisabledForm);
+	document.write("</TD></TR>");
+
+	ShowHidden(l_CurrentPaneID);
+	
+	document.write("</TABLE>");
+
+	BuildBoxFooter();
+}
+
+
+</script>
+<html>
+	<script>BuildPage(Loc('PageTitle'), Loc('PageBlurb'), "ShowPage()");</script>
+</html>

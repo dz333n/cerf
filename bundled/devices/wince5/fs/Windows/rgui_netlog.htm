@@ -1,0 +1,123 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include PASSWORD##
+##include HOSTNAME##
+##include NETLOG##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+
+<script language="javascript">
+
+ 
+function Input(UID, Name, InitValue, Type, Status)
+{
+    return new String("<input type=" + Type +" name=\"" + Name + "\" value=\"" + InitValue + "\" onKeypress=NetworkChanged(\""+UID+"\") "+Status+">");
+}
+
+function CheckClicked(Object) 
+{
+	if(Object) {
+		SubmitPart = FindObject("a_NETWORK_DHCP_" + Object.name);
+		if(SubmitPart) {
+			SubmitPart.value = (Object.checked)?"ENABLED":"DISABLED";	
+							
+			ip = FindObject("a_NETWORK_IPADDRESS_"+Object.name);	
+			sub = FindObject("a_NETWORK_SUBNET_"+Object.name);
+			dns1= FindObject("a_NETWORK_DNS1_"+Object.name);
+			dns2 = FindObject("a_NETWORK_DNS2_"+Object.name);
+			wins1 = FindObject("a_NETWORK_WINS1_"+Object.name);
+			wins2 = FindObject("a_NETWORK_WINS2_"+Object.name);
+			
+			if(ip) {ip.disabled = (Object.checked);}	
+			if(sub) {sub.disabled = (Object.checked);}	
+			if(dns1) {dns1.disabled = (Object.checked);}	
+			if(dns2) {dns2.disabled = (Object.checked);}	
+			if(wins1) {wins1.disabled = (Object.checked);}	
+			if(wins2) {wins2.disabled = (Object.checked);}	
+		}
+		NetworkChanged(Object.name);
+	}
+}
+
+function CheckInput(Name, InitValue)
+{
+	if("ENABLED" == InitValue) {
+		InitValue = "CHECKED";
+	} else {
+		InitValue = "";
+	}
+	return new String("<input type=checkbox name=" + Name + " onClick=CheckClicked(this) " + InitValue + ">");	
+}
+
+
+
+function ShowNetLog()
+{	
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+
+	if(1 == g_NETLOG_Stopped) {
+		document.write("Max Log Size: ");
+		document.write("<SELECT NAME=NETLOG_HalfCaptureSize>");
+  		    document.write("<OPTION VALUE=50000 SELECTED>50K");
+			document.write("<OPTION VALUE=125000>125K");
+		document.write("</SELECT><BR>");
+
+
+		document.write("Max Packet Size: ");
+		document.write("<SELECT NAME=NETLOG_PacketSize>");			
+			document.write("<OPTION VALUE=100>100 Bytes");
+			document.write("<OPTION VALUE=500>500 Bytes");
+			document.write("<OPTION VALUE=5000 SELECTED>5K Bytes");
+		document.write("</SELECT><BR>");
+
+		
+		document.write("<TR><TD><input type=hidden name=NETLOG_Start value=YES></TD></TR>");
+		document.write("<TR><TD><input type=hidden name=NETLOG_Load value=YES></TD></TR>");
+		document.write("<TR><TD><input type=submit value=\"Start Capture\"></TD></TR>");
+
+
+		document.write("<TR><TD><HR></TD></TR>");
+		document.write("<TR><TD>Please download here</TD></TR>");	
+		document.write("<TR><TD>Download <a class=GenericUnlineLink href=../captures/netlog0.cap>NetLog0.cap</a></TD></TR>");	
+		document.write("<TR><TD>Download <a class=GenericUnlineLink href=../captures/netlog1.cap>NetLog1.cap</a></TD></TR>");
+
+
+	} else {	
+		document.write("<TR><TD><input type=hidden name=NETLOG_Start value=NO></TD></TR>");
+		document.write("<TR><TD><input type=hidden name=NETLOG_Load value=NO></TD></TR>");
+		document.write("<TR><TD><input type=submit value=\"Stop Capture\"></TD></TR>");	
+	}	
+	document.write("</form>");
+	document.write("</table>");
+	
+	
+	BuildBoxFooter();	
+}
+
+
+</script>
+
+
+<html>
+	<head>
+		<title>NAS Admin</title>		
+	</head>
+	<body>	
+		<script>BuildMainTable("Use this page to create network captures", "", "ShowNetLog()");</script>	
+	</body>
+</html>
+
+
+

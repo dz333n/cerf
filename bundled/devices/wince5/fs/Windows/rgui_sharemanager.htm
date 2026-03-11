@@ -1,0 +1,121 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include SMBFILE##
+##include ROOTDIRS##
+##include PASSWORD##
+##include HOSTNAME##
+##include NETWORK##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script language="javascript">
+
+
+var g_Path;
+
+function LocalSubmitHandler(o)
+{
+	
+	GlobalSubmitHandler(o);
+}
+
+
+function update(Path)
+{
+	var type=FindObject("type");
+	var path=FindObject("path");
+
+	if(type && path) {
+		var name = FindObject("Tmp_Add_"+Path);
+
+		type.value = "0";
+		path.value = unescape(Path);
+		type.name = "a_SMBFILE_ShareType_"+name.value;
+		path.name = "a_SMBFILE_SharePath_"+name.value;
+
+	}
+
+	
+	LocalSubmitHandler(document.general);
+	document.general.submit();
+}
+
+function ShowPerms(Path)
+{
+	window.location = "FileConfig.htm?Path="+Path;
+}
+
+function ShowShares() 
+{
+	BuildBoxHeader();
+        document.write("<table class=boxInside>");
+	document.write("<TR><TD COLSPAN=3 class=cellLtColor>Available Shares ");
+	if(window.g_SMBFILE_ErrorDeletingShare) {
+		document.write("<font color=#FF0000>Error Deleting Share -- may be in use?</font>");
+	}
+	if(window.g_SMBFILE_SuccessDeletingShare) {
+		document.write("<font color=#0000FF>Success</font>");
+	}
+	
+	document.write("</TD></TR>");		
+
+	document.write("<form METHOD=post onsubmit='LocalSubmitHandler(this)' name=general>");
+	document.write("<input type=hidden name=type>");
+	document.write("<input type=hidden name=path>");
+
+	for(Path in g_ROOTDIRS_Dir) {
+		fFound = false;
+		
+		document.write("<form METHOD=post onsubmit='LocalSubmitHandler(this)'>");	
+		if(window.g_SMBFILE_ShareUsers) {
+			for(Share in g_SMBFILE_ShareUsers) {
+				if(g_SMBFILE_SharePath[Share] == Path && (0 == g_SMBFILE_ShareType[Share])) {
+					document.write("<TR>");
+					document.write("<TD>" + Path + "</TD><TD>"+Share+"</TD><TD><input type=submit name=\"a_SMBFILE_Delete_"+Share+"\" style=\"width: 7em\" value=Remove>");
+					document.write("<input type=button onclick=ShowPerms(\""+escape(Share)+"\"); style=\"width: 7em\" value=Permissions></TD></TR>");
+					document.write("</TR>");
+					fFound = true;
+					break;
+				}			
+			}
+		}
+		document.write("</form>");
+
+		if(false == fFound) {
+			document.write("<TR>");
+			document.write("<TD>" + Path + "</TD>");
+			document.write("<TD><input type=text name=\""+escape("Tmp_Add_"+Path)+"\"></TD>");
+			document.write("<TD><input type=submit onclick=update(\""+escape(Path)+"\"); value=Add style=\"width: 7em;\"></TD>");
+			document.write("</TR>");
+		}
+		
+		
+	}
+	document.write("</form>");
+	document.write("</table>");
+	BuildBoxFooter();
+}
+
+function ShowPage()
+{
+	ShowShares();
+}
+</script>
+
+
+<html>
+	<head>
+		<title>NAS Admin</title>		
+	</head>
+	<body>	
+		<script>BuildMainTable("Use this page to add and remove shares", "", "ShowPage()");</script>	
+	</body>
+</html>

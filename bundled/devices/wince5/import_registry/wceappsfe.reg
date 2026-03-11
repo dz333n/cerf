@@ -1,0 +1,257 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+
+;---------------------------- start PWORD ---------------------------------
+;
+; @CESYSGEN IF WCEAPPSFE_MODULES_PWORD
+;
+; .pwd files
+[HKEY_CLASSES_ROOT\.pwd]
+@="pwdfile"
+[HKEY_CLASSES_ROOT\pwdfile]
+;LOC_PWORDDOCUMENT
+@=mui_sz:"pwd_res.dll,#9007"
+; IDI_ICONDOC
+[HKEY_CLASSES_ROOT\pwdfile\DefaultIcon]
+@="\\Windows\\pword.exe,-107"
+[HKEY_CLASSES_ROOT\pwdfile\Shell\Open\Command]
+@="\\Windows\\pword.exe %1"
+
+; Associate .doc and .dot with PWord
+[HKEY_CLASSES_ROOT\.doc]
+@="docfile"
+[HKEY_CLASSES_ROOT\docfile]
+;LOC_WORDDOCUMENT
+@=mui_sz:"pwd_res.dll,#9011"
+[HKEY_CLASSES_ROOT\docfile\DefaultIcon]
+@="\\Windows\\pword.exe,-107"
+[HKEY_CLASSES_ROOT\docfile\Shell\Open\Command]
+@="\\Windows\\pword.exe %1"
+
+[HKEY_CLASSES_ROOT\.dot]
+@="dotfile"
+[HKEY_CLASSES_ROOT\dotfile]
+;LOC_WORDTEMPLATE
+@=mui_sz:"pwd_res.dll,#9012"
+[HKEY_CLASSES_ROOT\dotfile\DefaultIcon]
+@="\\Windows\\pword.exe,-109"
+[HKEY_CLASSES_ROOT\dotfile\Shell\Open\Command]
+@="\\Windows\\pword.exe %1"
+;
+; Pocket Word filter to read/write Word 95/97 documents and templates.
+;
+[HKEY_CLASSES_ROOT\CLSID\{F31F2300-7EDF-11D0-829B-00AA00C267C1}\InprocServer32]
+@="pwwiff.dll"
+[HKEY_CLASSES_ROOT\CLSID\{F31F2301-7EDF-11D0-829B-00AA00C267C1}\InprocServer32]
+@="pwwiff.dll"
+[HKEY_CLASSES_ROOT\CLSID\{F31F2302-7EDF-11D0-829B-00AA00C267C1}\InprocServer32]
+@="pwwiff.dll"
+[HKEY_CLASSES_ROOT\CLSID\{F31F2303-7EDF-11D0-829B-00AA00C267C1}\InprocServer32]
+@="pwwiff.dll"
+[HKEY_CLASSES_ROOT\CLSID\{F31F2304-7EDF-11D0-829B-00AA00C267C1}\InprocServer32]
+@="pwwiff.dll"
+[HKEY_CLASSES_ROOT\CLSID\{F31F2305-7EDF-11D0-829B-00AA00C267C1}\InprocServer32]
+@="pwwiff.dll"
+
+; Read Word documents
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pocket Word\Converters\Read\LOC_PWD_REG_READWORD]
+"EXTENSION"="doc"
+"STRUCTURED"=dword:1
+"PRIORITY"=dword:2
+"GUID"=hex:02,23,1f,f3,df,7e,d0,11,82,9b,00,aa,00,c2,67,c1
+"TEMPLATE"=dword:0
+"STREAM"="WordDocument"
+
+; Read Word templates
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pocket Word\Converters\Read\LOC_PWD_REG_READWORDTEMPLATE]
+"EXTENSION"="dot"
+"STRUCTURED"=dword:1
+"PRIORITY"=dword:2
+"GUID"=hex:05,23,1f,f3,df,7e,d0,11,82,9b,00,aa,00,c2,67,c1
+"TEMPLATE"=dword:1
+"STREAM"="WordDocument"
+
+; Write Word 97 documents
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pocket Word\Converters\Write\LOC_PWD_REG_WRITEWORD97]
+"EXTENSION"="doc"
+"STRUCTURED"=dword:1
+"PRIORITY"=dword:2
+"GUID"=hex:00,23,1f,f3,df,7e,d0,11,82,9b,00,aa,00,c2,67,c1
+"TEMPLATE"=dword:0
+"STREAM"="WordDocument"
+"NOLOSSWARNING"=dword:1
+
+; Write Word 95 documents
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pocket Word\Converters\Write\LOC_PWD_REG_WRITEWORD95]
+"EXTENSION"="doc"
+"STRUCTURED"=dword:1
+"PRIORITY"=dword:2
+"GUID"=hex:01,23,1f,f3,df,7e,d0,11,82,9b,00,aa,00,c2,67,c1
+"TEMPLATE"=dword:0
+"STREAM"="WordDocument"
+"NOLOSSWARNING"=dword:1
+
+; Write Word 97 templates
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pocket Word\Converters\Write\LOC_PWD_REG_WRITEWORD97TEMPLATE]
+"EXTENSION"="dot"
+"STRUCTURED"=dword:1
+"PRIORITY"=dword:2
+"GUID"=hex:03,23,1f,f3,df,7e,d0,11,82,9b,00,aa,00,c2,67,c1
+"TEMPLATE"=dword:1
+"STREAM"="WordDocument"
+"NOLOSSWARNING"=dword:1
+
+; Write Word 95 templates
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pocket Word\Converters\Write\LOC_PWD_REG_WRITEWORD95TEMPLATE]
+"EXTENSION"="dot"
+"STRUCTURED"=dword:1
+"PRIORITY"=dword:2
+"GUID"=hex:04,23,1f,f3,df,7e,d0,11,82,9b,00,aa,00,c2,67,c1
+"TEMPLATE"=dword:1
+"STREAM"="WordDocument"
+"NOLOSSWARNING"=dword:1
+
+; Pocket Word directory settings (for MUI)
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pocket Word\Directories]
+"Templates"="\\LOC_PROGRAMFILES_DIR\\LOC_OFFICE_DIR\\LOC_TEMPLATES_DIR"
+
+; .rtf files
+[HKEY_CLASSES_ROOT\.rtf]
+@="rtffile"
+[HKEY_CLASSES_ROOT\rtffile]
+;LOC_RTFDOCUMENT
+@=mui_sz:"pwd_res.dll,#9009"
+; IDI_ICONDOC
+[HKEY_CLASSES_ROOT\rtffile\DefaultIcon]
+@="\\Windows\\pword.exe,-107"
+[HKEY_CLASSES_ROOT\rtffile\Shell\Open\Command]
+@="\\Windows\\pword.exe %1"
+
+; .pwt files
+[HKEY_CLASSES_ROOT\.pwt]
+@="pwtfile"
+[HKEY_CLASSES_ROOT\pwtfile]
+;LOC_PWORDTEMPLATE
+@=mui_sz:"pwd_res.dll,#9010"
+; IDI_ICONPWT
+[HKEY_CLASSES_ROOT\pwtfile\DefaultIcon]
+@="\\Windows\\pword.exe,-109"
+[HKEY_CLASSES_ROOT\pwtfile\Shell\Open\Command]
+@="\\Windows\\pword.exe %1"
+
+; .txt files
+[HKEY_CLASSES_ROOT\.txt]
+@="txtfile"
+[HKEY_CLASSES_ROOT\txtfile]
+;LOC_TEXTDOCUMENT
+@=mui_sz:"pwd_res.dll,#9008"
+; IDI_ICONTXT
+[HKEY_CLASSES_ROOT\txtfile\DefaultIcon]
+@="\\Windows\\pword.exe,-108"
+[HKEY_CLASSES_ROOT\txtfile\Shell\Open\Command]
+@="\\Windows\\pword.exe %1"
+
+;Office directory settings (for MUI)
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Office\Directories]
+"Templates"="\\LOC_PROGRAMFILES_DIR\\LOC_OFFICE_DIR\\LOC_TEMPLATES_DIR"
+
+;
+; @CESYSGEN ENDIF WCEAPPSFE_MODULES_PWORD
+
+;
+;---------------------------- end PWORD ---------------------------------
+
+
+;---------------------------- begin PMAIL ---------------------------------
+;
+; @CESYSGEN IF WCEAPPSFE_MODULES_PMAIL
+;
+;  Mail Passive Services
+;
+[HKEY_LOCAL_MACHINE\PMail\PassiveServiceInfo]
+	"MS Xfer"="LOC_MAIL_TRANSPORT"
+[HKEY_LOCAL_MACHINE\PMail\PassiveServiceInfo\LOC_MAIL_TRANSPORT]
+	"1"="2"
+;
+;  Calendar Mail Transport - this should agree with the Mail Passive Services value above
+;
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Calendar\DefMailTransport]
+	"DefMailTransport"="LOC_MAIL_TRANSPORT"
+;
+;  Mail Attachments
+;
+[HKEY_LOCAL_MACHINE\PMail\Attachments]
+	"TopDir"="LOC_PROGRAMFILES_DIR"
+	"MiddleDir"="LOC_POUTLOOK_DIR"
+	"BottomDir"="LOC_MAILATTACHMENTS_DIR"
+	"OldMiddleDir"="LOC_COMMUNICATION_DIR"
+;
+;  Mail Store
+;
+[HKEY_LOCAL_MACHINE\PMail\MessageStore]
+	"AttsOnCard"=dword:0
+	"AttsStartOnCard"=dword:0
+	"LargeBodyDir"="\\LOC_PROGRAMFILES_DIR\\LOC_POUTLOOK_DIR\\LOC_LARGEMAILMESSAGE_DIR"
+	"Version"=dword:300
+;
+; Faux class for Inbox embedded messages (these are not real files, but
+; the icon is used for attachments)
+;
+[HKEY_CLASSES_ROOT\.cei]
+@="WCEmsg"
+[HKEY_CLASSES_ROOT\WCEmsg]
+@="Windows CE Embedded Message"
+[HKEY_CLASSES_ROOT\WCEmsg\DefaultIcon]
+@="\\Windows\\pmail.exe,0"
+
+[HKEY_CLASSES_ROOT\mailto]
+@="URL:HyperText Transfer Protocol"
+"URL Protocol"=""
+[HKEY_CLASSES_ROOT\mailto\DefaultIcon]
+@="pmail.exe,-200"
+[HKEY_CLASSES_ROOT\mailto\Shell\Open\Command]
+@="pmail.exe -To \"%1\""
+
+
+;PMAIL directory settings (for MUI)
+[HKEY_LOCAL_MACHINE\PMail\Directories]
+"Executable"="LOC_PMAIL_EXE"
+
+;
+; @CESYSGEN ENDIF WCEAPPSFE_MODULES_PMAIL
+
+
+; PIM infrastructure
+; Default ActiveSync service providers
+
+; @CESYSGEN IF WCEAPPSFE_MODULES_ADDRSTOR  && DATASYNC_MODULES_PEGOBJ
+[HKEY_LOCAL_MACHINE\Windows CE Services\Synchronization\Objects\Contact]
+	"Store"="pegobj.dll"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF WCEAPPSFE_MODULES_CALSTORE  && DATASYNC_MODULES_PEGOBJ
+[HKEY_LOCAL_MACHINE\Windows CE Services\Synchronization\Objects\Appointment]
+	"Store"="pegobj.dll"
+[HKEY_LOCAL_MACHINE\Windows CE Services\Synchronization\Objects\Task]
+	"Store"="pegobj.dll"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF WCEAPPSFE_MODULES_MSGSTORE  && DATASYNC_MODULES_PEGOBJ
+[HKEY_LOCAL_MACHINE\Windows CE Services\Synchronization\Objects\Inbox]
+	"Store"="pegobj.dll"
+; @CESYSGEN ENDIF
+
+;---------------------------- begin PMAIL ---------------------------------
+
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Pim]
+	"Version"="3.1"
+

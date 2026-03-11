@@ -1,0 +1,106 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+; ---------------------------------------------------------------------------
+; Shell32 registry keys
+; ---------------------------------------------------------------------------
+;
+; We have a  restriction on where the user is allowed
+; to create subfolders.  Active Sync reads this setting and
+; enforces that restriction.
+;
+; @CESYSGEN IF DATASYNC_MODULES_REPLLOG || DATASYNC_MODULES_RAPISRV
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows CE Services]
+        "Version"=dword:20000
+        "PIMRTF"=dword:1
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_RRA_STM
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows CE Services]
+    "NoSubFolderIn"=LOC_NOSUBFOLDERIN
+    "FileSyncPath"=LOC_FILESYNCPATH
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_CEFOBJ
+; Default ActiveSync service providers
+[HKEY_LOCAL_MACHINE\Windows CE Services\Synchronization\Objects\File]
+    "Store"="cefobj.dll"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_PEGOBJ
+; PIM ActiveSync service providers
+[HKEY_LOCAL_MACHINE\Explorer\Database]
+    "ContactsDatabase"="Contacts Database"
+    "TasksDatabase"="Tasks Database"
+    "AppointmentsDatabase"="Appointments Database"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_WCELOAD
+; BEGIN: AppInstall reg settings
+;
+[HKEY_CLASSES_ROOT\.cab]
+@="cabfile"
+
+[HKEY_CLASSES_ROOT\cabfile]
+@="CAB File"
+
+[HKEY_CLASSES_ROOT\cabfile\DefaultIcon]
+@="\\Windows\\wceload.exe,-101"
+
+[HKEY_CLASSES_ROOT\cabfile\Shell\Open\Command]
+@="\\Windows\\wceload.exe \"%1\""
+
+[HKEY_LOCAL_MACHINE\Software\Apps\Microsoft Application Installer]
+"fAskOptions"=dword:0
+"fAskDest"=dword:1
+"nDynamicDelete"=dword:2
+; END:   AppInstall reg settings
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_UDP2TCP
+[HKEY_LOCAL_MACHINE\Comm\UDP2TCP]
+    "Port"=dword:1D0E
+[HKEY_LOCAL_MACHINE\Comm\UDP2TCP\DNS]
+    "Port"=dword:35
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_DMINFOS
+[HKEY_LOCAL_MACHINE\Comm\ApplicationDownload\InfoSrc\0000]
+@="\\Windows\\dminfos.dll"
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_DMSCRIPT
+[HKEY_CLASSES_ROOT\.dms]
+@="dmsfile"
+
+[HKEY_CLASSES_ROOT\dmsfile]
+@="Device Management Script File"
+
+[HKEY_CLASSES_ROOT\dmsfile\DefaultIcon]
+@="\\Windows\\dmscript.exe,-1000"
+
+[HKEY_CLASSES_ROOT\dmsfile\Shell\Open\Command]
+@="\\Windows\\dmscript.exe %1"
+
+; @CESYSGEN ENDIF
+
+; @CESYSGEN IF DATASYNC_MODULES_DMSVC
+
+[HKEY_LOCAL_MACHINE\Comm\ApplicationDownload]
+    "Version"="1.1.1400"
+    "EnableEditServer"=dword:1
+    "RetryTime"="00-00-00 00:03:00"
+    "MaxRetry"=dword:5
+    "AuthCookie"="0"
+    "TimestampCookie"="0"
+    "SvrFmt"="https://%s/devicemgmt/server.aspx"
+
+; @CESYSGEN ENDIF DATASYNC_MODULES_DMSVC
+

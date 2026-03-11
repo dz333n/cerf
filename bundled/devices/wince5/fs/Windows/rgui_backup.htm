@@ -1,0 +1,41 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include BACKUP##
+
+
+<script language=javascript>
+   function sub() {
+    	var o = document.getElementById("form");
+    	var p = document.getElementById("ip");
+    	o.action="http://"+p.value+"/remoteadmin/restore";	
+    }
+   
+    function MyLoad() {
+        for(x in g_BACKUP) {
+	    	document.write("<input type=hidden name=\"" + x + "\" value=\"" + g_BACKUP[x] + "\"><BR>");
+		}
+	}
+
+</script>
+
+
+
+
+<html>
+Please use File->SaveAs to save this file somewhere safe. When you need 
+to restore your device load the file in your browser and enter the IP address of 
+your device 
+<FORM method=POST name=form onSubmit=sub()>
+<input type=input name=ip value="192.168.2.1">
+<INPUT type=submit>
+<script>MyLoad();</script>
+</form>
+</html>

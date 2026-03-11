@@ -1,0 +1,106 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include NETWORK##
+
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="BackupRestore_loc.js" language="javascript"></script>
+<script language="javascript">
+
+
+	
+
+function ShowErrors() 
+{
+	return new String("");
+}
+
+function ShowBackup()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside><form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	
+	AddSection(Loc("Sec1Title"), Loc("Sec1Blurb"));
+	AddBar();
+
+	document.write("<TR>");
+		document.write("<TD COLSPAN=2>");
+		document.write("<INPUT type=button value='" + Loc('BTNBackup') + "' onclick=\"document.location='/remoteadmin"+g_REMOTEUTILS_BackupFile +"'\">");
+		document.write("</TD>");
+	document.write("</TR>");
+		
+	document.write("</form></table>");
+	BuildBoxFooter();
+}
+
+function ShowRestore()
+{
+	BuildBoxHeader();
+	document.write("<table class=boxInside><form METHOD=post ENCTYPE=multipart/form-data onsubmit='GlobalSubmitHandler(this)'>");
+	
+	AddSection(Loc("Sec2Title"), Loc("Sec2Blurb"));
+
+	document.write("<TR>");
+		document.write("<TD COLSPAN=2>");
+		document.write("<INPUT id=webUpload type=file maxLength=31 size=25 name=webUpload> ");
+		document.write("</TD>");
+	document.write("</TR>");
+					
+	AddBar();
+
+	document.write("<TR>");
+		document.write("<TD COLSPAN=2>");
+		document.write("<INPUT type=submit value='" + Loc('BTNRestore') + "'>");
+		document.write("</TD>");
+	document.write("</TR>");
+		
+	document.write("</form></table>");
+	BuildBoxFooter();
+}
+
+function ShowRestoreFactory()
+{
+
+	BuildBoxHeader();
+	document.write("<table class=boxInside><form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	
+	AddSection(Loc("Sec3Title"), Loc("Sec3Blurb"));
+	AddBar();
+
+	document.write("<TR>");
+		document.write("<TD COLSPAN=2>");
+		document.write("<INPUT type=button value='" + Loc('BTNFactoryDefault') + "' class=notComplete>");
+		document.write("</TD>");
+	document.write("</TR>");
+	
+		
+	document.write("</form></table>");
+	BuildBoxFooter();
+}
+
+function ShowPage()
+{	
+	// Backup section
+	ShowBackup();
+
+	// restore section
+	ShowRestore();
+
+	// Restore fectory defaults section
+	//ShowRestoreFactory();
+
+}
+	
+</script>
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>

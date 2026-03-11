@@ -1,0 +1,76 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include USERS##
+##include PASSWORD##
+##include HOSTNAME##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+
+<script language="javascript">
+
+
+function ShowUsers()
+{		
+    BuildBoxHeader();
+    document.write("<table class=boxInside>");
+	errMsg = "";
+	if(window.g_USERS_Mismatch) {
+		errMsg = "<font color=#FF0000>Passwords Mismatched</font>";
+	}
+	if(window.g_USERS_SuccessfullyAdded) {
+		errMsg = "<font color=#0000FF>Success</font>";
+	}
+	if(window.g_USERS_ErrorAdding) {
+		errMsg = "<font color=#FF0000>Error Adding/Modifying User</font>";
+	}
+	if(window.g_USERS_ErrorDeleting) {
+		errMsg = "<font color=#FF0000>Error Deleting User</font>";
+	}
+	if(window.g_USERS_SuccessfullyDeleted) {
+		errMsg = "<font color=#0000FF>User Deleted</font>";
+	}
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor>Add/Modify User " + errMsg + "</TD></TR>");
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");	
+	document.write("<TR><TD>User</TD><TD><input type=text name=\"USERS_Add\"></TD></TR>");
+	document.write("<TR><TD>Password</TD><TD><input type=password name=\"USERS_PWD\"></TD></TR>");
+	document.write("<TR><TD>Password Verify</TD><TD><input type=password name=\"USERS_PWDVERIFY\"></TD></TR>");
+	document.write("<TR><TD><input type=submit value=\"Add New\"></TD></TR>");
+	document.write("</form>");				
+	document.write("</form>");
+	document.write("</table>");
+	BuildBoxFooter();
+
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor>Delete Users</TD></TR>");		
+	for(User in g_USERS_User) {	
+		document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");	
+		document.write("<TR><TD>" + User + "</TD><TD>");
+		if("ADMIN" != User) {
+			document.write("<input type=submit name=\"a_USERS_Delete_"+User+"\" value=Delete>");
+		}
+		document.write("</form>");
+	}	
+	document.write("</table>");
+	BuildBoxFooter();
+}
+</script>
+
+
+<html>
+	<head>
+		<title>NAS Admin</title>		
+	</head>
+	<body>	
+		<script>BuildMainTable("Use this page to Add/Delete users.", "", "ShowUsers()");</script>	
+	</body>
+</html>

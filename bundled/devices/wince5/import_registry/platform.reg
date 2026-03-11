@@ -1,0 +1,215 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this source code is subject to the terms of the Microsoft end-user
+; license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+; If you did not accept the terms of the EULA, you are not authorized to use
+; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+; install media.
+;
+
+; Our variables
+#define BUILTIN_ROOT HKEY_LOCAL_MACHINE\Drivers\BuiltIn
+#define DRIVERS_DIR $(_PUBLICROOT)\common\oak\drivers
+
+; Resources available at time of device.exe initialization.
+; Key names are descriptive; resource ids are definitive.
+; System ids are defined in ddk\inc\resmgr.h.
+; HIVE BOOT SECTION
+[HKEY_LOCAL_MACHINE\Drivers\Resources\IRQ]
+   "Identifier"=dword:1
+   "Minimum"=dword:1
+   "Space"=dword:2F
+   "Ranges"="1-0x2F"
+
+[HKEY_LOCAL_MACHINE\Drivers\Resources\IO]
+   "Identifier"=dword:2
+   "Minimum"=dword:0
+   "Space"=dword:10000
+   "Ranges"="0-0xFFFF"
+; END HIVE BOOT SECTION
+
+; Disable keyboard and touch clicks until the audio driver is fixed.  Without
+; the fix, the gwes input thread stalls trying to play clicks.
+; @CESYSGEN IF WCESHELLFE_MODULES_CPLMAIN
+[HKEY_CURRENT_USER\ControlPanel\Volume]
+    "Key"=dword:0       ; Keyclicks:  1=soft, 0x10002=loud
+    "Screen"=dword:0    ; ScreenTaps: 1=soft, 0x10002=loud
+; @CESYSGEN ENDIF WCESHELLFE_MODULES_CPLMAIN
+
+; *****************************************************************************
+; Device.exe drivers
+; *****************************************************************************
+;
+
+; @CESYSGEN IF CE_MODULES_DEVICE
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_WAVEAPI
+IF BSP_NOAUDIO !
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\WaveDev\]
+   "Prefix"="WAV"
+   "Dll"="pxa27x_wavedev.dll"
+   "Index"=dword:1
+   "Order"=dword:0
+   "Priority256"=dword:95
+   "Sysintr"=dword:19
+
+[HKEY_LOCAL_MACHINE\Audio\SoftwareMixer]
+    "BufferSize"=dword:1000
+    "Priority256"=dword:96
+
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\WAPIMAN\]
+    "Priority256"=dword:97
+ENDIF BSP_NOAUDIO !
+; @CESYSGEN ENDIF CE_MODULES_WAVEAPI
+; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_USBD
+IF BSP_NOUSB !
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\OHCI]
+    "InterfaceType"=dword:0     ; Internal
+    "Prefix"="HCD"
+    "Dll"="ohci2.dll"
+    "Index"=dword:1
+    "Order"=dword:1
+    "Irq"=dword:3
+    "SysIntr"=dword:11		; (SYSINTR_FIRMWARE+1)
+    "MemBase"=dword:4C000000
+    "MemLen"=dword:1000
+    "UseExistingSettings"=dword:0
+ENDIF BSP_NOUSB !
+; @CESYSGEN ENDIF CE_MODULES_USBD
+; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_SERIAL
+IF BSP_NOSERIAL !
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Serial]
+   "Irq"=dword:16		; 22 IRQ_FFUART
+   "SysIntr"=dword:1d           ; 29 SYSINTR_FFUART
+   "MemBase"=dword:40100000	; FFUART Register 
+   "MemLen"=dword:40
+   "DeviceArrayIndex"=dword:80  ; FFUART object
+   "Prefix"="COM"
+   "IClass"="{CC5195AC-BA49-48a0-BE17-DF6D1B0173DD}"
+   "Dll"="ms2_serial.dll"
+   "Order"=dword:0
+
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Serial\Unimodem]
+   "Tsp"="Unimodem.dll"
+   "DeviceType"=dword:0
+   "FriendlyName"="Serial Cable on COM1:"
+   "DevConfig"=hex: 10,00, 00,00, 05,00,00,00, 10,01,00,00, 00,4B,00,00, 00,00, 08, 00, 00, 00,00,00,00
+
+ENDIF BSP_NOSERIAL !
+; @CESYSGEN ENDIF CE_MODULES_SERIAL
+; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_USBFN
+; @CESYSGEN ENDIF CE_MODULES_USBFN
+
+; @CESYSGEN IF CE_MODULES_PCCARD
+IF BSP_NOPCCARD !
+#include "$(_TARGETPLATROOT)\src\drivers\pccard\pcc_mainstoneii.reg"
+#include "$(DRIVERS_DIR)\pccard\mdd\pcc_serv.reg"
+[HKEY_LOCAL_MACHINE\Drivers\PCCARD\PCMCIA\TEMPLATE\PCMCIA]
+   "Dll"="pcmcia.dll"
+   "NoConfig"=dword:1
+   "IClass"=multi_sz:"{6BEAB08A-8914-42fd-B33F-61968B9AAB32}=PCMCIA Card Services"
+ENDIF BSP_NOPCCARD !
+; @CESYSGEN ENDIF CE_MODULES_PCCARD
+; -----------------------------------------------------------------------------
+; @CESYSGEN ENDIF CE_MODULES_DEVICE
+
+; -----------------------------------------------------------------------------
+; SDIO drivers
+;
+; @CESYSGEN IF CE_MODULES_SDBUS
+; @CESYSGEN ENDIF CE_MODULES_SDBUS
+; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; Null Battery Driver
+;
+; @CESYSGEN IF CE_MODULES_BATTDRVR
+; @CESYSGEN ENDIF CE_MODULES_BATTDRVR
+; -----------------------------------------------------------------------------
+
+; *****************************************************************************
+; GWES drivers
+; *****************************************************************************
+;
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_DISPLAY
+IF BSP_NODISPLAY !
+[HKEY_LOCAL_MACHINE\System\GDI\Drivers]
+    "Display"="pxa27x_lcd.dll"
+
+; GWES will pass this value to the LCD driver; the driver will open the
+; key to which it points to read its configuration.
+;
+[HKEY_LOCAL_MACHINE\System\GDI\DisplayCandidates]
+    "Candidate10"="Drivers\\Display\\PXA27x\\Config"
+
+[HKEY_LOCAL_MACHINE\Drivers\Display\PXA27x\Config]
+    "DisplayDll"="pxa27x_lcd.dll"
+    "DisplayType"="LTM035A776C"
+    ; Portrait QVGA
+    ;
+    "CxScreen"=dword:F0
+    "CyScreen"=dword:140
+    "Bpp"=dword:10
+
+ENDIF BSP_NODISPLAY !
+; @CESYSGEN ENDIF CE_MODULES_DISPLAY
+; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_POINTER
+IF BSP_NOTOUCH !
+[HKEY_LOCAL_MACHINE\HARDWARE\DEVICEMAP\TOUCH]
+    "DriverName"="touch.dll"
+    ; Portrait mode calibration data:
+    ;
+    "CalibrationData"="511,517 264,272 276,756 769,763 749,278"
+ENDIF BSP_NOTOUCH !
+; @CESYSGEN ENDIF CE_MODULES_POINTER
+; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_KEYBD
+IF BSP_NOKEYPAD !
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\KEYPAD]
+    "Dll"="pxa27x_keypad.dll"
+ENDIF BSP_NOKEYPAD !
+
+IF BSP_NOKEYBD !
+#include "$(DRIVERS_DIR)\keybd\keybd.reg"
+#include "$(DRIVERS_DIR)\keybd\LayMgr.reg"
+ENDIF BSP_NOKEYBD !
+; @CESYSGEN ENDIF CE_MODULES_KEYBD
+; -----------------------------------------------------------------------------
+
+; -----------------------------------------------------------------------------
+; Select a Direct3D Mobile Driver
+
+; @CESYSGEN IF DIRECTX_MODULES_D3DM
+
+IF BSP_D3DM_NULL
+IF BSP_D3DM_NULL_REMOTE
+[HKEY_LOCAL_MACHINE\System\D3DM\Drivers]
+   "RemoteHook"="d3dm_nulldrv.dll"
+ELSE
+[HKEY_LOCAL_MACHINE\System\D3DM\Drivers]
+   "LocalHook"="d3dm_nulldrv.dll"
+ENDIF BSP_D3DM_NULL_REMOTE
+ENDIF BSP_D3DM_NULL
+
+; @CESYSGEN IF DIRECTX_MODULES_D3DMXSC50PB
+; @CESYSGEN ENDIF DIRECTX_MODULES_D3DMXSC50PB
+; @CESYSGEN ENDIF DIRECTX_MODULES_D3DM
+; -----------------------------------------------------------------------------

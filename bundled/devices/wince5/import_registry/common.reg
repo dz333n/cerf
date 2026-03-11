@@ -889,36 +889,6 @@ ENDIF IMGNOKITL !
 ;       "dlgctr" = hex:00,00,00,00, 00,00,00,00, 60,01,00,00, 00,01,00,00
 
 ; @CESYSGEN IF GWES_NCLIENTVIEWXP
-; XP UI system colors
-[HKEY_LOCAL_MACHINE\SYSTEM\GWE]
-  "SysColor"=hex:\
-   00,00,00,00,\
-   3A,6E,A5,00,\
-   00,00,00,00,\
-   00,00,00,00,\
-   EF,EB,DE,00,\
-   FF,FF,FF,00,\
-   00,00,00,00,\
-   00,00,00,00,\
-   00,00,00,00,\
-   FF,FF,FF,00,\
-   C0,C0,C0,00,\
-   C0,C0,C0,00,\
-   80,80,80,00,\
-   31,69,C6,00,\
-   FF,FF,FF,00,\
-   EF,EB,DE,00,\
-   AD,AA,9C,00,\
-   80,80,80,00,\
-   00,00,00,00,\
-   00,00,00,00,\
-   FF,FF,FF,00,\
-   73,6D,63,00,\
-   FF,FF,FF,00,\
-   00,00,00,00,\
-   FF,FF,E1,00,\
-   EF,EB,DE,00,\
-   00,00,00,00
 ; @CESYSGEN ENDIF
 
 ; @CESYSGEN ENDIF

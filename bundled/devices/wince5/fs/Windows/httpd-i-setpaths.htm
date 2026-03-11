@@ -1,0 +1,17 @@
+<H2><FONT COLOR="#FF0000" SIZE=5>The physical paths on some virtual directories cannot be changed. Why?</font></H2>
+WebAdmin and perhaps other virtual directories (depending on your device configuration)
+cannot be deleted and cannot have their physical paths changed.  This is an 
+added level of user protection.  If the virtual directory /WebAdmin were deleted
+or if its physical path were not \windows\httpdadm.dll, you would have no way of configuring the Web server.
+
+<P>The list of virtual directories that cannot be deleted is specified by your device
+manufacturer.  There is no way for end users to alter this list.
+
+<P><B>Caution:</B> It is possible to change other settings for protected virtual directories 
+like WebAdmin, such as the <A HREF="httpd-i-userlists.htm">allowed users</A> and 
+the <A HREF="httpd-i-authlevel.htm">level of authentication required</A>.
+Incorrectly configuring these options may cause you to be blocked out of accessing the resource 
+or may open it to hackers.  Virtual directories that cannot be deleted 
+are important to the operation of the device and should be modified only by advanced 
+users and only if necessary.
+

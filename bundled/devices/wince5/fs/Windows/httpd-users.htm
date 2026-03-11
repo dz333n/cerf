@@ -1,0 +1,24 @@
+<script language="JavaScript"><!--
+
+function SubmitRequest()
+{
+   document.forms[0].submit()
+   return false
+}
+// -->
+</SCRIPT>
+
+<H2><FONT COLOR="#FF0000">Allowed users</font></H2>
+
+Configure users for the virtual directory <B>$$VRootName$$</B>.
+For more information, click <A HREF="instructions/httpd-i-authoverview.htm">here</A>.
+
+<FORM ACTION /WebAdmin/ METHOD = post>
+<INPUT TYPE=HIDDEN NAME=Context VALUE=VRootConfig>
+<INPUT TYPE=HIDDEN NAME=WebsiteName VALUE="$$WebsiteName$$">
+<INPUT TYPE=HIDDEN NAME=VRootName VALUE="$$VRootName$$">
+Return to the <B>$$VRootName$$</B> virtual directory <A HREF="javascript:SubmitRequest();">configuration page</A>.
+</FORM>
+
+<HR>
+

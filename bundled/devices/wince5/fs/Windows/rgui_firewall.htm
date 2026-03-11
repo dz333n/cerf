@@ -1,0 +1,124 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include PASSWORD##
+##include HOSTNAME##
+##include FIREWALL##
+##include NETWORK##
+##include NAT##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+
+<script language="javascript">
+
+function ToggleActive(o)
+{	
+	fIsActive = g_FIREWALL_Flags[o.name] & g_FIREWALL_Const["FWF_DISABLED"];
+	g_FIREWALL_Flags[o.name] &= (~g_FIREWALL_Const["FWF_DISABLED"]);
+	if(!fIsActive) {
+		g_FIREWALL_Flags[o.name] |= g_FIREWALL_Const["FWF_DISABLED"];
+	}
+	
+	flagsHidden = FindObject("a_FIREWALL_Flags_"+o.name);
+	if(flagsHidden) {
+		flagsHidden.value = g_FIREWALL_Flags[o.name];
+	} 
+}
+
+function ShowEnableDisable(Name, Handle, PortMin, PortMax)
+{
+	fEnabled = false;
+	fNew = false;
+	if("" != Handle && window.g_FIREWALL_Flags && window.g_FIREWALL_Const && 0 == (g_FIREWALL_Flags[Handle] & g_FIREWALL_Const["FWF_DISABLED"])) {
+		fEnabled = true;
+	}
+	if("" == Handle) {		
+		fNew = true;
+	}
+	
+	if("" == Handle) {
+		Handle = Name;
+		g_FIREWALL_Flags[Handle]             = g_FIREWALL_Const["FWF_ALLOW"] | g_FIREWALL_Const["FWD_INBOUND"] | g_FIREWALL_Const["FWF_DISABLED"];
+		g_FIREWALL_Mask[Handle]              = g_FIREWALL_Const["FWM_PRIVATE_HOST"] | g_FIREWALL_Const["FWM_PROTOCOL"] | g_FIREWALL_Const["FWM_PORT"];
+		g_FIREWALL_PrivateHostFamily[Handle] = g_FIREWALL_Const["AF_INET"];
+		g_FIREWALL_PrivateHost[Handle]       = g_NETWORK_IPAddress[g_NAT_Public]; 
+		g_FIREWALL_Description[Handle]       = Name;
+		g_FIREWALL_PortMin[Handle]			 = PortMin;
+		g_FIREWALL_PortMax[Handle]			 = PortMax;
+		g_FIREWALL_Protocol[Handle]			 = g_FIREWALL_Const["PROTOCOL_TCP"];
+	}
+	
+	document.write("<TR>");
+	document.write("<TD><input type=checkbox onClick=ToggleActive(this) name="+Handle+" "+(fEnabled?"checked":"") + ">" + Name + "</TD><TD>("+PortMin+"-"+PortMax+")</TD>");
+	if(fNew) {
+		document.write("<TD><input type=hidden name=a_FIREWALL_New_" + Handle + " value=1></TD>");
+	}
+	document.write("<TD><input type=hidden name=a_FIREWALL_Flags_" + Handle + " value="+g_FIREWALL_Flags[Handle]+"></TD>");
+	document.write("<TD><input type=hidden name=a_FIREWALL_Mask_" + Handle + " value="+g_FIREWALL_Mask[Handle]+"></TD>");
+	document.write("<TD><input type=hidden name=a_FIREWALL_PrivateHostFamily_" + Handle + " value="+g_FIREWALL_PrivateHostFamily[Handle]+"></TD>");
+	document.write("<TD><input type=hidden name=a_FIREWALL_PrivateHost_" + Handle + " value="+g_FIREWALL_PrivateHost[Handle]+"></TD>");	
+	document.write("<TD><input type=hidden name=a_FIREWALL_Description_" + Handle + " value="+g_FIREWALL_Description[Handle]+"></TD>");
+	document.write("<TD><input type=hidden name=a_FIREWALL_PortMin_" + Handle + " value="+g_FIREWALL_PortMin[Handle]+"></TD>");
+	document.write("<TD><input type=hidden name=a_FIREWALL_PortMax_" + Handle + " value="+g_FIREWALL_PortMax[Handle]+"></TD>");
+	document.write("<TD><input type=hidden name=a_FIREWALL_Protocol_" + Handle + " value="+g_FIREWALL_Protocol[Handle]+"></TD>");
+	document.write("</TR>");
+}
+
+function ShowFirewall()
+{			
+
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	document.write("<TR><TD COLSPAN=9 class=cellLtColor>Active Services</TD></TR>");
+	fFoundWeb = false;
+	fFoundTelnet = false;
+	fFoundFile = false;
+
+	if(window.g_FIREWALL_Description) {
+		for(FWHand in g_FIREWALL_Description) {	
+			if(g_FIREWALL_PortMin[FWHand] <= 80 && g_FIREWALL_PortMax[FWHand] >= 80) {				
+				ShowEnableDisable("WebServer", FWHand, g_FIREWALL_PortMin[FWHand], g_FIREWALL_PortMax[FWHand]);
+				fFoundWeb = true;
+			} 
+			if(g_FIREWALL_PortMin[FWHand] <=23 && g_FIREWALL_PortMax[FWHand] >= 23) {			
+				ShowEnableDisable("Telnet", FWHand, g_FIREWALL_PortMin[FWHand], g_FIREWALL_PortMax[FWHand]);
+				fFoundTelnet = true;
+			} 
+			if(g_FIREWALL_PortMin[FWHand] <= 445 && g_FIREWALL_PortMax[FWHand] >= 445) {			
+				ShowEnableDisable("FileServer", FWHand, g_FIREWALL_PortMin[FWHand], g_FIREWALL_PortMax[FWHand]);
+				fFoundFile = true;
+			} 
+		}	
+	}
+
+	if(!fFoundWeb) {
+		ShowEnableDisable("WebServer", "", 80,80);
+	}
+	if(!fFoundTelnet) {
+		ShowEnableDisable("Telnet", "", 23,23);
+	}
+	if(!fFoundFile) {
+		ShowEnableDisable("FileServer", "", 445,445);
+	}
+
+	document.write("<TR><TD><input type=submit></TD></TR>");
+	document.write("</table>");
+	BuildBoxFooter();
+}
+
+
+</script>
+
+
+<html>
+	<script>BuildPage("Firewall Admin", "Use this page to open ports on the firewall, "ShowFirewall()");</script>
+</html>

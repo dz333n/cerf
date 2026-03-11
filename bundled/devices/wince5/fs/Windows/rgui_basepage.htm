@@ -1,0 +1,65 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include NETWORK##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script language="javascript">
+
+function SubmitHandler(SubmitVar)
+{
+	var bOK = false;
+	//SubmitVar.action="debug";
+	
+	// bOK = SomeValidationFunction(blah);
+	
+	// If everything passed then pass this onto the global handler to submit
+	if (true == bOK)
+	{
+		GlobalSubmitHandler(SubmitVar);
+		
+		return true;
+	}else{
+		//alert("Page validation failed");
+		return false;
+	}
+}
+
+function ShowErrors() 
+{
+	return new String("");
+}
+
+function ShowPage()
+{	
+	BuildBoxHeader();
+	document.write("<table class=boxInside><form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	
+
+	document.write("<TR>");
+		document.write("<TD COLSPAN=2 class=notComplete>");
+		document.write("</TD>");
+	document.write("</TR>");
+		
+	document.write("</form></table>");
+	BuildBoxFooter();
+
+	AddApplyCancel();
+}
+	
+</script>
+<html>
+	<script>
+	g_Blurb = "Some text at top of page.";
+
+	BuildPage("Base page", g_Blurb, "ShowPage()");
+	</script>
+</html>

@@ -1,0 +1,452 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include USERS##
+##include PARENTALCONTROLS##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="ParentalControlsUser_loc.js" language="javascript"></script>
+
+<script language="javascript">
+
+if (!g_PARENTALCONTROLS_Enabled)
+{
+	// build up some place holder variables so we don't get JS errors.
+	var g_PARENTALCONTROLS_Auth = "1"; // 1 = user names, 0 = IP
+	var g_PARENTALCONTROLS_ClientGroup = new Array();
+}
+
+var l_AgeGroupOptions	= new Array();
+l_AgeGroupOptions[0]	= "0:"+Loc("Child");
+l_AgeGroupOptions[1]	= "1:"+Loc("Teen");
+l_AgeGroupOptions[2]	= "2:"+Loc("Adult");
+l_AgeGroupOptions[3]	= "3:"+Loc("None");
+
+var l_AgeGroups	= new Array();
+l_AgeGroups[0]	= Loc("Child");
+l_AgeGroups[1]	= Loc("Teen");
+l_AgeGroups[2]	= Loc("Adult");
+l_AgeGroups[3]	= Loc("None");
+
+
+var l_PasswordMinLen = 3;
+var l_PasswordMaxLen = 16;
+
+var l_NewUser = true;
+
+function GetRadioValue(RS)
+{
+	for (var i = 0; "undefined" != typeof(RS[i]) ;i++)
+	{
+		if (RS[i].checked)
+			return RS[i].value;
+	}
+	
+	return "0";
+}
+
+function ClientModeChanged(NewValue)
+{
+	// do the submit automaticaly if there is nothing dirty on the page.
+	var form = FindObject("AuthModeForm");
+
+	AddSubmitItem(form, "PARENTALCONTROLS_Auth", NewValue.value);
+
+	form.submit();
+
+	return true;
+}
+
+function ShowModeSection()
+{
+	// make this an instant action check.
+	BuildBoxHeader();
+	document.write("<form METHOD=post name=AuthModeForm>");
+	document.write("<table class=boxInside>");
+		AddSection(Loc("PCModeTitle"), Loc("PCModeBlurb"));
+		AddSelectionRadio("Radio_ClientMode", Loc("PCModeUser"), "1", g_PARENTALCONTROLS_Auth, "ClientModeChanged");
+		AddSelectionRadio("Radio_ClientMode", Loc("PCModeIP"), "0", g_PARENTALCONTROLS_Auth, "ClientModeChanged");
+	document.write("</form>");
+	document.write("</TABLE>");
+	BuildBoxFooter();
+}
+
+
+
+function EditRow(Key)
+{	
+	ClearError();
+	l_NewUser = false;
+
+	if ("1" == g_PARENTALCONTROLS_Auth)
+	{
+		form = FindObject("UserEditForm");
+		
+		form.DtaUser.value = Key;
+		form.DtaUser.disabled = true;
+		form.DtaPassword.value = "";
+		form.DtaPasswordVerify.value = "";
+
+		if ("undefined" == typeof(g_PARENTALCONTROLS_ClientGroup[Key]))
+			setSelection("Group", 3);	// none
+		else
+			setSelection("Group", g_PARENTALCONTROLS_ClientGroup[Key]);
+		
+	}else{
+		form = FindObject("IPEditForm");
+
+		SetIP(Key, "DataIP");
+		DisableIP("DataIP");
+		form.Group.value = g_PARENTALCONTROLS_ClientGroup[Key];
+	}
+
+
+	// Update the buttons to make sense
+	var btn = FindObject("Apply");
+	btn.value=Loc("BTNUpdate");
+
+	btn.disabled = true;
+
+	btn = FindObject("Cancel");
+	btn.disabled = false;
+			  
+}
+
+function GroupChanged()
+{
+	// Dirty now
+	G_Dirty = true;
+	enableApply();
+}
+
+function ShowUserEditSection()
+{		
+	document.write("<form METHOD=post name=UserEditForm onsubmit='return SubmitHandler(this)'>");
+	document.write("<table class=boxInside>");
+	
+	AddSection(Loc("UserNameSecTitle"), Loc("UserNameSecBlurb"));
+
+	document.write("<input type=hidden id=DtaGroup value='1'");
+	
+	AddTR();
+		AddTD(Loc("COLUserName"));
+		AddTD(Loc("COLPassword"));
+		AddTD(Loc("COLVerifyPassword"));
+		AddTD(Loc("COLGroup"));
+	EndTR();
+	
+	AddTR();
+	AddTD("<input id=DtaUser maxLength=59 size=20 onBlur='ValidateNoneEmpty(this, \"UsrNull\", false);' onkeyup=enableApply()></TD>");
+
+	AddTD("<input type=password id=DtaPassword size=20 maxlength=" + l_PasswordMaxLen + " onkeyup=enableApply()>");
+	AddTD("<input type=password id=DtaPasswordVerify size=20 maxlength=" + l_PasswordMaxLen + " onkeyup=enableApply()>");
+
+	document.write("<TD>");
+		document.write("<select id=Group onchange=GroupChanged();>");
+			AddOptionsFromArray(l_AgeGroupOptions, UserEditForm.DtaGroup.value);
+	document.write("</TD>");
+
+	EndTR();
+
+	document.write("<TR><TD COLSPAN=5><input id=Apply type=submit disabled value="+Loc('BTNAdd')+"><input id=Cancel type=button disabled value="+Loc('BTNClear')+" onclick=ResetEditForm()></TD></TR>");	
+	AddBar();
+	document.write("</form>");
+	document.write("</TABLE>");
+}
+
+function ShowIPEditSection()
+{
+	document.write("<form METHOD=post name=IPEditForm onsubmit='return SubmitHandler(this)'>");
+	document.write("<table class=boxInside>");
+	
+	AddSection(Loc("IPNameSecTitle"), Loc("IPNameSecBlurb"));
+
+	document.write("<input type=hidden id=DtaGroup value='1'");
+	
+	AddTR();
+		AddTD(Loc("COLIPAddress"));
+		AddTD(Loc("COLGroup"));
+	EndTR();
+	
+	AddTR();
+	AddTD(BuildIPInput(g_REMOTEUTILS_ClientIP, "DataIP", true));
+
+	document.write("<TD>");
+		document.write("<select id=Group onchange=GroupChanged();>");
+			AddOptionsFromArray(l_AgeGroupOptions, IPEditForm.DtaGroup.value);
+	document.write("</TD>");
+
+	EndTR();
+
+	document.write("<TR><TD COLSPAN=5><input id=Apply type=submit value="+Loc('BTNAdd')+"><input id=Cancel type=button value="+Loc('BTNClear')+" onclick=ResetEditForm()></TD></TR>");	
+
+	AddBar();
+	document.write("</form>");
+	document.write("</TABLE>");
+}
+
+function SubmitHandler(SubmitVar) 
+{
+	ClearError();
+
+	var bOK = true;
+	var form;
+	
+	if ("1" == g_PARENTALCONTROLS_Auth)
+	{
+		var SkipPassword = false;
+
+		form = FindObject("UserEditForm");
+		
+		// Validate the user name
+		bOK &= ValidateNoneEmpty(form.DtaUser, "UserNameEmpty", true);
+		
+		// validate the passwords unless this is an edit and they are both empty.
+		if (l_NewUser || form.DtaPassword.length > 0 || form.DtaPasswordVerify.length > 0)
+		{
+			bOK &= ValidatePW(form.DtaPassword, l_PasswordMinLen, l_PasswordMaxLen);
+			bOK &= ValidatePW(form.DtaPasswordVerify, l_PasswordMinLen, l_PasswordMaxLen);
+		}else{
+			SkipPassword = true;
+		}
+		
+		if (form.DtaPassword.value != form.DtaPasswordVerify.value)
+		{
+			FlagError(form.DtaPassword, "PWDontMatch");
+			FlagError(form.DtaPasswordVerify, "PWDontMatch");
+
+			bOK = false;
+		}
+
+		if (bOK)
+		{		
+			// take care of user entry
+			if (l_NewUser)
+			{
+				AddSubmitItem(form, "USERS_Add", form.DtaUser.value);
+			}
+			
+			if (!SkipPassword)
+			{
+				AddSubmitItem(form, "USERS_PWD", form.DtaPassword.value);
+				AddSubmitItem(form, "USERS_PWDVERIFY", form.DtaPasswordVerify.value);
+			}
+			
+			// And now set the group for the user
+			AddSubmitItem(form, "a_PARENTALCONTROLS_ClientGroup_"+form.DtaUser.value, form.Group.value);
+		}
+	}else{
+		form = FindObject("IPEditForm");
+
+		bOK &= ValidateIP("DataIP");
+
+		if (bOK)
+		{		
+			// And now set the group for the user
+			AddSubmitItem(form, "a_PARENTALCONTROLS_ClientGroup_"+form.DataIP.value, form.Group.value);
+		}
+
+	}
+	
+	if (bOK)
+	{
+		GlobalSubmitHandler(SubmitVar);		
+
+		return true;
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+function ResetEditForm()
+{
+	l_NewUser = true;
+	G_Dirty = false;
+	ClearError();
+
+	var Form;
+	if ("1" == g_PARENTALCONTROLS_Auth)
+	{
+		Form = FindObject("UserEditForm");
+		Form.DtaUser.disabled = false;
+	}else{
+		Form = FindObject("IPEditForm");
+		EnableIP("DataIP");
+	}
+	
+	Form.reset();
+
+	var btn = FindObject("Apply");
+	btn.value=Loc("BTNAdd");
+	btn.disabled = true;
+
+	btn = FindObject("Cancel");
+	btn.disabled = true;
+}
+
+
+
+function DeleteUser(Key)
+{
+	var form;
+	if ("1" == g_PARENTALCONTROLS_Auth)
+	{
+		form = FindObject("UserEditForm");
+
+		AddSubmitItem(form, "a_USERS_Delete_"+Key, "1");
+	}else{
+		form = FindObject("IPEditForm");
+	}
+		
+	AddSubmitItem(form, "a_PARENTALCONTROLS_DeleteClient_"+Key, "1");
+	
+	form.submit();
+}
+
+
+
+
+function ShowListSectionUser()
+{
+	cnt=0; for(x in g_USERS_User) {cnt ++;}	
+
+	document.write(Loc("NumUserNames") + cnt);
+	
+	document.write("<table class=PortForwardTable border=0 cellspacing=0 cellpadding=0>");	
+	document.write("<form name=PortForward METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+
+	document.write("<input type=hidden id=HiddenAction value=''>");
+
+	document.write("<TR class=PortForwardKey>");
+		AddAttrTD("width=10% ", Loc("COLClient"));
+		AddAttrTD("width=10% ", Loc("COLGroup"));
+		AddAttrTD("width=10% ", Loc("COLEdit"));
+		AddAttrTD("width=10% ", Loc("COLDelete"));
+	EndTR();
+
+	var index = 0;
+	for(Key in g_USERS_User)
+	{
+		AddTR();
+
+			AddTD(Key);
+			
+			if ("undefined" != typeof(g_PARENTALCONTROLS_ClientGroup[Key]))
+				AddTD(l_AgeGroups[g_PARENTALCONTROLS_ClientGroup[Key]]);
+			else
+				AddTD(Loc("None"));
+
+			AddTD("<a class=PortForwardLink href=javascript:EditRow('" + Key + "');>"+Loc("Edit")+"</A>");
+			AddTD("<a class=PortForwardLink href=javascript:DeleteUser('" + Key + "');>"+Loc("Delete")+"</A>");
+
+		EndTR();
+	}
+
+	document.write("</form>");
+	document.write("</TABLE>");	
+}
+
+function ShowListSectionIP()
+{
+	cnt=0; for(x in g_PARENTALCONTROLS_ClientGroup) {cnt ++;}	
+
+	document.write(Loc("NumClients") + cnt);
+	
+	document.write("<table class=PortForwardTable border=0 cellspacing=0 cellpadding=0>");	
+	document.write("<form name=PortForward METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+
+	document.write("<input type=hidden id=HiddenAction value=''>");
+
+	document.write("<TR class=PortForwardKey>");
+		AddAttrTD("width=10%", Loc("COLIPAddress"));
+		AddAttrTD("width=10%", Loc("COLGroup"));
+		AddAttrTD("width=10%", Loc("COLEdit"));
+		AddAttrTD("width=10%", Loc("COLDelete"));
+	EndTR();
+
+	var index = 0;
+	for(Key in g_PARENTALCONTROLS_ClientGroup)
+	{
+		AddTR();
+
+			AddTD(Key);
+			
+			AddTD(l_AgeGroups[g_PARENTALCONTROLS_ClientGroup[Key]]);
+
+			AddTD("<a class=PortForwardLink href=javascript:EditRow('" + Key + "');>"+Loc("Edit")+"</A>");
+
+			AddTD("<a class=PortForwardLink href=javascript:DeleteUser('" + Key + "');>"+Loc("Delete")+"</A>");
+
+		EndTR();
+	}
+
+	document.write("</form>");
+	document.write("</TABLE>");	
+}
+
+function PCEnabledChanged()
+{
+	// do the submit automaticaly if there is nothing dirty on the page.
+	var form = FindObject("PCEnabledForm");
+
+	AddSubmitItem(form, "PARENTALCONTROLS_Enabled", (true==form.PCEnabled.checked)?1:0);
+
+	form.submit();
+}
+
+function ShowPage()
+{
+	document.write("<form METHOD=post name=PCEnabledForm onsubmit='return SubmitHandler(this)'>");
+	BuildBoxHeader("PCDiv");
+	document.write("<table class=boxInside>");
+		AddTR();
+			AddTD("<Input type=checkbox ID=PCEnabled " + (("1" == g_PARENTALCONTROLS_Enabled ) ? 'checked' : '') + " onclick='PCEnabledChanged();'>"+Loc("RadioPCEnable"));
+		EndTR();
+		AddTR();
+			AddTD(Loc("PCProxyNote"));
+		EndTR();
+	document.write("</table>");
+
+	BuildBoxFooter();
+	document.write("</form>");
+	
+	if ("1" == g_PARENTALCONTROLS_Enabled )
+	{
+		AddTR();
+			AddAttrTD("class=pageTextHeading", Loc("GroupSecTitle"));
+		EndTR();
+		AddTRTD(Loc("GroupSecBlurb"));
+
+
+		ShowModeSection();
+
+		if ("1" == g_PARENTALCONTROLS_Auth)
+		{
+			BuildBoxHeader("UserSection");
+				ShowUserEditSection();
+				ShowListSectionUser();
+			BuildBoxFooter();
+		}else{
+			BuildBoxHeader("IPSection");
+				ShowIPEditSection();
+				ShowListSectionIP();
+			BuildBoxFooter();
+		}
+	}
+}
+
+</script>
+<html>
+	<script>
+	BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");
+	</script>
+</html>

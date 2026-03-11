@@ -1,0 +1,330 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+
+##include PORTFORWARD##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="ApplicationPortForwarding_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+var _Description	= 0;
+var _OutboundPort	= 1;
+var _TriggerType	= 2;
+var _InboundPortTCP	= 3;
+var _InboundPortUDP	= 4;
+var _Enabled		= 5;
+ 
+var g_ServersList = new Array();
+var g_Descriptions = new Array();
+
+for (Desc in g_PORTFORWARD_TriggerIsEnabled)
+{
+	// because they keys are also used as the descriptions and can have spaces in them we 
+	// can't use them as keys for function calls.  So we have to setup a side table with the 
+	// key/descriptions in them which we can referance by ID.
+	g_Descriptions[g_Descriptions.length] = new String(Desc);		
+	
+	g_ServersList[Desc] = new Array(Desc, g_PORTFORWARD_TriggerPort[Desc], g_PORTFORWARD_TriggerProtocol[Desc], g_PORTFORWARD_TriggerTcpResponseList[Desc], g_PORTFORWARD_TriggerUdpResponseList[Desc], g_PORTFORWARD_TriggerIsEnabled[Desc])
+}
+
+
+function ToggleActive(Checkbox, KeyIndex) 
+{	
+	var DescKey = g_Descriptions[KeyIndex];
+	var hdn = FindObject("HiddenAction");
+	
+	hdn.name = "a_PORTFORWARD_TriggerIsEnabled_"+DescKey;
+	hdn.value = (true==Checkbox.checked)?1:0;
+	
+	document.forms["PortForward"].submit();	
+}
+
+function DeleteRule(KeyIndex)  
+{
+	var DescKey = g_Descriptions[KeyIndex];
+	var hdn = FindObject("HiddenAction");
+
+	hdn.name = "a_PORTFORWARD_TriggerDelete_" + DescKey;
+	hdn.value = "YES";
+
+	document.forms["PortForward"].submit();
+}
+
+function EditRow(KeyIndex) 
+{
+	ClearError();
+
+	var DescKey = g_Descriptions[KeyIndex];
+	
+	form = FindObject("EditForm");
+	form.DtaDesc.value				= g_ServersList[DescKey][_Description];	
+	form.DtaOutboundPort.value		= g_ServersList[DescKey][_OutboundPort];	
+	form.DtaInboundPortTCP.value	= g_ServersList[DescKey][_InboundPortTCP];	
+	form.DtaInboundPortUDP.value	= g_ServersList[DescKey][_InboundPortUDP];	
+
+	form.HiddenEnabled.value		= g_ServersList[DescKey][_Enabled];
+
+	// Set the dropdowns to the correct values
+	setSelection("DtaTriggerType", g_ServersList[DescKey][_TriggerType]);
+	
+	// Update the buttons to make sense
+	var btn = FindObject("Apply");
+	btn.value=Loc("BTNUpdate");
+
+	btn.disabled = true;
+
+	btn = FindObject("Cancel");
+	btn.disabled = false;
+}
+
+
+function SubmitHandler(SubmitVar) 
+{		
+	ClearError();
+	var bOK = true;
+	
+	var FormVar = FindObject("EditForm");
+	
+	// now we validate
+	// Rules are:
+	//	Description > 0 length
+	//	Outbound port 0-65535
+	//	Inbound TCP / UDP ports comma seperated list of 0-65535
+	//	Must have at least 1 of either TCP or UDP inbound ports
+	
+	// validate the description
+	bOK &= ValidateNoneEmpty(FormVar.DtaDesc, "AppForwardNullDesc", true);
+	bOK &= ValidatePort(FormVar.DtaOutboundPort);	// only a single port allowed
+	bOK &= ValidatePorts(FormVar.DtaInboundPortUDP);	// ranges ok
+	bOK &= ValidatePorts(FormVar.DtaInboundPortTCP);	// ranges ok
+	
+	if (!FormVar.DtaInboundPortUDP.value.length && !FormVar.DtaInboundPortTCP.value.length)
+	{
+		FlagError(FormVar.DtaInboundPortUDP, "AppUDPorTCPRequired");
+		FlagError(FormVar.DtaInboundPortTCP, "AppUDPorTCPRequired");
+		bOK = false;
+    }
+
+	
+	if (bOK)
+	{
+		// We have a trick here.  When adding a new item if we setup the return array values
+		// with a key that is not recognized the backend will assume a new entry and create it
+		// so we can format updates / adds exactly the same way/
+		var Key = FormVar.DtaDesc.value;
+
+		
+		// A second trick is that we are going to change the edit form control names to match
+		// the format the backend requires.  EG a_Port_Item_KEY=xyz  
+		// This will ONLY work if we are going to reload the page after submit which in this case we are
+	
+		FormVar.HiddenEnabled.name		= "a_PORTFORWARD_TriggerIsEnabled_"+Key;
+		FormVar.DtaInboundPortUDP.name	= "a_PORTFORWARD_TriggerUdpResponseList_"+Key;
+		FormVar.DtaInboundPortTCP.name	= "a_PORTFORWARD_TriggerTcpResponseList_"+Key;
+		FormVar.DtaOutboundPort.name	= "a_PORTFORWARD_TriggerPort_"+Key;
+		FormVar.DtaTriggerType.name		= "a_PORTFORWARD_TriggerProtocol_"+Key;
+		
+		GlobalSubmitHandler(SubmitVar);		
+
+		return true;		
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+function ResetEditForm()
+{
+	G_Dirty = false;
+
+	ClearError();
+	var Form = FindObject("EditForm");
+	Form.reset();
+
+	var btn = FindObject("Apply");
+	btn.value=Loc("BTNAdd");
+	btn.disabled = true;
+
+	btn = FindObject("Cancel");
+	btn.disabled = true;
+}
+
+
+function isValidPortSpecification(ports)
+{
+    var portRanges = ports.value;
+    
+    // Remove all whitespace from the port specification
+    portRanges = portRanges.replace(/\s+/g, '');
+
+	NoError(ports);
+    
+    // Handle the empty case
+    if(portRanges.length == 0)
+    {
+        return true;
+    }
+    
+    // First, try to break up the port ranges
+    var portRangeList = portRanges.split(",");
+    
+    // For each range, validate the range
+    for(var curRange = 0; curRange < portRangeList.length; curRange++)
+    {
+        var matches = portRangeList[curRange].match(/^(\d+)(\-(\d+))?$/);
+        var rangeBegin = 0;
+        var rangeEnd = 0;
+        
+        if(!matches)
+        {
+			FlagError(ports, "PortNonNumeric");
+            return false;
+        }
+        
+        rangeBegin = matches[1];
+        if(matches[2])
+        {
+            rangeEnd = matches[3];
+        }
+        else
+        {
+            rangeEnd = matches[1];
+        }
+               
+        // Check the range (ports must be within 0 to 65535, and the range must be nondecreasing).
+        if(parseInt(rangeBegin) < 0 || parseInt(rangeBegin) > 65535)
+        {
+			FlagError(ports, "PortBadRange");
+            return false;
+        }
+        if((parseInt(rangeEnd) < parseInt(rangeBegin)) || parseInt(rangeEnd) > 65535)
+        {
+			FlagError(ports, "PortBadRange");
+            return false;
+        }
+    }
+    
+    // Everything looks good
+    return true;
+}
+
+
+function ValidatePorts(Field)
+{
+	var valid = true;
+	
+	// need to parse the string into a list of ports before validating each part.
+	valid = isValidPortSpecification(Field);
+	if (!valid)
+	{
+	}else{
+		Field.className = "FieldNormal";
+	}
+	
+	return valid;
+}
+
+
+function ShowEditSection()
+{
+	BuildBoxHeader();
+	document.write("<form METHOD=post name=EditForm onsubmit='return SubmitHandler(this)'>");
+	document.write("<table class=boxInside>");
+
+	document.write("<input type=hidden id=HiddenEnabled value='1'");
+	
+	AddTR();
+		AddTD(Loc("COLDescription"));
+		AddTD(Loc("COLOutPort"));
+		AddTD(Loc("COLTrigger"));
+		AddTD(Loc("COLInboundTCP"));
+		AddTD(Loc("COLInboundUDP"));
+	EndTR();
+	document.write("<TR>");
+	document.write("<TD><input id=DtaDesc maxLength=59 size=12 onBlur='ValidateNoneEmpty(this, \"AppForwardNullDesc\", false);' onkeyup=enableApply()></TD>");
+	document.write("<TD><input id=DtaOutboundPort onKeyPress=NumOnly(); maxLength=5 size=5 onBlur='ValidatePort(this);' onkeyup=enableApply()></TD>");
+	document.write("<TD>");
+	document.write("    <select id=DtaTriggerType onchange=enableApply()>");
+	document.write("    <option value=TCP>"+Loc("TCP"));
+	document.write("    <option value=UDP>"+Loc("UDP"));
+	document.write("</TD>");
+	document.write("<TD><input id=DtaInboundPortTCP onKeyPress=NumRangesOnly(); maxLength=256 size=10 onBlur='ValidatePorts(this, false);' onkeyup=enableApply()></TD>");
+	document.write("<TD><input id=DtaInboundPortUDP onKeyPress=NumRangesOnly(); maxLength=256 size=10 onBlur='ValidatePorts(this, false);' onkeyup=enableApply()></TD>");
+	document.write("</TR>");
+	document.write("<TR><TD COLSPAN=5><HR></TD></TR>");
+	document.write("<TR><TD COLSPAN=5><input id=Apply type=submit disabled value="+Loc('BTNAdd')+"><input id=Cancel type=button disabled value="+Loc('BTNClear')+" onclick=ResetEditForm()></TD></TR>");	
+	document.write("</form>");
+	document.write("</TABLE>");
+	BuildBoxFooter();
+}
+
+function ShowListSection()
+{
+	BuildBoxHeader();
+
+	document.write("<table class=PortForwardTable border=0 cellspacing=0 cellpadding=0>");	
+	document.write("<form name=PortForward METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+
+	document.write("<input type=hidden id=HiddenAction value=''>");
+
+	document.write("<TR class=PortForwardKey>");
+		AddAttrTD("width=10%", Loc("COLEnable"));
+		AddAttrTD("width=10%", Loc("COLDescription"));
+		AddAttrTD("width=10%", Loc("COLOutPort"));
+		AddAttrTD("width=10%", Loc("COLTrigger"));
+		AddAttrTD("width=10%", Loc("COLInboundTCP"));
+		AddAttrTD("width=10%", Loc("COLInboundUDP"));
+		AddAttrTD("width=10%", Loc("COLEdit"));
+		AddAttrTD("width=10%", Loc("COLDelete"));
+	EndTR();
+
+	var index = 0;
+	for(Key in g_ServersList)
+	{
+		document.write("<TR>");		
+			document.write("<TD>");
+				document.write("<input onClick='ToggleActive(this, " + index + ")' type=checkbox id=CheckEnabled " + ('1' == g_ServersList[Key][_Enabled] ? " CHECKED":"")+">");
+			document.write("</TD>");
+
+			document.write("<TD>" + g_ServersList[Key][_Description		]+ "</TD>");
+			document.write("<TD>" + g_ServersList[Key][_OutboundPort	]+ "</TD>");
+			document.write("<TD>" + g_ServersList[Key][_TriggerType		]+ "</TD>");
+			document.write("<TD>" + g_ServersList[Key][_InboundPortTCP	]+ "</TD>");
+			document.write("<TD>" + g_ServersList[Key][_InboundPortUDP	]+ "</TD>");
+
+			document.write("<TD><a class=PortForwardLink href=javascript:EditRow(" + index + ");>"+Loc("Edit")+"</A></TD>");
+
+			document.write("<TD><a class=PortForwardLink href=javascript:DeleteRule(" + index++ + ");>"+Loc("Delete")+"</A></TD>");
+
+		document.write("</TR>");
+	}
+
+	document.write("</form>");
+	document.write("</TABLE>");	
+
+	BuildBoxFooter();
+}
+
+
+
+function ShowPage()
+{
+	ShowEditSection();
+	ShowListSection();
+}
+
+</script>
+<html>
+	<script>
+	BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");
+	</script>
+</html>

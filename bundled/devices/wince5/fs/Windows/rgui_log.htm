@@ -1,0 +1,74 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script language="javascript">
+
+if('undefined' == typeof(g_LOC_Strings)) {g_LOC_Strings = new Array();}
+	g_LOC_Strings["PageTitle"] = "Base Station Log";
+	g_LOC_Strings["PageBlurb"] = "To update this display of base station activity, click <B>Refresh</B>.";
+
+	g_LOC_Strings["DataTitle"] = "Log file";
+	g_LOC_Strings["DataBlurb"] = "";
+	
+	g_LOC_Strings["BTN_Save"] = "Save a Copy of Log File";
+	g_LOC_Strings["BTN_Clear"] = "Clear";
+	g_LOC_Strings["BTN_Refresh"] = "Refresh";
+
+
+var _Date		= 0;
+var _Time		= 1;
+var _Message	= 2;
+ 
+// An array of arrays of integers; initially it is null.
+var g_Log = new Array();
+g_Log["0"] = new Array("1999/06/01", "12:00:04", "DHCP Client : Request sent from 0.0.0.0 to 255.255.255.255");
+g_Log["1"] = new Array("1999/06/01", "12:00:05", "**** Base Station Booted: Version 02.00.07.0331");
+g_Log["2"] = new Array("1999/06/01", "12:00:05", "*** Base Station Booted: Version 02.00.07.0331 ");
+g_Log["3"] = new Array("1999/06/01", "12:00:12", "RF Reset...Pass");
+g_Log["4"] = new Array("1999/06/01", "13:31:34", "92.168.2.45 login successful ");
+g_Log["5"] = new Array("1999/06/01", "14:21:54", "92.168.2.45 login successful ");
+g_Log["6"] = new Array("2003/10/09", "15:47:23", "Base station time set manualy");
+
+function ShowPage()
+{	
+	BuildBoxHeader();
+	document.write("<table class=boxInside><form METHOD=post onsubmit='GlobalSubmitHandler(this)'>");
+	
+	AddSection(Str("DataTitle"), Str("DataBlurb"));
+	AddBar();
+
+	for(Key in g_Log)
+	{
+		document.write("<TR class=notComplete>");		
+			document.write("<TD>" + g_Log[Key][_Date	] + "</TD> ");
+			document.write("<TD>" + g_Log[Key][_Time	] + "</TD> ");
+			document.write("<TD>" + g_Log[Key][_Message	] + "</TD> ");
+		document.write("</TR>");
+	}
+
+	AddBar();
+	g_LOC_Strings["BTN_Save"] = "Save a Copy of Log File";
+	g_LOC_Strings["BTN_Clear"] = "Clear";
+	g_LOC_Strings["BTN_Refresh"] = "Refresh";
+
+	document.write("<TR class=notComplete>");
+		AddAttrTD("COLSPAN=5", "<input type=submit value='" + Str("BTN_Save") + "'><input type=submit value='" + Str("BTN_Clear") + "'><input type=submit value='" + Str("BTN_Refresh") + "'>");	
+	EndTR();
+
+	document.write("</form></table>");
+	BuildBoxFooter();
+}
+	
+</script>
+<html>
+	<script>BuildPage(Str("PageTitle"), Str("PageBlurb"), "ShowPage()");</script>
+</html>

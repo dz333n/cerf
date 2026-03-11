@@ -1,0 +1,156 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include PASSWORD## 
+##include HOSTNAME## 
+##include NETWORK##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script language="javascript">	
+
+var l_ShowingPasswords = false;
+// Local variables (NOTE: make sure these match the values in changepassword.htm)
+var l_PasswordMinLen = 3;
+var l_PasswordMaxLen = 16;
+
+	
+	function ShowPasswordErrors() 
+	{
+		if(window.g_PASSWORD_SuccessfullyChanged) 
+		{
+			return new String("<font color=#0000FF>Successfully changed password!</font>");
+		}
+		if(window.g_PASSWORD_Mismatch) 
+		{
+			return new String("<font color=#FF0000>Password mismatch! -- please try again</font>");
+		} 
+		if(window.g_PASSWORD_InvalidPassword) 
+		{
+			return new String("<font color=#FF0000>Invalid Password! -- please try again</font>");
+		}
+		return new String("");
+	}
+
+	function ShowBoth()
+	{
+		ShowHostNameConfig();		
+	}
+
+	function ShowHostNameConfig()
+	{
+		// Device Name		
+		BuildBoxHeader();		
+		document.write("<table class=boxInside>");
+		document.write("<TR><TD class=cellLtColor>Device Name:</TD></TR>");
+		document.write("<TR><TD><INPUT type=text onkeyup=enableApply() name=\"HOSTNAME_Name\" value=\"" + g_HOSTNAME_Name + "\"></TD></TR>");	
+		document.write("<TR><TD><INPUT type=hidden name=a_REMOTEUTILS_NOBACKUPREGISTRY_OOBE value=\"0\"></TD></TR>");	
+		document.write("</table>");
+		BuildBoxFooter();
+		AddApplyCancel();
+
+		AddErrorDisplay();
+		ClearError();
+	}
+
+	function ShowPasswordConfig()
+	{	
+		l_ShowingPasswords = true;
+		// Device Password
+		BuildBoxHeader();
+		document.write("<table class=boxInside>");	
+		document.write("<TR><TD COLSPAN=2 class=cellLtColor>Device Log On: " + ShowPasswordErrors() + "</TD></TR>");
+		document.write("<TR><TD COLSPAN=2>To access the device, type your password and then click <B>Log On</B>. Your base station password is case sensitive.</TD></TR>");
+	
+		if(window.g_PASSWORD_PasswordSet) {
+			document.write("<TR>");
+			document.write("   <TD>Old Password:</TD>");
+			document.write("   <TD><input type=\"password\" onkeyup=enableApply() name=\"PASSWORD_PWDOLD\" size=\"20\"></TD>");
+			document.write("</TR>");
+		}
+		document.write("<TR>");
+		document.write("   <TD>Password:</TD>");
+		document.write("   <TD><input type=\"password\" onkeyup=enableApply() name=\"PASSWORD_PWD\" size=\"20\"></TD>");
+		document.write("</TR>");
+		
+		document.write("<TR>");
+		document.write("   <TD>Verification:</TD>");
+		document.write("   <TD><input type=\"password\" onkeyup=enableApply() name=\"PASSWORD_PWDVERIFY\" size=\"20\"></TD>");
+		document.write("</TR>");	
+		
+		document.write("<TR>");
+		document.write("    <TD COLSPAN=2><input type=hidden value=ENABLED name=PASSWORD_SECURITYLEVEL></TD>");
+		document.write("<TR>");
+
+		document.write("</table>");
+		BuildBoxFooter();
+		AddApplyCancel();
+
+		AddErrorDisplay();
+		ClearError();
+		
+	}
+
+function SubmitHandler(SubmitVar)
+{
+	var bOK = true;
+	ClearError();
+	
+	var form = FindObject("EditForm");
+	
+	if (l_ShowingPasswords)
+	{
+		if(window.g_PASSWORD_PasswordSet) {
+			bOK = ValidatePW(form.PASSWORD_PWDOLD, l_PasswordMinLen, l_PasswordMaxLen);
+		}
+
+		bOK &= ValidatePW(form.PASSWORD_PWD, l_PasswordMinLen, l_PasswordMaxLen);
+		bOK &= ValidatePW(form.PASSWORD_PWDVERIFY, l_PasswordMinLen, l_PasswordMaxLen);
+		
+		if (form.PASSWORD_PWD.value != form.PASSWORD_PWDVERIFY.value)
+		{
+			FlagError(form.PASSWORD_PWD, "PWDontMatch");
+			FlagError(form.PASSWORD_PWDVERIFY, "PWDontMatch");
+			bOK = false;
+		}
+	} else {
+		bOK = ValidateHostName("HOSTNAME_NAME");
+	}
+		
+	// If everything passed then pass this onto the global handler to submit
+	if (true == bOK)
+	{
+		GlobalSubmitHandler(SubmitVar);		
+		return true;
+	}else{
+		FocusFirstError();
+		return false;
+	}
+}
+
+
+
+</script>
+<html>
+	<script language="javascript">
+		document.write("<form ID=EditForm METHOD=post onsubmit='return SubmitHandler(this)'>");
+	
+		if(!window.g_PASSWORD_PasswordSet) {
+			BuildMainTable_NoToolBar("NAS Admin", "", "ShowPasswordConfig()");
+		} else if(window.g_HOSTNAME_NotSet) {
+			BuildMainTable_NoToolBar("NAS Admin", "Please assign your device a network name", "ShowHostNameConfig()");
+		} else {
+			BuildMainTable("Please name your device", "", "ShowBoth()");			
+		}
+		document.write("</form>");
+		
+	</script>
+</html>	
+

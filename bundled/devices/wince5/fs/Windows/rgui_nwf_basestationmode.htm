@@ -1,0 +1,201 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include HOSTNAME##
+##include NETWORK##
+##include NAT##
+##include NATIVEWIFI##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+<script src="NWF_BaseStationMode_Loc.js" language="javascript"></script>
+<script language="javascript">
+
+
+var l_BaseStationMode = "R"; // "R" or "AP"
+
+// figure out which mode we are in (if mbridge is bound to our public adapter we are in router mode)
+var PublicBindingList = String(g_NETWORK_PROTOCOLSTOBINDTO[g_NAT_Public]).split(";");				
+for(i=0; i<PublicBindingList.length; i++) {					
+	if(PublicBindingList[i] == "MBRIDGE") {
+		l_BaseStationMode = "AP";
+		break;
+	}						
+}
+
+
+function OnReset()
+{
+	HandleClick(l_BaseStationMode);
+}
+
+function SubmitHandler(SubmitVar)
+{
+	ClearError();
+	var bOK = false;
+	
+	// no validations required for this data at this time.  
+	bOK = true;
+	bOK &= ValidateHostName("HOSTNAME_Name");
+	
+	// If everything passed then pass this onto the global handler to submit
+	if (true == bOK)
+	{
+		
+		SetupBinding();
+
+		if (SubmitVar.WIRELESS_BaseStationMode[0].checked) {
+			AddSubmitItem(SubmitVar, "NATIVEWIFI_RepeaterAP", '0');
+		} else {
+			AddSubmitItem(SubmitVar, "NATIVEWIFI_RepeaterAP", (true == SubmitVar.CB_RangeExt.checked) ? '1' : '0');
+		}
+
+		GlobalSubmitHandler(SubmitVar);		
+		return true;
+	}else{		
+		FocusFirstError();
+		return false;
+	}
+}
+
+
+function SetupBinding()
+{
+	var StationNameEdit = FindObject("HOSTNAME_Name");
+	var Protocols = FindObject("a_NETWORK_PROTOCOLSTOBINDTO_"+g_NAT_Public);
+	var AddressTrans = FindObject("NAT_EnableAddressTranslation");
+	var DNSProxy = FindObject("NAT_EnableDnsProxy");
+	var DHCPAllocator = FindObject("NAT_EnableDhcpAllocator");
+	var MBridgeBinding = FindObject("NETWORK_MBridgeBinding");
+	var DHCPPrivate = FindObject("a_NETWORK_DHCP_"+g_NAT_Private);
+	var IGDEnabled = FindObject("NAT_EnableIGD");
+
+	// remove MBRIDGE
+	PublicBindingList = String(Protocols.value).split(";");
+	Protocols.value = "";
+	for(i=0; i<PublicBindingList.length; i++) {			
+		if("" != PublicBindingList[i] && PublicBindingList[i] != "MBRIDGE") {
+			if(Protocols.value != "") {
+				Protocols.value += ";";
+			}
+			Protocols.value += PublicBindingList[i];
+		}						
+	}
+
+	// remove MBRIDGE binding
+	MBridgeList = String(MBridgeBinding.value).split(";");
+	MBridgeBinding.value = "";
+	for(i=0; i<MBridgeList.length; i++) {			
+		if("" != MBridgeList[i] && MBridgeList[i] != g_NAT_Public) {
+			if(MBridgeBinding.value != "") {
+				MBridgeBinding.value += ";";
+			}
+			MBridgeBinding.value += MBridgeList[i];
+		}						
+	}
+	
+	// go into "AP" mode
+	if("AP" == l_BaseStationMode) {		
+		l_BaseStationMode = "R";
+		AddressTrans.value = "1";
+		DNSProxy.value = "1";
+		DHCPAllocator.value = "1";
+		IGDEnabled.value = "1";
+		StationNameEdit.disabled = true;	
+		DHCPPrivate.value = "DISABLED"; // turns off DHCP for the (private side)
+	} else {
+		l_BaseStationMode = "AP";
+		AddressTrans.value = "0";
+		DNSProxy.value = "0";
+		DHCPAllocator.value = "0";
+		IGDEnabled.value = "0";
+		StationNameEdit.disabled = false;
+		Protocols.value = "MBRIDGE;" + Protocols.value;
+		MBridgeBinding.value = g_NAT_Public + ";" + MBridgeBinding.value;
+		DHCPPrivate.value = "ENABLED"; // turns on DHCP for the (private side)	
+	}
+}
+
+function HandleClick(Selection)
+{
+	var StationNameEdit = FindObject("HOSTNAME_Name");
+	var RangeExt = FindObject("CB_RangeExt");
+
+	if ("AP" == Selection)
+	{
+		StationNameEdit.disabled = false;
+		RangeExt.disabled = false;
+	}else{
+		StationNameEdit.disabled = true;
+		RangeExt.disabled = true;
+	}	
+}
+
+function AddSelectionRadio(Name, Description, ID, selected)
+{
+	var checked = "";
+	
+	if(ID == selected) {
+		checked = "checked";
+	}
+	document.write("<TR>");
+		document.write("<TD vAlign=top><input type=radio value="+ID+" onClick=enableApply();HandleClick(this.value); name=WIRELESS_BaseStationMode " + checked + "></TD>");
+		document.write("<TD vAlign=top><B>" + Name + "</B><BR>" + Description + "</TD>");
+	document.write("</TR>");
+}
+
+
+
+function ShowPage()
+{
+	var dis = ("R" == l_BaseStationMode ? "disabled" : " ");
+
+	document.write("<form METHOD=post onsubmit='return SubmitHandler(this)' onreset=OnReset()>");
+		BuildBoxHeader();
+		document.write("<table id=TableData class=boxInside>"); 
+			AddSelectionRadio(Loc("Router"), Loc("RouterBlurb"), "R", l_BaseStationMode);
+			AddSelectionRadio(Loc("AP"), Loc("APBlurb"), "AP", l_BaseStationMode);
+			Add2ColTRTD("", "<INPUT id=CB_RangeExt onclick=enableApply(); type=checkbox " + ('1' == g_NATIVEWIFI_RepeaterAP ? "CHECKED" : "") + " " + dis + " >" + Loc("RangeExt"));
+		document.write("</TABLE>");
+		document.write("<BR>");
+
+		document.write("<INPUT type=hidden name=\"a_NETWORK_PROTOCOLSTOBINDTO_"+g_NAT_Public+"\" value=\""+g_NETWORK_PROTOCOLSTOBINDTO[g_NAT_Public]+"\">");
+		document.write("<INPUT type=hidden name=NAT_EnableAddressTranslation value="+g_NAT_EnableAddressTranslation+">");
+		document.write("<INPUT type=hidden name=NAT_EnableDnsProxy value="+g_NAT_EnableDnsProxy+">");
+		document.write("<INPUT type=hidden name=NAT_EnableDhcpAllocator value="+g_NAT_EnableDhcpAllocator+">");
+		document.write("<INPUT type=hidden name=NETWORK_MBridgeBinding value="+g_NETWORK_MBridgeBinding+">");
+		document.write("<INPUT type=hidden name=NAT_EnableIGD value="+g_NAT_EnableIGD+">");
+		document.write("<INPUT type=hidden name='a_NETWORK_DHCP_"+g_NAT_Private+"' value='ENABLED'>");
+		
+		document.write("<TABLE id=TableData2 class=boxInside>");
+		AddTR();
+			AddTD(Loc("BodyText"));
+		EndTR();
+
+		AddTR();
+			AddTD("<SPAN class=disabledText id=baseStationNameLabel>"+Loc("StationName")+"</SPAN>" + "<INPUT type=text onkeyup=enableApply(); name=HOSTNAME_Name value="+g_HOSTNAME_Name+" " + dis + ">");
+		EndTR();
+		document.write("</TABLE>");
+		BuildBoxFooter();	
+		AddApplyCancel();
+
+	document.write("</form>");
+	
+	if ("0" == g_NATIVEWIFI_WirelessEnabled)
+	{
+		TableData.disabled = true;
+		TableData2.disabled = true;
+	}
+}
+	
+</script>
+<html>
+	<script>BuildPage(Loc("PageTitle"), Loc("PageBlurb"), "ShowPage()");</script>
+</html>

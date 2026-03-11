@@ -1,0 +1,52 @@
+<!--
+Copyright (c) Microsoft Corporation.  All rights reserved.
+-->
+<!--
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+-->
+##include PASSWORD##
+##include HOSTNAME##
+##include SMBFILE##
+
+<noscript><body bgcolor=#d6dff5><center><b><font color=#6487dc>Javascript support is required to display this page</font></b></center></body></noscript>
+<script src="ParsedGeneralUtils.js" language="javascript"></script><script src="../remoteadminimages/GeneralUtils.js" language="javascript"></script>
+
+<script language="javascript">
+
+
+function ShowUsers()
+{		
+	var i = 1;
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor>Active Users</TD></TR>");		
+	for(Conn in g_SMBFILE_ConnectedUsers) {		
+		document.write("<TR><TD>"+i+".</TD><TD>" + g_SMBFILE_ConnectedUsers[Conn] + "</TD><TD>");
+		i++;
+	}	
+	document.write("</table>");
+	BuildBoxFooter();
+
+	BuildBoxHeader();
+	document.write("<table class=boxInside>");
+	document.write("<TR><TD COLSPAN=2 class=cellLtColor>General Statistics</TD></TR>");		
+	document.write("<TR><TD>Total Bytes Read</TD><TD>" + g_SMBFILE_TotalRead + "</TD><TD>");
+	document.write("<TR><TD>Total Bytes Written</TD><TD>" + g_SMBFILE_TotalWritten + "</TD><TD>");	
+	document.write("</table>");
+	BuildBoxFooter();
+}
+</script>
+
+
+<html>
+	<head>
+		<title>NAS Admin</title>		
+	</head>
+	<body>	
+		<script>BuildMainTable("Use this page to view SMB Server Status.", "", "ShowUsers()");</script>	
+	</body>
+</html>
