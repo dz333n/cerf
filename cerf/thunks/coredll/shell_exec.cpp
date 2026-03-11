@@ -1,20 +1,11 @@
 #define NOMINMAX
 #define _CRT_SECURE_NO_WARNINGS
 /* ShellExecuteEx thunk — handles CLSID paths, .lnk shortcuts, directories,
-   ARM PE in-process loading, ctlpnl.exe CPL applet hosting, native fallback */
+   ARM PE in-process loading, native fallback */
 #include "../win32_thunks.h"
 #include "../../log.h"
 #include <cstdio>
 #include <shellapi.h>
-#include <cpl.h>
-
-/* Extract basename from a path (lowercase) */
-static std::wstring GetLowerBasename(const std::wstring& path) {
-    size_t pos = path.find_last_of(L"\\/");
-    std::wstring name = (pos != std::wstring::npos) ? path.substr(pos + 1) : path;
-    for (auto& c : name) c = towlower(c);
-    return name;
-}
 
 void Win32Thunks::RegisterShellExecHandler() {
     Thunk("ShellExecuteEx", 480, [this](uint32_t* regs, EmulatedMemory& mem) -> bool {
@@ -121,57 +112,6 @@ void Win32Thunks::RegisterShellExecHandler() {
                 if (!wce_path.empty() && wce_path[0] != L'\\') wce_path = L"\\" + wce_path;
                 return callSHCreateExplorerInstance(wce_path);
             }
-        }
-
-        /* Handle ctlpnl.exe natively: load .cpl as ARM DLL, call CPlApplet.
-           ctlpnl.exe loads at 0x00010000 (same as explorer.exe) and has no .reloc,
-           so running it in-process would overwrite explorer's code. Instead we
-           implement the SHRunCpl logic directly: parse params, LoadLibrary the .cpl,
-           and call CPlApplet(CPL_INIT/CPL_DBLCLK/CPL_STOP/CPL_EXIT). */
-        std::wstring basename = GetLowerBasename(file);
-        if (basename == L"ctlpnl.exe" && callback_executor && !params.empty()) {
-            /* Parse "cplmain.cpl,7" → cpl_name, applet_index */
-            std::wstring cpl_name;
-            int applet_idx = 0, tab_idx = 0;
-            size_t comma = params.find(L',');
-            if (comma != std::wstring::npos) {
-                cpl_name = params.substr(0, comma);
-                std::wstring rest = params.substr(comma + 1);
-                applet_idx = _wtoi(rest.c_str());
-                size_t comma2 = rest.find(L',');
-                if (comma2 != std::wstring::npos) tab_idx = _wtoi(rest.substr(comma2+1).c_str());
-            } else {
-                cpl_name = params;
-            }
-            LOG(API, "[API]   -> ctlpnl.exe: loading CPL '%ls' applet=%d tab=%d\n",
-                cpl_name.c_str(), applet_idx, tab_idx);
-            /* LoadArmDll expects a bare filename, not a full WinCE path */
-            std::wstring cpl_basename = GetLowerBasename(cpl_name);
-            std::string narrow_cpl;
-            for (auto c : cpl_basename) narrow_cpl += (char)c;
-            LoadedDll* cpl = LoadArmDll(narrow_cpl.c_str());
-            if (cpl) {
-                CallDllEntryPoints();
-                uint32_t cplApplet = PELoader::ResolveExportName(mem, cpl->pe_info, "CPlApplet");
-                if (cplApplet) {
-                    uint32_t a1[4] = { 0, CPL_INIT, 0, 0 };
-                    callback_executor(cplApplet, a1, 4);
-                    uint32_t a2[4] = { 0, CPL_DBLCLK, (uint32_t)MAKELONG(applet_idx, tab_idx), 0 };
-                    callback_executor(cplApplet, a2, 4);
-                    uint32_t a3[4] = { 0, CPL_STOP, (uint32_t)applet_idx, 0 };
-                    callback_executor(cplApplet, a3, 4);
-                    uint32_t a4[4] = { 0, CPL_EXIT, 0, 0 };
-                    callback_executor(cplApplet, a4, 4);
-                    LOG(API, "[API]   -> CPlApplet sequence complete\n");
-                    mem.Write32(sei_addr + 0x20, 42);
-                    regs[0] = 1;
-                    return true;
-                }
-            }
-            LOG(API, "[API]   -> failed to load CPL '%ls'\n", cpl_name.c_str());
-            mem.Write32(sei_addr + 0x20, 0);
-            regs[0] = 0;
-            return true;
         }
 
         /* ARM PE child process — launch on its own OS thread like real WinCE.

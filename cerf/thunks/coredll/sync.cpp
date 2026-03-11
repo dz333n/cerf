@@ -58,26 +58,28 @@ void Win32Thunks::RegisterSyncHandlers() {
     });
     Thunk("InitLocale", 8, [](uint32_t* regs, EmulatedMemory&) -> bool { regs[0] = 1; return true; });
     /* Interlocked operations — use real atomic ops for thread safety.
-       Identity-mapped memory means ARM pointers are valid native pointers. */
-    Thunk("InterlockedIncrement", 10, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        volatile LONG* ptr = (volatile LONG*)(uintptr_t)regs[0];
-        regs[0] = (uint32_t)InterlockedIncrement(ptr);
+       Must go through mem.Translate() to resolve ProcessSlot overlays;
+       raw ARM-address casts would hit the global page instead of the
+       child process's private copy, corrupting COM refcounts etc. */
+    Thunk("InterlockedIncrement", 10, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        volatile LONG* ptr = (volatile LONG*)mem.Translate(regs[0]);
+        regs[0] = ptr ? (uint32_t)InterlockedIncrement(ptr) : 0;
         return true;
     });
     ThunkOrdinal("InterlockedDecrement", 11);
-    Thunk("InterlockedDecrement", [](uint32_t* regs, EmulatedMemory&) -> bool {
-        volatile LONG* ptr = (volatile LONG*)(uintptr_t)regs[0];
-        regs[0] = (uint32_t)InterlockedDecrement(ptr);
+    Thunk("InterlockedDecrement", [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        volatile LONG* ptr = (volatile LONG*)mem.Translate(regs[0]);
+        regs[0] = ptr ? (uint32_t)InterlockedDecrement(ptr) : 0;
         return true;
     });
-    Thunk("InterlockedExchange", 12, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        volatile LONG* ptr = (volatile LONG*)(uintptr_t)regs[0];
-        regs[0] = (uint32_t)InterlockedExchange(ptr, (LONG)regs[1]);
+    Thunk("InterlockedExchange", 12, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        volatile LONG* ptr = (volatile LONG*)mem.Translate(regs[0]);
+        regs[0] = ptr ? (uint32_t)InterlockedExchange(ptr, (LONG)regs[1]) : 0;
         return true;
     });
-    Thunk("InterlockedCompareExchange", 1492, [](uint32_t* regs, EmulatedMemory&) -> bool {
-        volatile LONG* ptr = (volatile LONG*)(uintptr_t)regs[0];
-        LONG original = InterlockedCompareExchange(ptr, (LONG)regs[1], (LONG)regs[2]);
+    Thunk("InterlockedCompareExchange", 1492, [](uint32_t* regs, EmulatedMemory& mem) -> bool {
+        volatile LONG* ptr = (volatile LONG*)mem.Translate(regs[0]);
+        LONG original = ptr ? InterlockedCompareExchange(ptr, (LONG)regs[1], (LONG)regs[2]) : 0;
         regs[0] = (uint32_t)original;
         return true;
     });

@@ -22,10 +22,18 @@
    shared pages, giving ~50x address space savings for small allocations.
    IMPORTANT: 0x00400000 is NOT available — occupied by system on x64 Windows. */
 
-/* Commit pages covering [addr, addr+size). Skips already-committed pages. */
+/* Commit pages covering [addr, addr+size). Skips already-committed pages.
+   When a ProcessSlot overlay is active, check the slot's own bitmap rather than
+   global memory — otherwise parent process pages shadow the commit check. */
 static void CommitPages(EmulatedMemory& mem, uint32_t addr, uint32_t size) {
-    for (uint32_t p = addr & ~0xFFFu; p < addr + size; p += 0x1000)
-        if (!mem.IsValid(p)) mem.Alloc(p, 0x1000);
+    for (uint32_t p = addr & ~0xFFFu; p < addr + size; p += 0x1000) {
+        if (EmulatedMemory::process_slot && p < ProcessSlot::SLOT_SIZE) {
+            if (!EmulatedMemory::process_slot->IsPageCommitted(p))
+                mem.Alloc(p, 0x1000);
+        } else {
+            if (!mem.IsValid(p)) mem.Alloc(p, 0x1000);
+        }
+    }
 }
 
 /* Bump-allocate with sub-page packing for small allocations. */

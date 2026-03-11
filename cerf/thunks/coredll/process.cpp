@@ -37,11 +37,17 @@ void Win32Thunks::RegisterProcessHandlers() {
             Win32Thunks* thunks;
             uint32_t sentinel;
             char parent_process[32];
+            char parent_exe_path[512];
+            ProcessSlot* parent_slot;
         };
         auto* info = new ThreadStartInfo{
-            lpStartAddress, lpParameter, &mem, this, 0xCAFEC000, {}
+            lpStartAddress, lpParameter, &mem, this, 0xCAFEC000, {}, {},
+            EmulatedMemory::process_slot
         };
-        if (t_ctx) snprintf(info->parent_process, 32, "%s", t_ctx->process_name);
+        if (t_ctx) {
+            snprintf(info->parent_process, 32, "%s", t_ctx->process_name);
+            snprintf(info->parent_exe_path, 512, "%s", t_ctx->exe_path);
+        }
 
         DWORD realThreadId = 0;
         HANDLE hThread = ::CreateThread(NULL, 0,
@@ -54,10 +60,13 @@ void Win32Thunks::RegisterProcessHandlers() {
                 ctx.marshal_base = 0x3F000000 + (thread_idx + 1) * 0x10000;
                 t_ctx = &ctx;
 
-                /* Inherit process name from parent thread */
+                /* Inherit process name, exe path, and address space from parent */
                 snprintf(ctx.process_name, sizeof(ctx.process_name), "%s",
                          info->parent_process);
+                snprintf(ctx.exe_path, sizeof(ctx.exe_path), "%s",
+                         info->parent_exe_path);
                 Log::SetProcessName(ctx.process_name, GetCurrentThreadId());
+                EmulatedMemory::process_slot = info->parent_slot;
 
                 /* Allocate per-thread stack in emulated memory */
                 uint32_t stack_size = 0x100000; /* 1MB */

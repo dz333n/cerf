@@ -99,6 +99,10 @@ uint32_t PELoader::LoadIntoSlot(const char* path, EmulatedMemory& mem,
         return 0;
     }
 
+    /* Record the image range so Translate only overlays PE addresses */
+    slot.image_base = info.image_base;
+    slot.image_end = info.image_base + info.size_of_image;
+
     /* Commit pages in the slot for the image */
     if (!slot.Commit(info.image_base, info.size_of_image)) {
         LOG_ERR("[PE] Failed to commit slot pages for 0x%08X+0x%X\n",

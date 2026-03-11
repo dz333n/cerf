@@ -70,10 +70,29 @@ public:
         /* If a process slot overlay is active and the address falls in slot 0,
            commit pages in the overlay instead of global memory. */
         if (process_slot && base < ProcessSlot::SLOT_SIZE) {
-            if (process_slot->Commit(base, size))
-                return process_slot->buffer + base;
-            fprintf(stderr, "[MEM] ProcessSlot commit failed at 0x%08X+0x%X\n", base, size);
-            return nullptr;
+            /* Copy-on-write: commit pages individually and snapshot parent's
+               global data so child process sees existing shared-page content
+               (heap/COM data on pages shared with parent's allocators). */
+            uint32_t pg_start = base & ~(PAGE_SIZE - 1);
+            uint32_t pg_end = AlignUp(base + size, PAGE_SIZE);
+            for (uint32_t pg = pg_start; pg < pg_end; pg += PAGE_SIZE) {
+                if (process_slot->IsPageCommitted(pg)) continue;
+                if (!process_slot->Commit(pg, PAGE_SIZE)) {
+                    fprintf(stderr, "[MEM] ProcessSlot commit failed at 0x%08X\n", pg);
+                    continue;
+                }
+                /* Copy existing global memory content into the slot page */
+                uint8_t* dst = process_slot->Translate(pg);
+                if (!dst) continue;
+                for (auto& r : regions) {
+                    if (pg >= r.base && pg < r.base + r.size) {
+                        uint8_t* src = r.host_ptr + (pg - r.base);
+                        if (src != dst) memcpy(dst, src, PAGE_SIZE);
+                        break;
+                    }
+                }
+            }
+            return process_slot->Translate(base);
         }
         /* Try to allocate at the exact ARM address for identity mapping */
         uint8_t* ptr = nullptr;
@@ -111,10 +130,13 @@ public:
            Single branch, almost always not-taken (well-predicted). */
         if (kdata_override && (addr >> 12) == 0xFFFFC)
             return kdata_override + (addr & 0xFFF);
-        /* Per-process slot overlay: addresses in [0, 0x02000000) go to the
-           thread's private process slot instead of the global regions. */
-        if (process_slot && addr < ProcessSlot::SLOT_SIZE)
-            return process_slot->Translate(addr);
+        /* Per-process slot overlay: committed pages in [0, 0x02000000) go to the
+           thread's private process slot. Uncommitted pages fall through to global
+           regions so shared DLL heap pointers (e.g. ole32 CDllCache) resolve correctly. */
+        if (process_slot && addr < ProcessSlot::SLOT_SIZE) {
+            uint8_t* sp = process_slot->Translate(addr);
+            if (sp) return sp;
+        }
         for (auto& r : regions) {
             if (addr >= r.base && addr < r.base + r.size) {
                 return r.host_ptr + (addr - r.base);
